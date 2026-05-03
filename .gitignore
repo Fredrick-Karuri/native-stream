@@ -1,0 +1,30 @@
+# ── Go ────────────────────────────────────────────────────────────────────────
+app/server/nativestream-server
+app/server/*.out
+/bin/
+
+# ── Swift / Xcode ─────────────────────────────────────────────────────────────
+app/macos/NativeStreamMac.xcodeproj/xcuserdata/
+app/macos/NativeStreamMac.xcodeproj/project.xcworkspace/xcuserdata/
+app/macos/DerivedData/
+app/macos/*.xcworkspace/xcuserdata/
+app/macos/*.xcuserstate
+app/macos/.build/
+*.resolved
+
+# ── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+*.swp
+*.swo
+
+# ── Config & secrets ─────────────────────────────────────────────────────────
+# Keep example; ignore real config
+config/config.yaml
+!config/config.example.yaml
+
+# ── Runtime artefacts ────────────────────────────────────────────────────────
+*.log
+channels.json
+epg_cache.xml
+discovery_state.json

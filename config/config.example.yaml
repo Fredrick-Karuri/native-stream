@@ -1,0 +1,65 @@
+# NativeStream Server — Example Configuration
+# Copy to ~/.config/nativestream/config.yaml and edit as needed.
+# All fields have defaults — you can start with an empty file.
+
+server:
+  host: 127.0.0.1   # NEVER change to 0.0.0.0 — localhost only
+  port: 8888
+
+store:
+  snapshot_path: ~/.config/nativestream/channels.json
+  snapshot_interval: 5m
+
+probe:
+  interval: 10m       # How often to re-check active stream links
+  timeout: 5s         # Per-link probe timeout
+  concurrency: 20     # Parallel probe workers
+
+epg:
+  enabled: true
+  refresh_interval: 6h
+  lookahead_hours: 48
+  cache_path: ~/.config/nativestream/epg_cache.xml
+  sources:
+    football_data:
+      enabled: false
+      api_key: ""     # Free key at https://www.football-data.org
+    espn:
+      enabled: true   # No key needed
+
+proxy:
+  enabled: false      # Enable if streams need Referer/User-Agent injection
+  referer: ""
+  user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+
+# ── Phase 3: Discovery (added in V3) ─────────────────────────────────────────
+discovery:
+  enabled: false      # Enable in Phase 3
+  default_interval: 30m
+  priority_interval: 5m   # Used for channels with match in <2h
+
+  gists:
+    enabled: false
+    token: ""         # Optional GitHub PAT (raises rate limit from 60 to 5000/hr)
+    gist_ids: []      # Add public Gist IDs here, e.g. ["abc123def456"]
+
+  reddit:
+    enabled: false
+    subreddits:
+      - soccerstreams
+      - nflstreams
+      - nbastreams
+      - cricketstreams
+
+  telegram:
+    enabled: false
+    channels: []      # Add public channel usernames, e.g. ["@sportstreamslinks"]
+
+  direct_m3u:
+    enabled: false
+    urls: []          # Add stable M3U URLs here
+
+# ── Seed playlist ─────────────────────────────────────────────────────────────
+# On first run, import an existing .m3u file to populate the channel store.
+seed:
+  m3u_path: ""        # e.g. ~/Downloads/my-channels.m3u
