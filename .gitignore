@@ -4,12 +4,11 @@ app/server/*.out
 /bin/
 
 # ── Swift / Xcode ─────────────────────────────────────────────────────────────
-app/macos/NativeStreamMac.xcodeproj/xcuserdata/
-app/macos/NativeStreamMac.xcodeproj/project.xcworkspace/xcuserdata/
-app/macos/DerivedData/
-app/macos/*.xcworkspace/xcuserdata/
-app/macos/*.xcuserstate
-app/macos/.build/
+app/macos/NativeStream/NativeStream.xcodeproj/xcuserdata/
+app/macos/NativeStream/NativeStream.xcodeproj/project.xcworkspace/xcuserdata/
+app/macos/NativeStream/DerivedData/
+**/*.xcuserstate
+**/*.xcsettings
 *.resolved
 
 # ── macOS ────────────────────────────────────────────────────────────────────
