@@ -54,7 +54,9 @@ struct SettingsView: View {
                 if showAddSource {
                     VStack(alignment: .leading, spacing: 8) {
                         TextField("Label (e.g. Sports Pack)", text: $newSourceLabel)
+                            .textFieldStyle(.roundedBorder)
                         TextField("URL (https:// or file://)", text: $newSourceURL)
+                            .textFieldStyle(.roundedBorder)
                         Picker("Refresh", selection: $newRefreshInterval) {
                             ForEach(RefreshInterval.allCases, id: \.self) { interval in
                                 Text(interval.displayName).tag(interval)
