@@ -5,13 +5,12 @@
 package config
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
@@ -118,75 +117,82 @@ func Load() (Config, error) {
 	}
 	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		parts := strings.SplitN(line, ":", 2)
-		if len(parts) != 2 {
-			continue
-		}
-		key := strings.TrimSpace(parts[0])
-		val := strings.TrimSpace(parts[1])
-		applyKey(&cfg, key, val)
+	var raw struct {
+		Server struct {
+			Host string `yaml:"host"`
+			Port int    `yaml:"port"`
+		} `yaml:"server"`
+		Store struct {
+			SnapshotPath     string `yaml:"snapshot_path"`
+			SnapshotInterval string `yaml:"snapshot_interval"`
+		} `yaml:"store"`
+		Probe struct {
+			Interval    string `yaml:"interval"`
+			Timeout     string `yaml:"timeout"`
+			Concurrency int    `yaml:"concurrency"`
+		} `yaml:"probe"`
+		EPG struct {
+			Enabled         bool   `yaml:"enabled"`
+			RefreshInterval string `yaml:"refresh_interval"`
+			LookaheadHours  int    `yaml:"lookahead_hours"`
+			CachePath       string `yaml:"cache_path"`
+			Sources         struct {
+				ESPN         struct{ Enabled bool `yaml:"enabled"` } `yaml:"espn"`
+				FootballData struct {
+					Enabled bool   `yaml:"enabled"`
+					APIKey  string `yaml:"api_key"`
+				} `yaml:"football_data"`
+			} `yaml:"sources"`
+		} `yaml:"epg"`
+		Proxy struct {
+			Enabled   bool   `yaml:"enabled"`
+			Referer   string `yaml:"referer"`
+			UserAgent string `yaml:"user_agent"`
+		} `yaml:"proxy"`
+		Discovery struct {
+			Enabled         bool   `yaml:"enabled"`
+			DefaultInterval string `yaml:"default_interval"`
+			PriorityInterval string `yaml:"priority_interval"`
+		} `yaml:"discovery"`
+		Seed struct {
+			M3UPath string `yaml:"m3u_path"`
+		} `yaml:"seed"`
 	}
 
-	cfg.Store.SnapshotPath = expandHome(cfg.Store.SnapshotPath)
-	cfg.EPG.CachePath = expandHome(cfg.EPG.CachePath)
-	cfg.Seed.M3UPath = expandHome(cfg.Seed.M3UPath)
-	return cfg, scanner.Err()
+	if err := yaml.NewDecoder(f).Decode(&raw); err != nil {
+		return cfg, fmt.Errorf("parse config: %w", err)
+	}
+
+	if raw.Server.Host != "" { cfg.Server.Host = raw.Server.Host }
+	if raw.Server.Port != 0  { cfg.Server.Port = raw.Server.Port }
+
+	if raw.Store.SnapshotPath != ""     { cfg.Store.SnapshotPath = expandHome(raw.Store.SnapshotPath) }
+	if d, err := time.ParseDuration(raw.Store.SnapshotInterval); err == nil { cfg.Store.SnapshotInterval = d }
+
+	if raw.Probe.Concurrency != 0 { cfg.Probe.Concurrency = raw.Probe.Concurrency }
+	if d, err := time.ParseDuration(raw.Probe.Interval); err == nil { cfg.Probe.Interval = d }
+	if d, err := time.ParseDuration(raw.Probe.Timeout);  err == nil { cfg.Probe.Timeout = d }
+
+	cfg.EPG.Enabled = raw.EPG.Enabled
+	cfg.EPG.ESPNEnabled = raw.EPG.Sources.ESPN.Enabled
+	cfg.EPG.FootballDataKey = raw.EPG.Sources.FootballData.APIKey
+	if raw.EPG.CachePath != ""    { cfg.EPG.CachePath = expandHome(raw.EPG.CachePath) }
+	if raw.EPG.LookaheadHours != 0 { cfg.EPG.LookaheadHours = raw.EPG.LookaheadHours }
+	if d, err := time.ParseDuration(raw.EPG.RefreshInterval); err == nil { cfg.EPG.RefreshInterval = d }
+
+	cfg.Proxy.Enabled = raw.Proxy.Enabled
+	if raw.Proxy.Referer   != "" { cfg.Proxy.Referer = raw.Proxy.Referer }
+	if raw.Proxy.UserAgent != "" { cfg.Proxy.UserAgent = raw.Proxy.UserAgent }
+
+	cfg.Discovery.Enabled = raw.Discovery.Enabled
+	if d, err := time.ParseDuration(raw.Discovery.DefaultInterval);  err == nil { cfg.Discovery.DefaultInterval = d }
+	if d, err := time.ParseDuration(raw.Discovery.PriorityInterval); err == nil { cfg.Discovery.PriorityInterval = d }
+
+	if raw.Seed.M3UPath != "" { cfg.Seed.M3UPath = expandHome(raw.Seed.M3UPath) }
+
+	return cfg, nil
 }
 
-func applyKey(cfg *Config, key, val string) {
-	switch key {
-	case "host":
-		cfg.Server.Host = val
-	case "port":
-		if n, err := strconv.Atoi(val); err == nil {
-			cfg.Server.Port = n
-		}
-	case "snapshot_path":
-		cfg.Store.SnapshotPath = val
-	case "snapshot_interval":
-		if d, err := time.ParseDuration(val); err == nil {
-			cfg.Store.SnapshotInterval = d
-		}
-	case "probe_interval":
-		if d, err := time.ParseDuration(val); err == nil {
-			cfg.Probe.Interval = d
-		}
-	case "probe_timeout":
-		if d, err := time.ParseDuration(val); err == nil {
-			cfg.Probe.Timeout = d
-		}
-	case "probe_concurrency":
-		if n, err := strconv.Atoi(val); err == nil {
-			cfg.Probe.Concurrency = n
-		}
-	case "epg_enabled":
-		cfg.EPG.Enabled = val == "true"
-	case "epg_refresh_interval":
-		if d, err := time.ParseDuration(val); err == nil {
-			cfg.EPG.RefreshInterval = d
-		}
-	case "espn_enabled":
-		cfg.EPG.ESPNEnabled = val == "true"
-	case "football_data_key":
-		cfg.EPG.FootballDataKey = val
-	case "proxy_enabled":
-		cfg.Proxy.Enabled = val == "true"
-	case "proxy_referer":
-		cfg.Proxy.Referer = val
-	case "proxy_user_agent":
-		cfg.Proxy.UserAgent = val
-	case "discovery_enabled":
-		cfg.Discovery.Enabled = val == "true"
-	case "seed_m3u_path":
-		cfg.Seed.M3UPath = val
-	}
-}
 
 func expandHome(path string) string {
 	if !strings.HasPrefix(path, "~") {
