@@ -47,9 +47,7 @@ func New(
 }
 
 // Router registers all routes and returns the mux.
-func (h *Handler) Router() http.Handler {
-	mux := http.NewServeMux()
-
+func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Playlist & EPG
 	mux.HandleFunc("GET /playlist.m3u", h.handlePlaylist)
 	mux.HandleFunc("GET /epg.xml", h.handleEPG)
@@ -68,7 +66,6 @@ func (h *Handler) Router() http.Handler {
 	mux.HandleFunc("GET /api/health", h.handleHealth)
 	mux.HandleFunc("POST /api/probe", h.handleProbe)
 
-	return mux
 }
 
 // ── Playlist ──────────────────────────────────────────────────────────────────

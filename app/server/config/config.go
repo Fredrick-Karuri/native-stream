@@ -61,9 +61,14 @@ type ProxyConfig struct {
 }
 
 type DiscoveryConfig struct {
-	Enabled          bool
-	DefaultInterval  time.Duration
-	PriorityInterval time.Duration
+    Enabled          bool
+    DefaultInterval  time.Duration
+    PriorityInterval time.Duration
+    GistIDs          []string
+    GistToken        string
+    Subreddits       []string
+    TelegramChannels []string
+    DirectM3UURLs    []string
 }
 
 type SeedConfig struct {
@@ -149,11 +154,30 @@ func Load() (Config, error) {
 			Referer   string `yaml:"referer"`
 			UserAgent string `yaml:"user_agent"`
 		} `yaml:"proxy"`
+
 		Discovery struct {
-			Enabled         bool   `yaml:"enabled"`
-			DefaultInterval string `yaml:"default_interval"`
-			PriorityInterval string `yaml:"priority_interval"`
+			Enabled          bool     `yaml:"enabled"`
+			DefaultInterval  string   `yaml:"default_interval"`
+			PriorityInterval string   `yaml:"priority_interval"`
+			Gists struct {
+				Enabled  bool     `yaml:"enabled"`
+				Token    string   `yaml:"token"`
+				GistIDs  []string `yaml:"gist_ids"`
+			} `yaml:"gists"`
+			Reddit struct {
+				Enabled     bool     `yaml:"enabled"`
+				Subreddits  []string `yaml:"subreddits"`
+			} `yaml:"reddit"`
+			Telegram struct {
+				Enabled  bool     `yaml:"enabled"`
+				Channels []string `yaml:"channels"`
+			} `yaml:"telegram"`
+			DirectM3U struct {
+				Enabled bool     `yaml:"enabled"`
+				URLs    []string `yaml:"urls"`
+			} `yaml:"direct_m3u"`
 		} `yaml:"discovery"`
+
 		Seed struct {
 			M3UPath string `yaml:"m3u_path"`
 		} `yaml:"seed"`
