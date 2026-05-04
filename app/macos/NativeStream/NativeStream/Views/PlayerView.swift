@@ -61,9 +61,10 @@ struct PlayerView: View {
         .animation(.easeInOut(duration: 0.2), value: showControls)
         .animation(.easeInOut(duration: 0.2), value: playerVM.error == nil)
         .onTapGesture { showControlsTemporarily() }
-        .onDisappear {
-    playerVM.cleanup()
-}
+        .onDisappear {playerVM.cleanup()}
+        .onReceive(NotificationCenter.default.publisher(for: .init("enterPiP"))) { _ in
+            pipController?.startPictureInPicture()
+        }
     }
 
     // MARK: - Subviews

@@ -1,133 +1,144 @@
 # NativeStream Mac
 
-A native macOS live sports TV client + self-healing stream server. Replaces browser-based streaming and scrcpy with hardware-decoded HLS playback, a real EPG guide, PiP, and AirPlay.
+A self-healing, native macOS live sports TV client. Hardware-decoded HLS playback, auto-discovering stream links, EPG guide, PiP, and AirPlay — no emulators, no browser wrappers.
 
 ## Architecture
 
 ```
-NativeStream Mac (Swift/SwiftUI)  ←→  StreamServer (Go, localhost:8888)  ←→  Stream CDNs
+NativeStream Mac (Swift/SwiftUI)
+    ↕ localhost:8888
+StreamServer (Go)
+  ├── Channel Store (in-memory + JSON snapshot)
+  ├── Validator (20-worker probe pool, self-healing)
+  ├── Discovery Engine
+  │   ├── Gist Crawler      (community M3U playlists)
+  │   ├── Reddit Crawler    (subreddit posts)
+  │   ├── Telegram Crawler  (public channels)
+  │   └── DirectM3U Crawler (stable M3U URLs)
+  ├── EPG Engine (ESPN + football-data.org → XMLTV)
+  └── HLS Proxy (optional header injection)
 ```
-
-- **Mac App** — channel sidebar, EPG grid, AVFoundation player, PiP, AirPlay, Now Playing
-- **StreamServer** — playlist serving, link health probing, EPG generation, auto-discovery (Phase 3)
 
 ## Prerequisites
 
-| Tool | Version |
+| | Version |
 |---|---|
-| macOS | 14 (Sonoma) or later |
-| Xcode | 15 or later |
-| Go | 1.22 or later |
-| Apple Silicon | Recommended (M1–M4) |
+| macOS | 14 (Sonoma)+ |
+| Xcode | 15+ |
+| Go | 1.22+ |
 
 ## Quick Start
-
-### 1. Clone and set up
 
 ```bash
 git clone https://github.com/yourname/nativestream.git
 cd nativestream
-./scripts/install.sh
-```
-
-### 2. Build and run the server
-
-```bash
+./scripts/install.sh      # creates ~/.config/nativestream/config.yaml
 make build-server
-make run-server
-# Server starts at http://127.0.0.1:8888
+make run-server           # starts at http://127.0.0.1:8888
 ```
 
-### 3. Open the Mac app
+Open `app/macos/NativeStreamMac.xcodeproj` → ⌘R
 
-Open `app/macos/NativeStreamMac.xcodeproj` in Xcode and press **⌘R**, or build a release DMG:
+## First Channel
 
 ```bash
-make build-app
+curl -X POST http://localhost:8888/api/channels \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Sky Sports 1",
+    "group_title": "Football",
+    "tvg_id": "SkySports1",
+    "keywords": ["sky","skysports","sky1","skysports1"],
+    "stream_url": "https://your-found-stream.m3u8"
+  }'
 ```
 
-### 4. Add a playlist source
+Then in the Mac app: Settings → Sources → `http://localhost:8888/playlist.m3u`
 
-In the app: **⌘,** → Sources → Add Source
+## Enabling Auto-Discovery
 
-- **URL**: point at `http://localhost:8888/playlist.m3u` (once server has channels) or paste a direct M3U URL
-- **EPG URL**: `http://localhost:8888/epg.xml` or a public XMLTV source (e.g. `https://epghub.xyz`)
+Edit `~/.config/nativestream/config.yaml`:
 
-## Finding Your First M3U8 Link (Phase 1 manual step)
+```yaml
+discovery_enabled: true
+```
 
-Before the discovery engine (Phase 3) is running, you need to find stream links manually:
-
-1. Open **Safari** on your Mac
-2. Enable **Develop menu**: Safari → Settings → Advanced → Show Develop menu
-3. Go to the sports streaming site you normally use on your phone
-4. Open **Develop → Show Web Inspector → Network**
-5. Start playing a stream
-6. Filter by `.m3u8` — you'll see requests like `index.m3u8` or `master.m3u8`
-7. Right-click → **Copy URL**
-8. Paste into IINA first to verify it plays smoothly, then add to NativeStream
-
-> **Tip**: Test the link in IINA before doing anything else. If it buffers in IINA, the upstream source is the problem — no amount of app polish fixes that.
+Add sources — any combination of Gist IDs, subreddits, Telegram channels, or direct M3U URLs — and the server will find and validate stream links automatically, replacing dead ones before you notice.
 
 ## Development
 
 ```bash
-# Run server tests
-make test-server
-
-# Run Go vet
-make vet-server
-
-# Clean build artefacts
+make build-server           # compile Go server
+make run-server             # run locally
+make test-server            # go test -race ./...
+make install-service        # register as launchd service
 make clean
 ```
+
+## Distribution
+
+```bash
+# Server — build release binaries
+VERSION=4.0.0 ./scripts/brew-release.sh
+
+# Mac app — build notarised DMG
+APPLE_ID=you@example.com TEAM_ID=XXXXXXXXXX ./scripts/release.sh
+```
+
+## API Reference
+
+| Endpoint | Description |
+|---|---|
+| `GET /playlist.m3u` | M3U of all healthy channels |
+| `GET /epg.xml` | XMLTV TV guide (48h) |
+| `GET /api/health` | Server status |
+| `POST /api/channels` | Add a channel |
+| `PUT /api/channels/:id` | Update stream URL |
+| `POST /api/probe` | Trigger immediate health check |
+| `GET /api/discovery/status` | Discovery engine status |
+| `POST /api/discovery/run` | Trigger immediate discovery cycle |
+| `GET /api/discovery/unmatched` | Unmatched candidate links |
+
+## Performance Targets
+
+| Metric | Target |
+|---|---|
+| Boot to live video | < 2s |
+| CPU at 1080p/60fps | < 10% (M1) |
+| RAM steady-state | < 200 MB |
+| Server memory | < 30 MB |
+| Playlist response | < 5ms |
 
 ## Project Structure
 
 ```
 nativestream/
 ├── app/
-│   ├── server/          ← Go backend (cmd/, api/, store/, validator/, discovery/, epg/)
-│   └── macos/           ← Swift Mac app (App/, Core/, ViewModels/, Views/)
-├── config/
-│   └── config.example.yaml
-├── scripts/
-│   ├── install.sh
-│   └── release.sh
-├── Makefile
-└── README.md
+│   ├── server/           Go backend
+│   │   ├── api/          HTTP handlers + middleware
+│   │   ├── config/       Configuration loader
+│   │   ├── discovery/    Engine, crawlers, extractor, matcher
+│   │   ├── epg/          XMLTV generation + priority escalation
+│   │   ├── logging/      slog setup
+│   │   ├── playlist/     M3U generator
+│   │   ├── proxy/        HLS transparent proxy
+│   │   ├── service/      launchd install/uninstall
+│   │   ├── shutdown/     Graceful shutdown handler
+│   │   ├── store/        Channel store + snapshots
+│   │   └── validator/    Link scoring + self-healing
+│   └── macos/            Swift/SwiftUI Mac app
+│       ├── App/          Entry point, ContentView
+│       ├── Core/         Models, Parsers, Services
+│       ├── ViewModels/   Observable state
+│       └── Views/        Sidebar, Player, EPG grid, Settings
+├── config/               Example config
+├── homebrew/             Homebrew formula
+└── scripts/              Build, install, release, test notes
 ```
 
 ## Commit Convention
 
 ```
-NS-{ticket-id}: short description
-# e.g. NS-021: implement M3U parser with EXTINF attribute extraction
+NS-{ticket-id}: description
+# e.g. NS-211: implement GitHub Gist crawler with conditional fetch
 ```
-
-## Branch Strategy
-
-```
-main                 ← stable
-├── phase/1-mac-app
-├── phase/2-server
-├── phase/3-discovery
-└── feature/NS-{id}
-```
-
-## Performance Targets (Phase 1)
-
-| Metric | Target |
-|---|---|
-| Boot to live video | < 2 seconds |
-| CPU during 1080p/60fps | < 10% (M1) |
-| RAM steady-state | < 200 MB |
-
-## FAQ
-
-**Streams are buffering** — Test in IINA first. If it buffers there too, the problem is the stream source, not the app. Try a different link or source.
-
-**EPG not showing** — Check your EPG URL in Settings. The `tvg-id` in your M3U must match the channel `id` in the XMLTV file. Mismatches are common — Phase 3 adds fuzzy matching.
-
-**App says "StreamServer not running"** — Run `make run-server` in a terminal. For permanent background operation: `make install-service`.
-
-**Link died mid-match** — In Phase 1/2, find a new link and update it via `PUT /api/channels/:id`. Phase 3 auto-discovery handles this automatically.

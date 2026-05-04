@@ -179,6 +179,12 @@ final class PlayerViewModel {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
+    // MARK: - PiP (NS-044)
+
+    func enterPiP() {
+        NotificationCenter.default.post(name: .init("enterPiP"), object: nil)
+    }
+
     // MARK: - Cleanup
 
     func cleanup() {

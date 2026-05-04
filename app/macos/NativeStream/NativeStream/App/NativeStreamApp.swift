@@ -1,5 +1,5 @@
-// NativeStreamApp.swift — @main entry point
-// NS-002 + NS-051
+// NativeStreamApp.swift — Phase 4: wires all services including MediaKeyHandler,
+// MenuBarManager, FavouritesManager, and EPG grid.
 
 import SwiftUI
 import AVFoundation
@@ -7,10 +7,13 @@ import AVFoundation
 @main
 struct NativeStreamApp: App {
 
-    @State private var playlistVM  = PlaylistViewModel()
-    @State private var epgVM       = EPGViewModel()
-    @State private var playerVM    = PlayerViewModel()
-    @State private var settings    = SettingsStore()
+    @State private var playlistVM   = PlaylistViewModel()
+    @State private var epgVM        = EPGViewModel()
+    @State private var playerVM     = PlayerViewModel()
+    @State private var settings     = SettingsStore()
+    @State private var favourites   = FavouritesManager()
+    @State private var serverHealth = ServerHealthViewModel()
+
 
     var body: some Scene {
         WindowGroup {
@@ -19,6 +22,8 @@ struct NativeStreamApp: App {
                 .environment(epgVM)
                 .environment(playerVM)
                 .environment(settings)
+                .environment(favourites)
+                .environment(serverHealth)
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
@@ -28,6 +33,16 @@ struct NativeStreamApp: App {
                     NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 }
                 .keyboardShortcut(",", modifiers: .command)
+            }
+            CommandMenu("Playback") {
+                Button("Play / Pause") { playerVM.togglePlayback() }
+                    .keyboardShortcut(.space, modifiers: [])
+                Divider()
+                Button("Enter Picture in Picture") { playerVM.enterPiP() }
+                    .keyboardShortcut("p", modifiers: [.command, .shift])
+                Divider()
+                Button("Refresh Playlist") { Task { await playlistVM.loadAll() } }
+                    .keyboardShortcut("r", modifiers: .command)
             }
         }
 
@@ -39,14 +54,5 @@ struct NativeStreamApp: App {
     }
 
     init() {
-        // NS-047: Configure background audio session
-        configureAudioSession()
-        NowPlayingService.shared.configure()
-    }
-
-    private func configureAudioSession() {
-        // macOS uses AVAudioSession differently; for HLS via AVFoundation
-        // background audio is handled via the entitlement + keeping AVPlayer active.
-        // Nothing to configure on macOS directly — handled by system.
     }
 }

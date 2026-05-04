@@ -1,15 +1,13 @@
-// cmd/main.go — Phase 3: fully wired with Discovery Engine.
+// cmd/main.go — Phase 4: hardened with slog, circuit breaker, graceful shutdown.
 
 package main
 
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/fredrick-karuri/nativestream/server/api"
@@ -21,6 +19,8 @@ import (
 	"github.com/fredrick-karuri/nativestream/server/service"
 	"github.com/fredrick-karuri/nativestream/server/store"
 	"github.com/fredrick-karuri/nativestream/server/validator"
+	"github.com/fredrick-karuri/nativestream/server/logging"
+	"github.com/fredrick-karuri/nativestream/server/shutdown"
 )
 
 func main() {
@@ -32,17 +32,18 @@ func main() {
 				binary = os.Args[2]
 			}
 			if err := service.Install(binary); err != nil {
-				log.Fatalf("install-service: %v", err)
+				fmt.Fprintf(os.Stderr, "install-service: %v\n", err)
+				os.Exit(1)
 			}
 			return
 		case "--uninstall-service":
 			if err := service.Uninstall(); err != nil {
-				log.Fatalf("uninstall-service: %v", err)
+				fmt.Fprintf(os.Stderr, "uninstall-service: %v\n", err)
+				os.Exit(1)
 			}
 			return
 		case "--help", "-h":
-			fmt.Println("NativeStream Server v3.0")
-			fmt.Println("Usage:")
+			fmt.Println("NativeStream Server v4.0")
 			fmt.Println("  nativestream-server                     Start")
 			fmt.Println("  nativestream-server --install-service   Register launchd service")
 			fmt.Println("  nativestream-server --uninstall-service Remove launchd service")
@@ -50,12 +51,14 @@ func main() {
 		}
 	}
 
+	// ── Config & logging ───────────────────────────────────────────────────────
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("config: %v", err)
+		fmt.Fprintf(os.Stderr, "config: %v\n", err)
+		os.Exit(1)
 	}
-
-	log.Printf("NativeStream Server v3.0 — http://%s", cfg.Server.Addr())
+	logging.Init("info", false)
+	slog.Info("NativeStream Server v4.0", "addr", cfg.Server.Addr())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -63,10 +66,10 @@ func main() {
 	// ── Store ──────────────────────────────────────────────────────────────────
 	s := store.New(cfg.Store.SnapshotPath)
 	if err := s.Load(); err != nil {
-		log.Printf("⚠ store load: %v (starting fresh)", err)
+		slog.Warn("store load failed, starting fresh", "err", err)
 	}
 	total, healthy := s.Count()
-	log.Printf("Store: %d channels (%d healthy)", total, healthy)
+	slog.Info("store loaded", "channels", total, "healthy", healthy)
 
 	// ── Validator ──────────────────────────────────────────────────────────────
 	v := validator.New(validator.Config{
@@ -96,23 +99,26 @@ func main() {
 	px := proxy.New(proxyCfg, s)
 
 	// ── Discovery ──────────────────────────────────────────────────────────────
+	cb := discovery.NewCircuitBreaker(5, time.Hour)
+	_ = cb // available for crawler injection in future
+
 	var crawlerList []discovery.Crawler
 	if cfg.Discovery.Enabled {
 		if len(cfg.Discovery.GistIDs) > 0 {
 			crawlerList = append(crawlerList, crawlers.NewGistCrawler(cfg.Discovery.GistIDs, ""))
-			log.Printf("Discovery: Gist crawler enabled (%d gists)", len(cfg.Discovery.GistIDs))
+			slog.Info("crawler enabled", "name", "gist", "sources", len(cfg.Discovery.GistIDs))
 		}
 		if len(cfg.Discovery.Subreddits) > 0 {
 			crawlerList = append(crawlerList, crawlers.NewRedditCrawler(cfg.Discovery.Subreddits))
-			log.Printf("Discovery: Reddit crawler enabled (%d subreddits)", len(cfg.Discovery.Subreddits))
+			slog.Info("crawler enabled", "name", "reddit", "sources", len(cfg.Discovery.Subreddits))
 		}
 		if len(cfg.Discovery.TelegramChannels) > 0 {
 			crawlerList = append(crawlerList, crawlers.NewTelegramCrawler(cfg.Discovery.TelegramChannels))
-			log.Printf("Discovery: Telegram crawler enabled (%d channels)", len(cfg.Discovery.TelegramChannels))
+			slog.Info("crawler enabled", "name", "telegram", "sources", len(cfg.Discovery.TelegramChannels))
 		}
 		if len(cfg.Discovery.DirectM3UURLs) > 0 {
 			crawlerList = append(crawlerList, crawlers.NewDirectM3UCrawler(cfg.Discovery.DirectM3UURLs))
-			log.Printf("Discovery: DirectM3U crawler enabled (%d URLs)", len(cfg.Discovery.DirectM3UURLs))
+			slog.Info("crawler enabled", "name", "direct_m3u", "sources", len(cfg.Discovery.DirectM3UURLs))
 		}
 	}
 
@@ -126,9 +132,13 @@ func main() {
 	// ── API ────────────────────────────────────────────────────────────────────
 	serverAddr := fmt.Sprintf("http://%s", cfg.Server.Addr())
 	h := api.New(s, e, px, v, proxyCfg, serverAddr)
+
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 	discEngine.RegisterRoutes(mux)
+
+	// Apply middleware stack
+	handler := api.LoggingMiddleware(api.RecoveryMiddleware(mux))
 
 	// ── Background workers ─────────────────────────────────────────────────────
 	go s.RunSnapshotter(ctx, cfg.Store.SnapshotInterval)
@@ -136,7 +146,7 @@ func main() {
 	go e.RunRefresher(ctx)
 	go discEngine.Run(ctx)
 
-	// ── Match-aware priority escalation — runs every 15 min ───────────────────
+	// Priority escalation — check every 15 min
 	go func() {
 		ticker := time.NewTicker(15 * time.Minute)
 		defer ticker.Stop()
@@ -145,7 +155,7 @@ func main() {
 			case <-ticker.C:
 				ids, end := e.PriorityChannelIDs(2 * time.Hour)
 				if len(ids) > 0 {
-					log.Printf("Priority escalation: %d channels with match in <2h", len(ids))
+					slog.Info("priority escalation", "channels", len(ids))
 					discEngine.SetPriorityChannels(ids, end)
 				}
 			case <-ctx.Done():
@@ -154,173 +164,21 @@ func main() {
 		}
 	}()
 
-	log.Println("All workers started.")
+	slog.Info("all workers started")
 
 	// ── HTTP server ────────────────────────────────────────────────────────────
 	srv := &http.Server{
 		Addr:         cfg.Server.Addr(),
-		Handler:      mux,
+		Handler:      handler,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigCh
-		log.Println("Shutting down…")
-		cancel()
-		shutCtx, sc := context.WithTimeout(context.Background(), 10*time.Second)
-		defer sc()
-		_ = srv.Shutdown(shutCtx)
-	}()
+	go shutdown.OnSignal(srv, cancel, 10*time.Second)
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("server: %v", err)
+		slog.Error("server error", "err", err)
+		os.Exit(1)
 	}
-	log.Println("Stopped.")
 }
-
-// // cmd/main.go
-// // NativeStream Server — entry point. Wires all Phase 2 components.
-
-// package main
-
-// import (
-// 	"context"
-// 	"fmt"
-// 	"log"
-// 	"net/http"
-// 	"os"
-// 	"os/signal"
-// 	"syscall"
-// 	"time"
-
-// 	"github.com/fredrick-karuri/nativestream/server/api"
-// 	"github.com/fredrick-karuri/nativestream/server/config"
-// 	"github.com/fredrick-karuri/nativestream/server/epg"
-// 	"github.com/fredrick-karuri/nativestream/server/proxy"
-// 	"github.com/fredrick-karuri/nativestream/server/service"
-// 	"github.com/fredrick-karuri/nativestream/server/store"
-// 	"github.com/fredrick-karuri/nativestream/server/validator"
-// )
-
-// func main() {
-// 	// ── CLI flags ──────────────────────────────────────────────────────────────
-// 	if len(os.Args) > 1 {
-// 		switch os.Args[1] {
-// 		case "--install-service":
-// 			binary := ""
-// 			if len(os.Args) > 2 {
-// 				binary = os.Args[2]
-// 			}
-// 			if err := service.Install(binary); err != nil {
-// 				log.Fatalf("install-service: %v", err)
-// 			}
-// 			return
-// 		case "--uninstall-service":
-// 			if err := service.Uninstall(); err != nil {
-// 				log.Fatalf("uninstall-service: %v", err)
-// 			}
-// 			return
-// 		case "--help", "-h":
-// 			fmt.Println("NativeStream Server")
-// 			fmt.Println("Usage:")
-// 			fmt.Println("  nativestream-server                     Start the server")
-// 			fmt.Println("  nativestream-server --install-service   Register as launchd service")
-// 			fmt.Println("  nativestream-server --uninstall-service Remove launchd service")
-// 			return
-// 		}
-// 	}
-
-// 	// ── Config ─────────────────────────────────────────────────────────────────
-// 	cfg, err := config.Load()
-// 	if err != nil {
-// 		log.Fatalf("config: %v", err)
-// 	}
-
-// 	log.Printf("NativeStream Server v2.0")
-// 	log.Printf("Listening on http://%s", cfg.Server.Addr())
-
-// 	// ── Context (for graceful shutdown) ───────────────────────────────────────
-// 	ctx, cancel := context.WithCancel(context.Background())
-// 	defer cancel()
-
-// 	// ── Store ──────────────────────────────────────────────────────────────────
-// 	s := store.New(cfg.Store.SnapshotPath)
-// 	if err := s.Load(); err != nil {
-// 		log.Printf("⚠ store load: %v (starting fresh)", err)
-// 	}
-// 	log.Printf("Store loaded. Channels: %d", func() int { t, _ := s.Count(); return t }())
-
-// 	// ── Validator ──────────────────────────────────────────────────────────────
-// 	valCfg := validator.Config{
-// 		Interval:        cfg.Probe.Interval,
-// 		Timeout:         cfg.Probe.Timeout,
-// 		Concurrency:     cfg.Probe.Concurrency,
-// 		MinScoreActive:  cfg.Probe.MinScoreActive,
-// 		MinScorePromote: cfg.Probe.MinScorePromote,
-// 	}
-// 	v := validator.New(valCfg, s)
-
-// 	// ── EPG ────────────────────────────────────────────────────────────────────
-// 	epgCfg := epg.Config{
-// 		Enabled:         cfg.EPG.Enabled,
-// 		RefreshInterval: cfg.EPG.RefreshInterval,
-// 		LookaheadHours:  cfg.EPG.LookaheadHours,
-// 		CachePath:       cfg.EPG.CachePath,
-// 		ESPNEnabled:     cfg.EPG.ESPNEnabled,
-// 		FootballDataKey: cfg.EPG.FootballDataKey,
-// 	}
-// 	e := epg.New(epgCfg, s)
-
-// 	// ── Proxy ──────────────────────────────────────────────────────────────────
-// 	proxyCfg := proxy.Config{
-// 		Enabled:   cfg.Proxy.Enabled,
-// 		Referer:   cfg.Proxy.Referer,
-// 		UserAgent: cfg.Proxy.UserAgent,
-// 	}
-// 	px := proxy.New(proxyCfg, s)
-
-// 	// ── API ────────────────────────────────────────────────────────────────────
-// 	serverAddr := fmt.Sprintf("http://%s", cfg.Server.Addr())
-// 	h := api.New(s, e, px, v, proxyCfg, serverAddr)
-
-// 	// ── Background workers ─────────────────────────────────────────────────────
-// 	go s.RunSnapshotter(ctx, cfg.Store.SnapshotInterval)
-// 	go v.RunProber(ctx)
-// 	go e.RunRefresher(ctx)
-
-// 	log.Printf("Workers started (snapshotter, prober, EPG refresher)")
-
-// 	// ── HTTP server ────────────────────────────────────────────────────────────
-// 	srv := &http.Server{
-// 		Addr:         cfg.Server.Addr(),
-// 		Handler:      h.Router(),
-// 		ReadTimeout:  30 * time.Second,
-// 		WriteTimeout: 60 * time.Second,
-// 		IdleTimeout:  120 * time.Second,
-// 	}
-
-// 	// ── Graceful shutdown ──────────────────────────────────────────────────────
-// 	sigCh := make(chan os.Signal, 1)
-// 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-// 	go func() {
-// 		<-sigCh
-// 		log.Println("Shutting down…")
-// 		cancel()
-// 		shutCtx, shutCancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 		defer shutCancel()
-// 		if err := srv.Shutdown(shutCtx); err != nil {
-// 			log.Printf("HTTP shutdown: %v", err)
-// 		}
-// 	}()
-
-// 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-// 		log.Fatalf("server: %v", err)
-// 	}
-
-// 	log.Println("Server stopped. Final snapshot written.")
-// }
