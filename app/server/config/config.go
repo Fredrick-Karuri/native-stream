@@ -35,6 +35,7 @@ func (s ServerConfig) Addr() string {
 type StoreConfig struct {
 	SnapshotPath     string
 	SnapshotInterval time.Duration
+	MinScoreHealthy float64
 }
 
 type ProbeConfig struct {
@@ -83,6 +84,7 @@ func Defaults() Config {
 		Store: StoreConfig{
 			SnapshotPath:     filepath.Join(base, "channels.json"),
 			SnapshotInterval: 5 * time.Minute,
+			MinScoreHealthy: 0.3,
 		},
 		Probe: ProbeConfig{
 			Interval:        10 * time.Minute,
@@ -130,11 +132,14 @@ func Load() (Config, error) {
 		Store struct {
 			SnapshotPath     string `yaml:"snapshot_path"`
 			SnapshotInterval string `yaml:"snapshot_interval"`
+			MinScoreHealthy  float64 `yaml:"min_score_healthy"`
 		} `yaml:"store"`
 		Probe struct {
 			Interval    string `yaml:"interval"`
 			Timeout     string `yaml:"timeout"`
 			Concurrency int    `yaml:"concurrency"`
+			MinScorePromote float64 `yaml:"min_score_promote"`
+			MinScoreActive  float64 `yaml:"min_score_active"`
 		} `yaml:"probe"`
 		EPG struct {
 			Enabled         bool   `yaml:"enabled"`
@@ -213,6 +218,9 @@ func Load() (Config, error) {
 	if d, err := time.ParseDuration(raw.Discovery.PriorityInterval); err == nil { cfg.Discovery.PriorityInterval = d }
 
 	if raw.Seed.M3UPath != "" { cfg.Seed.M3UPath = expandHome(raw.Seed.M3UPath) }
+
+	if raw.Probe.MinScorePromote != 0 { cfg.Probe.MinScorePromote = raw.Probe.MinScorePromote }
+	if raw.Store.MinScoreHealthy != 0 { cfg.Store.MinScoreHealthy = raw.Store.MinScoreHealthy }
 
 	return cfg, nil
 }

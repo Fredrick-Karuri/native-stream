@@ -64,7 +64,7 @@ func main() {
 	defer cancel()
 
 	// ── Store ──────────────────────────────────────────────────────────────────
-	s := store.New(cfg.Store.SnapshotPath)
+	s := store.New(cfg.Store.SnapshotPath,cfg.Store.MinScoreHealthy)
 	if err := s.Load(); err != nil {
 		slog.Warn("store load failed, starting fresh", "err", err)
 	}
@@ -78,7 +78,7 @@ func main() {
 		Concurrency:     cfg.Probe.Concurrency,
 		MinScoreActive:  cfg.Probe.MinScoreActive,
 		MinScorePromote: cfg.Probe.MinScorePromote,
-	}, s)
+	}, s,cfg.Proxy.Referer,cfg.Proxy.UserAgent)
 
 	// ── EPG ────────────────────────────────────────────────────────────────────
 	e := epg.New(epg.Config{

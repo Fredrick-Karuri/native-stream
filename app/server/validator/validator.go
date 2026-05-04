@@ -52,13 +52,17 @@ type Validator struct {
 	client *http.Client
 	mu     sync.Mutex
 	lastProbe time.Time
+    referer   string
+    userAgent string
 }
 
-func New(cfg Config, s *store.Store) *Validator {
+func New(cfg Config, s *store.Store, referer, userAgent string) *Validator {
 	return &Validator{
 		cfg:   cfg,
 		store: s,
 		queue: make(chan Candidate, 500),
+		referer:   referer,
+		userAgent: userAgent,
 		client: &http.Client{
 			Timeout: cfg.Timeout,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -181,7 +185,11 @@ func (v *Validator) measure(url string) *store.LinkScore {
 		link.Score = 0
 		return link
 	}
-	req.Header.Set("User-Agent", "NativeStream/1.0")
+
+	req.Header.Set("User-Agent", v.userAgent)
+	if v.referer != "" {
+		req.Header.Set("Referer", v.referer)
+	}
 
 	resp, err := v.client.Do(req)
 	latency := time.Since(start)
@@ -213,7 +221,11 @@ func (v *Validator) estimateBitrate(url string) int {
 		return 0
 	}
 	req.Header.Set("Range", "bytes=0-10239") // First 10KB
-	req.Header.Set("User-Agent", "NativeStream/1.0")
+
+	req.Header.Set("User-Agent", v.userAgent)
+	if v.referer != "" {
+		req.Header.Set("Referer", v.referer)
+	}
 
 	start := time.Now()
 	resp, err := v.client.Do(req)

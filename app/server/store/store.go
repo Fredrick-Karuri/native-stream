@@ -57,12 +57,14 @@ type Store struct {
 	mu       sync.RWMutex
 	channels map[string]*Channel
 	path     string
+	minScoreHealthy float64
 }
 
-func New(snapshotPath string) *Store {
+func New(snapshotPath string, minScoreHealthy float64) *Store {
 	return &Store{
 		channels: make(map[string]*Channel),
 		path:     snapshotPath,
+		minScoreHealthy: minScoreHealthy,
 	}
 }
 
@@ -96,7 +98,7 @@ func (s *Store) HealthyChannels() []*Channel {
 	defer s.mu.RUnlock()
 	var out []*Channel
 	for _, ch := range s.channels {
-		if ch.ActiveLink != nil && ch.ActiveLink.Score >= 0.3 {
+		if ch.ActiveLink != nil && ch.ActiveLink.Score >= s.minScoreHealthy {
 			cp := *ch
 			out = append(out, &cp)
 		}
@@ -242,7 +244,7 @@ func (s *Store) Count() (total, healthy int) {
 	defer s.mu.RUnlock()
 	total = len(s.channels)
 	for _, ch := range s.channels {
-		if ch.ActiveLink != nil && ch.ActiveLink.Score >= 0.3 {
+		if ch.ActiveLink != nil && ch.ActiveLink.Score >= s.minScoreHealthy {
 			healthy++
 		}
 	}
