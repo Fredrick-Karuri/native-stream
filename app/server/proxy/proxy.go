@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"net/url"
 
 	"github.com/fredrick-karuri/nativestream/server/store"
 )
@@ -106,12 +107,60 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (p *Proxy) rewritePlaylist(body, baseURL, channelID string) string {
+    base, err := url.Parse(baseURL)
+    if err != nil {
+        return body
+    }
+    lines := strings.Split(body, "\n")
+    for i, line := range lines {
+        trimmed := strings.TrimSpace(line)
+        if trimmed == "" {
+            continue
+        }
+        // Rewrite URI= attributes in tags like #EXT-X-MEDIA
+        if strings.HasPrefix(trimmed, "#") && strings.Contains(trimmed, `URI="`) {
+            lines[i] = rewriteURIAttr(trimmed, base)
+            continue
+        }
+        // Rewrite stream/segment URLs
+        if !strings.HasPrefix(trimmed, "#") {
+            ref, err := url.Parse(trimmed)
+            if err != nil {
+                continue
+            }
+            lines[i] = base.ResolveReference(ref).String()
+        }
+    }
+    return strings.Join(lines, "\n")
+}
+
+func rewriteURIAttr(line string, base *url.URL) string {
+    start := strings.Index(line, `URI="`)
+    if start == -1 {
+        return line
+    }
+    start += 5
+    end := strings.Index(line[start:], `"`)
+    if end == -1 {
+        return line
+    }
+    rawURI := line[start : start+end]
+    ref, err := url.Parse(rawURI)
+    if err != nil {
+        return line
+    }
+    absolute := base.ResolveReference(ref).String()
+    return line[:start] + absolute + line[start+end:]
+}
+
 // rewritePlaylist rewrites relative and absolute URLs in HLS playlists
 // to route through this proxy so AVFoundation doesn't bypass it.
-func (p *Proxy) rewritePlaylist(body, baseURL, channelID string) string {
-	// For a full implementation, you'd parse each line and rewrite
-	// relative segment URLs. For M3U8 master playlists with variant
-	// streams, each variant URL would also be proxied.
-	// Phase 2 keeps this simple — pass through and let AVFoundation handle segments.
-	return body
-}
+
+// func (p *Proxy) rewritePlaylist(body, baseURL, channelID string) string {
+// 	// For a full implementation, you'd parse each line and rewrite
+// 	// relative segment URLs. For M3U8 master playlists with variant
+// 	// streams, each variant URL would also be proxied.
+// 	// Phase 2 keeps this simple — pass through and let AVFoundation handle segments.
+// 	return body
+// }
