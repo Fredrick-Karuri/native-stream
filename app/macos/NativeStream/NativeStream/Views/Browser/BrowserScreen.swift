@@ -97,12 +97,13 @@ struct BrowserScreen: View {
             }
         }
     }
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 5)
 
     @ViewBuilder
     private func channelGrid(_ channels: [Channel]) -> some View {
         LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 148, maximum: 200), spacing: 8)],
-            spacing: 8
+            columns: columns,
+            spacing: 12
         ) {
             ForEach(channels) { channel in
                 ChannelCard(channel: channel) { onSelectChannel(channel) }

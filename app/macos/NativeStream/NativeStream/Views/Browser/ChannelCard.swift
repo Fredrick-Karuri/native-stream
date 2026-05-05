@@ -131,9 +131,8 @@ struct ChannelLogoView: View {
                 placeholder
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity) // ✅ fill the parent
         .background(NS.bg)
-        .clipShape(RoundedRectangle(cornerRadius: 7))
-        .overlay(RoundedRectangle(cornerRadius: 7).stroke(NS.border))
     }
 
     private var placeholder: some View {
