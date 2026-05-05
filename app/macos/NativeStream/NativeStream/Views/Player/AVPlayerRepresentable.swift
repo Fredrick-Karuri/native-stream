@@ -1,58 +1,64 @@
 // AVPlayerRepresentable.swift — NS-043
-// NSViewRepresentable wrapping AVPlayerLayer for SwiftUI embedding.
-
 import SwiftUI
 import AVFoundation
 import AVKit
 
-struct AVPlayerRepresentable: NSViewRepresentable {
-
+struct AVPlayerRepresentableRef: NSViewRepresentable {
     let player: AVPlayer?
+    let onViewCreated: (AVPlayerNSView) -> Void
 
     func makeNSView(context: Context) -> AVPlayerNSView {
-        let view = AVPlayerNSView()
-        view.player = player
-        return view
+        let v = AVPlayerNSView()
+        v.player = player
+        return v
     }
 
     func updateNSView(_ nsView: AVPlayerNSView, context: Context) {
-        if nsView.player !== player {
-            nsView.player = player
+        if nsView.player !== player { nsView.player = player }
+        if nsView.frame.size.width > 0 {
+            onViewCreated(nsView)
         }
     }
 }
 
-// MARK: - Custom NSView with AVPlayerLayer
+// Keep original for any non-PiP usage
+struct AVPlayerRepresentable: NSViewRepresentable {
+    let player: AVPlayer?
+
+    func makeNSView(context: Context) -> AVPlayerNSView {
+        let v = AVPlayerNSView()
+        v.player = player
+        return v
+    }
+
+    func updateNSView(_ nsView: AVPlayerNSView, context: Context) {
+        if nsView.player !== player { nsView.player = player }
+    }
+}
+
+// MARK: - NSView
 
 final class AVPlayerNSView: NSView {
 
     var player: AVPlayer? {
-        get { playerLayer.player }
-        set { playerLayer.player = newValue }
-    }
-
-    private var playerLayer: AVPlayerLayer {
-        layer as! AVPlayerLayer
+        get { avPlayerLayer.player }
+        set { avPlayerLayer.player = newValue }
     }
 
     override init(frame: NSRect) {
         super.init(frame: frame)
         wantsLayer = true
-        let layer = AVPlayerLayer()
-        layer.videoGravity = .resizeAspect
-        layer.backgroundColor = NSColor.black.cgColor
-        self.layer = layer
+        avPlayerLayer.videoGravity = .resizeAspect
+        avPlayerLayer.backgroundColor = NSColor.black.cgColor
+        layer?.addSublayer(avPlayerLayer)
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) not used")
-    }
+    required init?(coder: NSCoder) { fatalError() }
 
     override func layout() {
         super.layout()
-        playerLayer.frame = bounds
+        avPlayerLayer.frame = bounds
     }
 
-    // Expose the AVPlayerLayer for PiP controller
-    var avPlayerLayer: AVPlayerLayer { playerLayer }
+    let avPlayerLayer = AVPlayerLayer()
 }

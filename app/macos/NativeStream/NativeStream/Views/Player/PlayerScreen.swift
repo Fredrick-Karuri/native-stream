@@ -16,8 +16,7 @@ struct PlayerScreen: View {
 
     @State private var showControls = true
     @State private var hideTask: Task<Void, Never>? = nil
-    @State private var pipController: AVPictureInPictureController?
-    @State private var playerViewRef: AVPlayerNSView?
+
 
     var body: some View {
         ZStack {
@@ -26,8 +25,7 @@ struct PlayerScreen: View {
             // Video
             if let player = playerVM.player {
                 AVPlayerRepresentableRef(player: player) { nsView in
-                    playerViewRef = nsView
-                    setupPiP(nsView)
+                    playerVM.setupPiP(playerLayer: nsView.avPlayerLayer)
                 }
                 .ignoresSafeArea()
             }
@@ -68,7 +66,7 @@ struct PlayerScreen: View {
             if showControls || playerVM.error != nil {
                 VStack {
                     Spacer()
-                    PlayerControls(pipController: pipController)
+                    PlayerControls(pipController: playerVM.pipController)
                 }
                 .transition(.opacity)
             }
@@ -92,11 +90,6 @@ struct PlayerScreen: View {
             guard !Task.isCancelled else { return }
             await MainActor.run { withAnimation { showControls = false } }
         }
-    }
-
-    private func setupPiP(_ nsView: AVPlayerNSView) {
-        guard AVPictureInPictureController.isPictureInPictureSupported() else { return }
-        pipController = AVPictureInPictureController(playerLayer: nsView.avPlayerLayer)
     }
 
     // Parse "Team A vs Team B — Competition" for score overlay
@@ -150,7 +143,7 @@ struct PlayerTopBar: View {
 
             HStack(spacing: 6) {
                 NSLiveBadge()
-                NSQualityBadge(quality: "720p")
+                // NSQualityBadge(quality: "720p")
             }
         }
         .padding(.horizontal, NS.Spacing.xl)
@@ -369,16 +362,6 @@ struct PlayerProgressBar: View {
             .frame(height: 4)
             .animation(.easeOut(duration: 0.12), value: isHovering)
             .onHover { isHovering = $0 }
-
-            HStack {
-                Text("● LIVE")
-                    .font(NS.Font.monoSm)
-                    .foregroundStyle(Color.white.opacity(0.3))
-                Spacer()
-                Text("Live")
-                    .font(NS.Font.monoSm)
-                    .foregroundStyle(Color.white.opacity(0.3))
-            }
         }
         .onReceive(timer) { _ in } // trigger view refresh for progress updates
     }
@@ -433,19 +416,5 @@ struct FieldTexture: View {
                 cg.strokePath()
             }
         }
-    }
-}
-
-// MARK: - AVPlayer with callback
-
-struct AVPlayerRepresentableRef: NSViewRepresentable {
-    let player: AVPlayer?
-    let onViewCreated: (AVPlayerNSView) -> Void
-
-    func makeNSView(context: Context) -> AVPlayerNSView {
-        let v = AVPlayerNSView(); v.player = player; onViewCreated(v); return v
-    }
-    func updateNSView(_ nsView: AVPlayerNSView, context: Context) {
-        if nsView.player !== player { nsView.player = player }
     }
 }

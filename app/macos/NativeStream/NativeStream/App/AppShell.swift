@@ -33,13 +33,10 @@ struct AppShell: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            AppTabBar(
-                activeTab: $activeTab,
-                showPlayer: $showPlayer,
-                selectedChannel: selectedChannel,
-                onRefresh: { Task { await playlistVM.loadAll() } }
-            )
+            if !showPlayer{
+            AppTabBar(activeTab: $activeTab, onRefresh: { Task { await playlistVM.loadAll() } })
             Divider().overlay(NS.border)
+            }
 
             ZStack(alignment: .bottomTrailing) {
                 tabContent
@@ -99,49 +96,24 @@ struct AppShell: View {
 // MARK: - Tab Bar
 
 struct AppTabBar: View {
-
     @Binding var activeTab: AppTab
-    @Binding var showPlayer: Bool
-    let selectedChannel: Channel?
     let onRefresh: () -> Void
-
-    @Environment(PlayerViewModel.self) private var playerVM
 
     var body: some View {
         HStack(spacing: 0) {
-
             Spacer()
-
-            // Centre segments — hidden when in player
-            if !showPlayer {
-                HStack(spacing: 2) {
-                    ForEach(AppTab.allCases, id: \.self) { tab in
-                        TabSegment(tab: tab, isActive: activeTab == tab) {
-                            withAnimation(.easeInOut(duration: 0.22)) { activeTab = tab }
-                        }
+            HStack(spacing: 2) {
+                ForEach(AppTab.allCases, id: \.self) { tab in
+                    TabSegment(tab: tab, isActive: activeTab == tab) {
+                        withAnimation(.easeInOut(duration: 0.22)) { activeTab = tab }
                     }
-                }
-            } else {
-                // Player title in centre
-                if let ch = selectedChannel {
-                    Text(ch.name)
-                        .font(NS.Font.bodyMedium)
-                        .foregroundStyle(NS.text2)
                 }
             }
-
             Spacer()
-
-            // Right utility buttons
             HStack(spacing: 6) {
-                if showPlayer {
-                    TBButton(label: "◫  PiP")  { playerVM.enterPiP() }
-                    TBButton(label: "⇥  AirPlay") { }
-                } else {
-                    TBButton(label: "↻") { onRefresh() }
-                    TBButton(label: "⚙") {
-                        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                    }
+                TBButton(label: "↻") { onRefresh() }
+                TBButton(label: "⚙") {
+                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 }
             }
             .padding(.trailing, 16)
