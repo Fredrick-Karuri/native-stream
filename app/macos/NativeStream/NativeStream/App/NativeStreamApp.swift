@@ -1,8 +1,7 @@
-// NativeStreamApp.swift — Phase 4: wires all services including MediaKeyHandler,
-// MenuBarManager, FavouritesManager, and EPG grid.
+// NativeStreamApp.swift — Phase 4 + UX v4
+// Wires AppShell as root view with all environment objects.
 
 import SwiftUI
-import AVFoundation
 
 @main
 struct NativeStreamApp: App {
@@ -14,16 +13,33 @@ struct NativeStreamApp: App {
     @State private var favourites   = FavouritesManager()
     @State private var serverHealth = ServerHealthViewModel()
 
-
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(playlistVM)
-                .environment(epgVM)
-                .environment(playerVM)
-                .environment(settings)
-                .environment(favourites)
-                .environment(serverHealth)
+            Group {
+                if !settings.onboardingComplete {
+                    OnboardingView { settings.onboardingComplete = true }
+                        .environment(settings)
+                        .environment(serverHealth)
+                        .environment(playlistVM)
+                } else {
+                    AppShell()
+                        .environment(playlistVM)
+                        .environment(epgVM)
+                        .environment(playerVM)
+                        .environment(settings)
+                        .environment(favourites)
+                        .environment(serverHealth)
+                }
+            }
+            .task {
+                guard let url = settings.serverURL else { return }
+                await serverHealth.check(serverURL: url)
+                epgVM.epgURL = settings.epgURL
+                async let _ = playlistVM.loadAll()
+                async let _ = epgVM.load()
+                playlistVM.scheduleAutoRefresh()
+                serverHealth.startPolling(serverURL: url)
+            }
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
@@ -34,25 +50,13 @@ struct NativeStreamApp: App {
                 }
                 .keyboardShortcut(",", modifiers: .command)
             }
-            CommandMenu("Playback") {
-                Button("Play / Pause") { playerVM.togglePlayback() }
-                    .keyboardShortcut(.space, modifiers: [])
-                Divider()
-                Button("Enter Picture in Picture") { playerVM.enterPiP() }
-                    .keyboardShortcut("p", modifiers: [.command, .shift])
-                Divider()
-                Button("Refresh Playlist") { Task { await playlistVM.loadAll() } }
-                    .keyboardShortcut("r", modifiers: .command)
-            }
         }
 
         Settings {
-            SettingsView()
+            SettingsScreen()
                 .environment(settings)
                 .environment(playlistVM)
+                .environment(serverHealth)
         }
-    }
-
-    init() {
     }
 }
