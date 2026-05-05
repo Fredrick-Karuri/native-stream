@@ -1,4 +1,4 @@
-.PHONY: build-server run-server clean build-app test-server
+.PHONY: build-server run-server clean build-app run-app dev test-server
 
 # ── Go Server ─────────────────────────────────────────────────────────────────
 SERVER_DIR := app/server
@@ -21,18 +21,36 @@ vet-server:
 	cd $(SERVER_DIR) && go vet ./...
 
 # ── Mac App ───────────────────────────────────────────────────────────────────
-APP_DIR     := app/macos
-SCHEME      := NativeStreamMac
+APP_DIR     := app/macos/NativeStream
+SCHEME      := NativeStream
 DERIVED     := $(APP_DIR)/DerivedData
 
 build-app:
 	@echo "→ Building Mac app (Release)..."
-	xcodebuild -project $(APP_DIR)/NativeStreamMac.xcodeproj \
+	xcodebuild -project $(APP_DIR)/NativeStream.xcodeproj \
 	           -scheme $(SCHEME) \
 	           -configuration Release \
 	           -derivedDataPath $(DERIVED) \
 	           build
 	@echo "✓ App built"
+
+run-app:
+	@echo "→ Building Mac app (Debug)..."
+	xcodebuild -project $(APP_DIR)/NativeStream.xcodeproj \
+	           -scheme $(SCHEME) \
+	           -configuration Debug \
+	           -derivedDataPath $(DERIVED) \
+	           build
+	@echo "→ Launching NativeStream..."
+	open $(DERIVED)/Build/Products/Debug/NativeStream.app
+
+# ── Dev (server + app together) ───────────────────────────────────────────────
+dev:
+	@echo "→ Starting server in background..."
+	$(MAKE) build-server
+	$(SERVER_BIN) &
+	@echo "→ Launching app..."
+	$(MAKE) run-app
 
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 clean:
@@ -44,11 +62,11 @@ clean:
 # ── Install service (macOS) ───────────────────────────────────────────────────
 install-service: build-server
 	@echo "→ Installing launchd service..."
-	cp $(SERVER_BIN) /usr/local/bin/nativestream-server
+	sudo cp $(SERVER_BIN) /usr/local/bin/nativestream-server
 	$(SERVER_BIN) --install-service
 	@echo "✓ Service installed. Server will start on next login."
 
 uninstall-service:
 	/usr/local/bin/nativestream-server --uninstall-service
-	rm -f /usr/local/bin/nativestream-server
+	sudo rm -f /usr/local/bin/nativestream-server
 	@echo "✓ Service removed"

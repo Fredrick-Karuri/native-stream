@@ -30,19 +30,6 @@ struct PlayerScreen: View {
                 .ignoresSafeArea()
             }
 
-            // Field texture overlay (subtle)
-            FieldTexture().opacity(0.025).ignoresSafeArea().allowsHitTesting(false)
-
-            // Vignette
-            RadialGradient(colors: [.clear, .black.opacity(0.55)],
-                           center: .center, startRadius: 100, endRadius: 500)
-                .ignoresSafeArea().allowsHitTesting(false)
-
-            // Ambient blue glow
-            RadialGradient(colors: [NS.accent.opacity(0.06), .clear],
-                           center: .top, startRadius: 0, endRadius: 400)
-                .ignoresSafeArea().allowsHitTesting(false)
-
             // Top bar
             if showControls || playerVM.error != nil {
                 VStack {

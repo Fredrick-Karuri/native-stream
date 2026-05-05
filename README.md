@@ -37,7 +37,7 @@ make build-server
 make run-server           # starts at http://127.0.0.1:8888
 ```
 
-Open `app/macos/NativeStreamMac.xcodeproj` → ⌘R
+Open `app/macos/NativeStream.xcodeproj` → ⌘R
 
 ## First Channel
 

@@ -157,7 +157,7 @@ final class PlaylistViewModel {
     private var sourcesURL: URL {
         FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("NativeStreamMac/playlist_sources.json")
+            .appendingPathComponent("NativeStream/playlist_sources.json")
     }
 
     private func saveSourcesToDisk() {
