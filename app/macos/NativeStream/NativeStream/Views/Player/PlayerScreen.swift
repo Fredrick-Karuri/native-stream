@@ -142,7 +142,7 @@ struct PlayerTopBar: View {
             Spacer()
 
             HStack(spacing: 6) {
-                NSLiveBadge()
+                NSLiveBadge(isLive: programme?.isNow ?? false)
                 // NSQualityBadge(quality: "720p")
             }
         }

@@ -70,26 +70,29 @@ struct NSProgressBar: View {
 // MARK: - NSLiveBadge
 
 struct NSLiveBadge: View {
+    var isLive: Bool = false
     @State private var pulsing = false
 
     var body: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(Color.white)
-                .frame(width: 5, height: 5)
-                .opacity(pulsing ? 0.3 : 1.0)
-                .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulsing)
-            Text("LIVE")
-                .font(NS.Font.monoSm)
-                .fontWeight(.bold)
-                .kerning(0.6)
-                .foregroundStyle(.white)
+        if isLive {
+            HStack(spacing: 4) {
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 5, height: 5)
+                    .opacity(pulsing ? 0.3 : 1.0)
+                    .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulsing)
+                Text("LIVE")
+                    .font(NS.Font.monoSm)
+                    .fontWeight(.bold)
+                    .kerning(0.6)
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 8)
+            .frame(height: 24)
+            .background(NS.live)
+            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .onAppear { pulsing = true }
         }
-        .padding(.horizontal, 8)
-        .frame(height: 24)
-        .background(NS.live)
-        .clipShape(RoundedRectangle(cornerRadius: 5))
-        .onAppear { pulsing = true }
     }
 }
 

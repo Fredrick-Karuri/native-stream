@@ -111,10 +111,17 @@ struct AppTabBar: View {
             }
             Spacer()
             HStack(spacing: 6) {
-                TBButton(label: "↻") { onRefresh() }
-                TBButton(label: "⚙") {
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+
+                Button(action: onRefresh) {
+                    TBButtonLabel(label: "↻")
                 }
+                .buttonStyle(.plain)
+
+                SettingsLink {
+                    TBButtonLabel(label: "⚙")
+                }
+                .buttonStyle(.plain)
+
             }
             .padding(.trailing, 16)
         }
@@ -154,23 +161,29 @@ struct TabSegment: View {
     }
 }
 
-struct TBButton: View {
+struct TBButtonLabel: View {
     let label: String
-    let action: () -> Void
     @State private var isHovered = false
 
     var body: some View {
-        Button(action: action) {
-            Text(label)
-                .font(NS.Font.caption)
-                .foregroundStyle(isHovered ? NS.text : NS.text2)
-                .padding(.horizontal, 10)
-                .frame(height: 26)
-                .background(isHovered ? NS.surface3 : NS.surface2)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(NS.border2))
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
+        Text(label)
+            .font(NS.Font.caption)
+            .foregroundStyle(isHovered ? NS.text : NS.text2)
+            .padding(.horizontal, 10)
+            .frame(height: 26)
+            .background(isHovered ? NS.surface3 : NS.surface2)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(NS.border2))
+            .onHover { isHovered = $0 }
     }
+}
+
+#Preview {
+    AppShell()
+        .environment(PlaylistViewModel())
+        .environment(EPGViewModel())
+        .environment(PlayerViewModel())
+        .environment(SettingsStore())
+        .environment(FavouritesManager())
+        .environment(ServerHealthViewModel())
 }

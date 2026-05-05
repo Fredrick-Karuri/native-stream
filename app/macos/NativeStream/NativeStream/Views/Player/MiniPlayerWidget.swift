@@ -1,6 +1,4 @@
 // MiniPlayerWidget.swift — UX-040
-// Floating mini player shown while browsing with active playback.
-
 import SwiftUI
 
 struct MiniPlayerWidget: View {
@@ -9,30 +7,28 @@ struct MiniPlayerWidget: View {
     @Environment(EPGViewModel.self)     private var epgVM
 
     let onExpand: () -> Void
-    @State private var isHovered = false
 
     var body: some View {
+        let ch = playerVM.currentChannel
+        let prog = ch.flatMap { epgVM.currentProgramme(for: $0) }
+
         VStack(spacing: 0) {
             // Mini video area
             ZStack {
                 NS.bg
                 FieldTexture().opacity(0.04)
 
-                // Score if available
-                if let ch = playerVM.currentChannel,
-                   let prog = epgVM.currentProgramme(for: ch) {
+                if let prog {
                     Text(extractScore(prog.title) ?? "● Live")
                         .font(NS.Font.scoreXL.leading(.tight))
                         .foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.5), radius: 8)
                 }
 
-                // LIVE badge
                 VStack {
                     HStack {
-                        NSLiveBadge()
+                        NSLiveBadge(isLive: prog?.isNow ?? false)
                         Spacer()
-                        // Expand button
                         Button(action: onExpand) {
                             Image(systemName: "arrow.up.left.and.arrow.down.right")
                                 .font(.system(size: 9))
@@ -54,13 +50,13 @@ struct MiniPlayerWidget: View {
 
             // Info + controls
             VStack(alignment: .leading, spacing: 8) {
-                if let ch = playerVM.currentChannel {
+                if let ch {
                     Text(ch.name)
                         .font(NS.Font.captionMed)
                         .foregroundStyle(NS.text)
                         .lineLimit(1)
 
-                    if let prog = epgVM.currentProgramme(for: ch) {
+                    if let prog {
                         Text("\(prog.title) · \(minuteStr(prog))")
                             .font(.system(size: 10))
                             .foregroundStyle(NS.text3)
@@ -74,14 +70,7 @@ struct MiniPlayerWidget: View {
                         playerVM.togglePlayback()
                     }
                     MiniCtrl(icon: "forward.end.fill") { }
-
-                    // Progress
-                    if let ch = playerVM.currentChannel,
-                       let prog = epgVM.currentProgramme(for: ch) {
-                        NSProgressBar(value: prog.progress, height: 2)
-                    } else {
-                        NSProgressBar(value: 0.38, height: 2)
-                    }
+                    NSProgressBar(value: prog?.progress ?? 0, height: 2)
                 }
             }
             .padding(.horizontal, 12)

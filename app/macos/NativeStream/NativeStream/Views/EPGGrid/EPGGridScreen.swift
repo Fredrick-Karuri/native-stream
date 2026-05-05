@@ -115,9 +115,20 @@ struct EPGGridScreen: View {
             Text("TV Guide")
                 .font(NS.Font.display)
                 .foregroundStyle(NS.text)
+
             Spacer()
-            TBButton(label: "◀  \(dayString)  ▶") {}
-            TBButton(label: "↻  Now") {}
+
+            Button {
+            } label: {
+                TBButtonLabel(label: "◀  \(dayString)  ▶")
+            }
+            .buttonStyle(.plain)
+
+            Button {
+            } label: {
+                TBButtonLabel(label: "↻  Now")
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, NS.Spacing.xl)
         .frame(height: 52)
