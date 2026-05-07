@@ -23,7 +23,7 @@ struct PlayerScreen: View {
             Color.black.ignoresSafeArea()
 
             // Video
-            if let player = playerVM.player {
+            if let player = playerVM.player, !playerVM.pipActive {
                 AVPlayerRepresentableRef(player: player) { nsView in
                     playerVM.setupPiP(playerLayer: nsView.avPlayerLayer)
                 }

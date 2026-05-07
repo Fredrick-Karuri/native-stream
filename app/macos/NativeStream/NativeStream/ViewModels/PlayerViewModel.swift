@@ -10,7 +10,7 @@ import AVKit
 
 @Observable
 @MainActor
-final class PlayerViewModel {
+final class PlayerViewModel:NSObject {
 
     // MARK: - State
 
@@ -21,7 +21,9 @@ final class PlayerViewModel {
     var error: PlayerError? = nil
     private(set) var retryCount: Int = 0
 
+
     var pipController: AVPictureInPictureController?
+    var pipActive: Bool = false
 
     // MARK: - Dependencies
 
@@ -118,8 +120,10 @@ private func startPlayback(url: URL) {
 
     func setupPiP(playerLayer: AVPlayerLayer) {
         guard AVPictureInPictureController.isPictureInPictureSupported(),
-            pipController == nil else { return }
-        pipController = AVPictureInPictureController(playerLayer: playerLayer)
+              pipController == nil else { return }
+        let pip = AVPictureInPictureController(playerLayer: playerLayer)
+        pip?.delegate = self
+        pipController = pip
     }
 
     func enterPiP() {
@@ -204,10 +208,21 @@ private func startPlayback(url: URL) {
     // MARK: - Cleanup
 
     func cleanup() {
+        pipController?.stopPictureInPicture()   // ← new
+        pipController = nil                      // ← new
         playerItemObservation?.cancel()
         player?.pause()
         player?.replaceCurrentItem(with: nil)
         isPlaying = false
-        updateNowPlayingState(paused: true)
+        pipActive = false                        // ← new
+    }
+}
+
+extension PlayerViewModel: AVPictureInPictureControllerDelegate {
+    nonisolated func pictureInPictureWillStart(_ controller: AVPictureInPictureController) {
+        Task { @MainActor in self.pipActive = true }
+    }
+    nonisolated func pictureInPictureWillStop(_ controller: AVPictureInPictureController) {
+        Task { @MainActor in self.pipActive = false }
     }
 }
