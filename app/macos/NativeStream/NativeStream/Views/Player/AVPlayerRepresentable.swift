@@ -10,14 +10,12 @@ struct AVPlayerRepresentableRef: NSViewRepresentable {
     func makeNSView(context: Context) -> AVPlayerNSView {
         let v = AVPlayerNSView()
         v.player = player
+        onViewCreated(v)
         return v
     }
 
     func updateNSView(_ nsView: AVPlayerNSView, context: Context) {
         if nsView.player !== player { nsView.player = player }
-        if nsView.frame.size.width > 0 {
-            onViewCreated(nsView)
-        }
     }
 }
 

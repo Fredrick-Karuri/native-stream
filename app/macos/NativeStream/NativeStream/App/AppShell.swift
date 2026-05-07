@@ -3,6 +3,7 @@
 // Replaces NavigationSplitView entirely.
 
 import SwiftUI
+import AVKit
 
 enum AppTab: String, CaseIterable {
     case browse   = "browse"
@@ -61,7 +62,13 @@ struct AppShell: View {
     @ViewBuilder
     private var tabContent: some View {
         if showPlayer {
-            PlayerScreen(channel: selectedChannel, onBack: { showPlayer = false })
+            
+            PlayerScreen(channel: selectedChannel, onBack: {
+                playerVM.pipController?.stopPictureInPicture()
+                playerVM.pipController = nil
+                playerVM.pipActive = false
+                showPlayer = false
+            })
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing).combined(with: .opacity),
                     removal:   .move(edge: .leading).combined(with: .opacity)

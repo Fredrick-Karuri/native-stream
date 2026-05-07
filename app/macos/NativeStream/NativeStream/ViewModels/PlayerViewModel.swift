@@ -205,6 +205,12 @@ private func startPlayback(url: URL) {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
 
+    func setMainLayerHidden(_ hidden: Bool) {
+        // AVPictureInPictureController handles its own rendering;
+        // we just need to hide the source layer
+        pipController?.playerLayer.opacity = hidden ? 0 : 1
+    }
+
     // MARK: - Cleanup
 
     func cleanup() {
@@ -225,9 +231,16 @@ private func startPlayback(url: URL) {
 
 extension PlayerViewModel: AVPictureInPictureControllerDelegate {
     nonisolated func pictureInPictureWillStart(_ controller: AVPictureInPictureController) {
-        Task { @MainActor in self.pipActive = true }
+        print("🟢 PiP will start — delegate fired")
+        Task { @MainActor in
+            self.pipActive = true
+            self.setMainLayerHidden(true)
+        }
     }
     nonisolated func pictureInPictureWillStop(_ controller: AVPictureInPictureController) {
-        Task { @MainActor in self.pipActive = false }
+        Task { @MainActor in
+            self.pipActive = false
+            self.setMainLayerHidden(false)
+        }
     }
 }
