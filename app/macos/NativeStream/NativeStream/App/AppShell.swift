@@ -43,8 +43,8 @@ struct AppShell: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 // Floating mini player
-                if playerVM.isPlaying && !showPlayer {
-                    MiniPlayerWidget(onExpand: { showPlayer = true })
+                if playerVM.currentChannel != nil && !showPlayer {
+                    MiniPlayerWidget(onExpand: { showPlayer = true }, onClose: { playerVM.stop() })
                         .padding(16)
                         .transition(.asymmetric(
                             insertion: .move(edge: .bottom).combined(with: .opacity),

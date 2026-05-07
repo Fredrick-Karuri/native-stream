@@ -33,7 +33,11 @@ struct PlayerScreen: View {
             // Top bar
             if showControls || playerVM.error != nil {
                 VStack {
-                    PlayerTopBar(channel: channel, programme: currentProgramme, onBack: onBack)
+                    
+                    PlayerTopBar(channel: channel, programme: currentProgramme, onBack: onBack, onStop: {
+                        playerVM.stop()
+                        onBack()
+                    })
                     Spacer()
                 }
                 .transition(.opacity)
@@ -99,6 +103,7 @@ struct PlayerTopBar: View {
     let channel: Channel?
     let programme: Programme?
     let onBack: () -> Void
+    let onStop: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -130,6 +135,7 @@ struct PlayerTopBar: View {
 
             HStack(spacing: 6) {
                 NSLiveBadge(isLive: programme?.isNow ?? false)
+                NSIconButton(icon: "xmark") { onStop() }
                 // NSQualityBadge(quality: "720p")
             }
         }

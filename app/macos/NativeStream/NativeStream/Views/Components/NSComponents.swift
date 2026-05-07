@@ -3,6 +3,31 @@
 
 import SwiftUI
 
+// MARK: - NSIconButton
+
+struct NSIconButton: View {
+    let icon: String
+    var size: CGFloat = 14
+    var isDark: Bool = false
+    var action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: size, weight: .medium))
+                .foregroundStyle(Color.white.opacity(isDark ? 0.6 : 1))
+                .frame(width: isDark ? 22 : 32, height: isDark ? 22 : 32)
+                .background(isDark ? Color.black.opacity(0.5) : Color.white.opacity(isHovered ? 0.1 : 0.06))
+                .clipShape(RoundedRectangle(cornerRadius: isDark ? 5 : 8))
+                .overlay(RoundedRectangle(cornerRadius: isDark ? 5 : 8)
+                    .stroke(Color.white.opacity(0.1)))
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+}
+
 // MARK: - NSChip
 
 struct NSChip: View {

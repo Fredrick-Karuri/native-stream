@@ -216,6 +216,11 @@ private func startPlayback(url: URL) {
         isPlaying = false
         pipActive = false                        // ← new
     }
+
+    func stop() {
+        cleanup()
+        currentChannel = nil
+    }
 }
 
 extension PlayerViewModel: AVPictureInPictureControllerDelegate {

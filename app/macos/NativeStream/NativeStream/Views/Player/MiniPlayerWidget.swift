@@ -7,6 +7,7 @@ struct MiniPlayerWidget: View {
     @Environment(EPGViewModel.self)     private var epgVM
 
     let onExpand: () -> Void
+    let onClose: () -> Void
 
     var body: some View {
         let ch = playerVM.currentChannel
@@ -29,17 +30,9 @@ struct MiniPlayerWidget: View {
                     HStack {
                         NSLiveBadge(isLive: prog?.isNow ?? false)
                         Spacer()
-                        Button(action: onExpand) {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.system(size: 9))
-                                .foregroundStyle(Color.white.opacity(0.6))
-                                .frame(width: 22, height: 22)
-                                .background(Color.black.opacity(0.5))
-                                .clipShape(RoundedRectangle(cornerRadius: 5))
-                                .overlay(RoundedRectangle(cornerRadius: 5)
-                                    .stroke(Color.white.opacity(0.1)))
-                        }
-                        .buttonStyle(.plain)
+                        NSIconButton(icon: "arrow.up.left.and.arrow.down.right", size: 9, isDark: true) { onExpand() }
+                        NSIconButton(icon: "xmark", size: 9, isDark: true) { onClose() }
+                        
                     }
                     .padding(8)
                     Spacer()
