@@ -20,6 +20,7 @@ final class PlayerViewModel:NSObject {
     var quality: StreamQuality = .auto
     var error: PlayerError? = nil
     private(set) var retryCount: Int = 0
+    var isMuted: Bool = false
 
 
     var pipController: AVPictureInPictureController?
@@ -226,6 +227,11 @@ private func startPlayback(url: URL) {
     func stop() {
         cleanup()
         currentChannel = nil
+    }
+
+    func toggleMute() {
+        isMuted.toggle()
+        player?.isMuted = isMuted
     }
 }
 

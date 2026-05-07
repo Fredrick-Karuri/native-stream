@@ -64,6 +64,9 @@ struct MiniPlayerWidget: View {
                     }
                     MiniCtrl(icon: "forward.end.fill") { }
                     NSProgressBar(value: prog?.progress ?? 0, height: 2)
+                    MiniCtrl(icon: playerVM.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill") {
+                        playerVM.toggleMute()
+                    }
                 }
             }
             .padding(.horizontal, 12)

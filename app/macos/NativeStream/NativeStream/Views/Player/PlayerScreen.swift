@@ -292,6 +292,10 @@ struct PlayerControls: View {
                         pip.startPictureInPicture()
                     }
                 }
+                
+                NSIconButton(icon: playerVM.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill", size: 14) {
+                    playerVM.toggleMute()
+                }
 
                 // AirPlay
                 AVRoutePickerViewRepresentable()
