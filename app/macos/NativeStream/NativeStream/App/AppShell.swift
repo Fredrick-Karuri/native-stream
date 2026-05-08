@@ -31,19 +31,19 @@ struct AppShell: View {
     @State var activeTab: AppTab = .browse
     @State var selectedChannel: Channel? = nil
     @State var showPlayer = false
+    @State private var keyMonitor: Any? = nil
 
     var body: some View {
         VStack(spacing: 0) {
-            if !showPlayer{
-            AppTabBar(activeTab: $activeTab, onRefresh: { Task { await playlistVM.loadAll() } })
-            Divider().overlay(NS.border)
+            if !showPlayer {
+                AppTabBar(activeTab: $activeTab, onRefresh: { Task { await playlistVM.loadAll() } })
+                Divider().overlay(NS.border)
             }
 
             ZStack(alignment: .bottomTrailing) {
                 tabContent
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                // Floating mini player
                 if playerVM.currentChannel != nil && !showPlayer {
                     MiniPlayerWidget(onExpand: { showPlayer = true }, onClose: { playerVM.stop() })
                         .padding(16)
@@ -51,6 +51,22 @@ struct AppShell: View {
                             insertion: .move(edge: .bottom).combined(with: .opacity),
                             removal:   .move(edge: .bottom).combined(with: .opacity)
                         ))
+                }
+            }
+            .onChange(of: showPlayer) { _, isShowing in
+                if isShowing {
+                    keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                        switch event.charactersIgnoringModifiers {
+                        case " ": playerVM.togglePlayback()
+                        case "m", "M": playerVM.toggleMute()
+                        case "p", "P": playerVM.enterPiP()
+                        case "f", "F": NSApp.mainWindow?.toggleFullScreen(nil)
+                        default: break
+                        }
+                        return event
+                    }
+                } else {
+                    if let m = keyMonitor { NSEvent.removeMonitor(m); keyMonitor = nil }
                 }
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.85), value: playerVM.isPlaying)
