@@ -3,29 +3,6 @@
 
 import SwiftUI
 
-// MARK: - Sport category
-
-enum SportCategory: String, CaseIterable {
-    case favourites  = "⭐"
-    case football    = "🏟"
-    case rugby       = "🏉"
-    case tennis      = "🎾"
-    case basketball  = "🏀"
-    case cricket     = "🏏"
-    case regions     = "🌍"
-
-    var groupKeywords: [String] {
-        switch self {
-        case .favourites:  return []
-        case .football:    return ["football","soccer","premier","liga","serie","bundesliga","ligue","champions","europa","nwsl","mls"]
-        case .rugby:       return ["rugby","premiership rugby","six nations","pro14"]
-        case .tennis:      return ["tennis","atp","wta","wimbledon"]
-        case .basketball:  return ["basketball","nba","wnba","euroleague"]
-        case .cricket:     return ["cricket","ipl","test","odi"]
-        case .regions:     return []
-        }
-    }
-}
 
 // MARK: - Filter model
 
@@ -51,6 +28,7 @@ struct BrowserScreen: View {
     @State private var filter: ChannelFilter = .all
     @State private var searchText = ""
     @State private var viewMode: ViewMode = .grid
+    @State private var gridWidth: CGFloat = 0
 
     enum ViewMode { case grid, list }
 
@@ -83,9 +61,9 @@ struct BrowserScreen: View {
             emptyView
         } else {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 28, pinnedViews: []) {
+                LazyVStack(alignment: .leading, spacing: NS.Spacing.xxl, pinnedViews: []) {
                     ForEach(groupedSections, id: \.name) { section in
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: NS.Spacing.md) {
                             NSGroupHeader(title: section.name, count: section.channels.count)
                                 .padding(.horizontal, NS.Spacing.xl)
                             channelGrid(section.channels)
@@ -93,27 +71,33 @@ struct BrowserScreen: View {
                     }
                 }
                 .padding(NS.Spacing.xl)
-                .padding(.bottom, 80) // mini player clearance
+                .padding(.bottom, 80)
             }
         }
     }
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 5)
 
     @ViewBuilder
     private func channelGrid(_ channels: [Channel]) -> some View {
-        LazyVGrid(
-            columns: columns,
-            spacing: 12
-        ) {
+        let columns = max(1, Int(gridWidth / NS.CardSize.minWidth))
+        let grid = Array(repeating: GridItem(.flexible(), spacing: NS.Spacing.sm), count: columns)
+
+        LazyVGrid(columns: grid, spacing: NS.Spacing.sm) {
             ForEach(channels) { channel in
                 ChannelCard(channel: channel) { onSelectChannel(channel) }
             }
         }
         .padding(.horizontal, NS.Spacing.xl)
+        .background(
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { gridWidth = geo.size.width }
+                    .onChange(of: geo.size.width) { gridWidth = $0 }
+            }
+        )
     }
 
     private var loadingView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: NS.Spacing.md) {
             ProgressView().scaleEffect(0.8)
             Text("Loading channels…").font(NS.Font.caption).foregroundStyle(NS.text3)
         }
@@ -121,7 +105,7 @@ struct BrowserScreen: View {
     }
 
     private var emptyView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: NS.Spacing.md) {
             Text("📺").font(.system(size: 40))
             Text("No channels found").font(NS.Font.display).foregroundStyle(NS.text)
             Text(searchText.isEmpty ? "Add a playlist source in Settings." : "Try a different search or filter.")
@@ -135,7 +119,6 @@ struct BrowserScreen: View {
     private var filtered: [Channel] {
         var channels = playlistVM.channels
 
-        // Sport filter
         if sport == .favourites {
             channels = favourites.favourites(from: channels)
         } else if sport != .regions {
@@ -145,7 +128,6 @@ struct BrowserScreen: View {
             }
         }
 
-        // Search
         if !searchText.isEmpty {
             channels = channels.filter {
                 $0.name.localizedCaseInsensitiveContains(searchText) ||
@@ -153,7 +135,6 @@ struct BrowserScreen: View {
             }
         }
 
-        // Quick filter chips
         switch filter {
         case .all: break
         case .live:
@@ -163,7 +144,7 @@ struct BrowserScreen: View {
         case .us:
             channels = channels.filter { $0.groupTitle.lowercased().contains("us") || $0.groupTitle.lowercased().contains("usa") }
         case .hd:
-            channels = channels.filter { ($0 as AnyObject) is Channel } // placeholder — wire to bitrate when available
+            channels = channels.filter { ($0 as AnyObject) is Channel } // placeholder
         }
 
         return channels
@@ -180,6 +161,7 @@ struct BrowserScreen: View {
     }
 }
 
+// MARK: - Nav Icon
 
 struct NavIcon: View {
     let icon: String
@@ -192,14 +174,11 @@ struct NavIcon: View {
             Text(icon)
                 .font(.system(size: 16))
                 .frame(width: 40, height: 40)
-                .background(
-                    isActive ? NS.accentGlow :
-                    (isHovered ? NS.surface2 : Color.clear)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .background(isActive ? NS.accentGlow : (isHovered ? NS.surface2 : Color.clear))
+                .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(isActive ? NS.accentBorder : Color.clear)
+                    RoundedRectangle(cornerRadius: NS.Radius.lg)
+                        .stroke(isActive ? NS.accentBorder : Color.clear, lineWidth: 0.5)
                 )
         }
         .buttonStyle(.plain)
@@ -207,6 +186,7 @@ struct NavIcon: View {
     }
 }
 
+// MARK: - View Toggle Button
 
 struct ViewToggleBtn: View {
     let icon: String
@@ -220,9 +200,8 @@ struct ViewToggleBtn: View {
                 .foregroundStyle(isActive ? NS.text2 : NS.text3)
                 .frame(width: 28, height: 28)
                 .background(isActive ? NS.surface3 : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: NS.Radius.sm))
         }
         .buttonStyle(.plain)
     }
 }
-
-

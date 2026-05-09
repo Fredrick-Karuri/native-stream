@@ -111,6 +111,11 @@ enum NS {
         static let pill: CGFloat = 20
     }
 
+    // ── Card sizing ───────────────────────────────────────────────────────────
+    enum CardSize {
+        static let minWidth: CGFloat = 220
+    }
+
     // ── Health score → colour ─────────────────────────────────────────────────
     static func healthColour(score: Double) -> Color {
         if score >= 0.7 { return green }
