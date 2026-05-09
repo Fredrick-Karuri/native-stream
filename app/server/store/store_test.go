@@ -11,7 +11,7 @@ import (
 func newTestStore(t *testing.T) *Store {
 	t.Helper()
 	tmp := filepath.Join(t.TempDir(), "channels.json")
-	return New(tmp)
+	return New(tmp, 0.0)
 }
 
 func sampleChannel(id string) *Channel {
@@ -165,7 +165,7 @@ func TestSelfHealingPromotesCandidate(t *testing.T) {
 
 func TestSnapshotRoundTrip(t *testing.T) {
 	tmp := filepath.Join(t.TempDir(), "snap.json")
-	s := New(tmp)
+	s := New(tmp, 0.0)
 
 	for i := 0; i < 5; i++ {
 		ch := sampleChannel("ch" + string(rune('0'+i)))
@@ -181,7 +181,7 @@ func TestSnapshotRoundTrip(t *testing.T) {
 		t.Fatalf("snapshot file missing: %v", err)
 	}
 
-	s2 := New(tmp)
+	s2 := New(tmp, 0.0)
 	if err := s2.Load(); err != nil {
 		t.Fatalf("load: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestSnapshotRoundTrip(t *testing.T) {
 
 func TestSnapshotAtomicWrite(t *testing.T) {
 	tmp := filepath.Join(t.TempDir(), "snap.json")
-	s := New(tmp)
+	s := New(tmp, 0.0)
 	s.Add(sampleChannel("ch1"))
 
 	// Write a first snapshot

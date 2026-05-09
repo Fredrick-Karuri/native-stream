@@ -6,8 +6,10 @@ package discovery
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -15,7 +17,7 @@ import (
 
 var (
 	m3u8Re = regexp.MustCompile(`https?://[^\s"'<>]+\.m3u8(?:\?[^\s"'<>]*)?`)
-	m3uRe  = regexp.MustCompile(`https?://[^\s"'<>]+\.m3u(?:\?[^\s"'<>]*)?`)
+	m3uRe = regexp.MustCompile(`https?://\S+\.m3u(?:[^8\w]|$)`)
 )
 
 type LinkExtractor struct {
@@ -34,6 +36,7 @@ func (e *LinkExtractor) Extract(ctx context.Context, items []RawItem) []Candidat
 	var out []CandidateLink
 
 	for _, item := range items {
+		fmt.Fprintf(os.Stderr, "[debug] before m3u8 scan content_len=%d\n", len(item.Content))
 		// Direct .m3u8 URLs
 		for _, url := range m3u8Re.FindAllString(item.Content, -1) {
 			if seen[url] {
@@ -48,8 +51,12 @@ func (e *LinkExtractor) Extract(ctx context.Context, items []RawItem) []Candidat
 			})
 		}
 
+		fmt.Fprintf(os.Stderr, "[debug] after m3u8 scan found=%d\n", len(out))
 		// .m3u files — fetch and expand into individual stream URLs
 		for _, url := range m3uRe.FindAllString(item.Content, -1) {
+			if strings.HasSuffix(strings.Split(url, "?")[0], ".m3u8") {
+				continue // already handled above
+			}
 			if seen[url] {
 				continue
 			}
@@ -62,6 +69,31 @@ func (e *LinkExtractor) Extract(ctx context.Context, items []RawItem) []Candidat
 				}
 			}
 		}
+
+		fmt.Fprintf(os.Stderr, "[debug] after m3u expand, before EXTM3U parse\n")
+		// If content looks like an M3U playlist, parse lines directly
+		if strings.Contains(item.Content, "#EXTM3U") {
+			lines := strings.Split(item.Content, "\n")
+			var lastExtinf string
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "#EXTINF") {
+					lastExtinf = line
+					continue
+				}
+				if strings.HasPrefix(line, "http") && !seen[line] {
+					seen[line] = true
+					out = append(out, CandidateLink{
+						URL:         line,
+						SourceURL:   item.SourceURL,
+						ContextText: lastExtinf,
+						Found:       item.Timestamp,
+					})
+					lastExtinf = ""
+				}
+			}
+		}
+		fmt.Fprintf(os.Stderr, "[debug] after EXTM3U parse total=%d\n", len(out))
 	}
 
 	return out
@@ -138,9 +170,17 @@ func contextAround(text, url string) string {
 	if start < 0 {
 		start = 0
 	}
+	// Don't bleed back past the nearest preceding #EXTINF
+	if i := strings.LastIndex(text[start:idx], "#EXTINF"); i >= 0 {
+		start = start + i
+	}
 	end := idx + len(url) + 60
 	if end > len(text) {
 		end = len(text)
+	}
+	// Don't bleed forward into the next entry's #EXTINF
+	if i := strings.Index(text[idx:end], "\n#EXTINF"); i >= 0 {
+		end = idx + i
 	}
 	return strings.TrimSpace(text[start:end])
 }

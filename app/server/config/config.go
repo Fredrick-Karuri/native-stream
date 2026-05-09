@@ -217,6 +217,12 @@ func Load() (Config, error) {
 	if d, err := time.ParseDuration(raw.Discovery.DefaultInterval);  err == nil { cfg.Discovery.DefaultInterval = d }
 	if d, err := time.ParseDuration(raw.Discovery.PriorityInterval); err == nil { cfg.Discovery.PriorityInterval = d }
 
+	if raw.Discovery.Gists.Enabled     { cfg.Discovery.GistIDs = raw.Discovery.Gists.GistIDs; cfg.Discovery.GistToken = raw.Discovery.Gists.Token }
+	if raw.Discovery.Reddit.Enabled    { cfg.Discovery.Subreddits = raw.Discovery.Reddit.Subreddits }
+	if raw.Discovery.Telegram.Enabled  { cfg.Discovery.TelegramChannels = raw.Discovery.Telegram.Channels }
+	if raw.Discovery.DirectM3U.Enabled { cfg.Discovery.DirectM3UURLs = raw.Discovery.DirectM3U.URLs }
+
+
 	if raw.Seed.M3UPath != "" { cfg.Seed.M3UPath = expandHome(raw.Seed.M3UPath) }
 
 	if raw.Probe.MinScorePromote != 0 { cfg.Probe.MinScorePromote = raw.Probe.MinScorePromote }

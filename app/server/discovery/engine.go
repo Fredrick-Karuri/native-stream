@@ -158,6 +158,8 @@ func (e *Engine) runCycle(ctx context.Context) {
 
 	// 2. Extract candidate links
 	candidates := e.extractor.Extract(ctx, items)
+	fmt.Fprintf(os.Stderr, "[debug] items=%d candidates=%d\n", len(items), len(candidates))
+
 
 	// 3. Deduplicate
 	candidates = deduplicate(candidates)
@@ -200,6 +202,7 @@ func (e *Engine) fetchAll(ctx context.Context) []RawItem {
 			defer wg.Done()
 
 			items, err := c.Fetch(ctx)
+			fmt.Fprintf(os.Stderr, "[debug/%s] fetched items=%d err=%v\n", c.Name(), len(items), err)
 
 			e.mu.Lock()
 			st := e.sourceStates[c.Name()]
@@ -219,6 +222,7 @@ func (e *Engine) fetchAll(ctx context.Context) []RawItem {
 				mu.Unlock()
 			}
 		}(crawler)
+		
 	}
 
 	wg.Wait()

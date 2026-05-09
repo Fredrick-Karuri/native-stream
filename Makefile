@@ -20,6 +20,16 @@ test-server:
 vet-server:
 	cd $(SERVER_DIR) && go vet ./...
 
+restart-server: build-server
+	@echo "→ Stopping server..."
+	@lsof -ti :8888 | xargs kill -9 2>/dev/null; sleep 1
+	@echo "→ Starting server..."
+	@$(SERVER_BIN) >> /tmp/nativestream.log 2>> /tmp/nativestream-error.log &
+	@sleep 1 && echo "✓ Restarted"
+	tail -f /tmp/nativestream.log /tmp/nativestream-error.log
+logs:
+	tail -f /tmp/nativestream.log /tmp/nativestream-error.log
+
 # ── Mac App ───────────────────────────────────────────────────────────────────
 APP_DIR     := app/macos/NativeStream
 SCHEME      := NativeStream
@@ -32,6 +42,8 @@ build-app:
 	           -configuration Release \
 	           -derivedDataPath $(DERIVED) \
 	           build
+	@echo "→ Stripping extended attributes..."
+	xattr -cr $(DERIVED)/Build/Products/Release/NativeStream.app
 	@echo "✓ App built"
 
 run-app:
