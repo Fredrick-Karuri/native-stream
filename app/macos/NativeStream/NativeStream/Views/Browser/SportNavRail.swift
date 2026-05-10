@@ -99,7 +99,7 @@ struct SportNavRail: View {
             }
         }
         .padding(.vertical, NS.Spacing.md)
-        .frame(width: 52)
+        .frame(width: NS.Rail.width)
         .background(NS.surface)
         .overlay(alignment: .trailing) {
             Rectangle().fill(NS.border).frame(width: 0.5)
@@ -109,7 +109,7 @@ struct SportNavRail: View {
     private var railDivider: some View {
         Rectangle()
             .fill(NS.border)
-            .frame(width: 24, height: 0.5)
+            .frame(width: NS.Rail.iconSize * 0.63, height: 0.5)   
             .padding(.vertical, NS.Spacing.xs)
     }
 }
@@ -140,9 +140,9 @@ struct RailIconLabel: View {
 
     var body: some View {
         Image(systemName: icon)
-            .font(.system(size: 15, weight: .medium))
+            .font(.system(size: 15 * NS.scale, weight: .medium))
             .foregroundStyle(isActive ? NS.accent2 : isHovered ? NS.text2 : NS.text3)
-            .frame(width: 38, height: 38)
+            .frame(width: NS.Rail.iconSize, height: NS.Rail.iconSize)
             .background(isActive ? NS.accentGlow : isHovered ? NS.surface2 : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
             .overlay(

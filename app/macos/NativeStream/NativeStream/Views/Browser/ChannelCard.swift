@@ -141,3 +141,42 @@ struct ChannelLogoView: View {
         }
     }
 }
+
+// MARK: - Channel Logo
+
+// struct ChannelLogoView: View {
+//     let channel: Channel
+//     var borderColour: Color = NS.border
+
+//     var body: some View {
+//         Group {
+//             if let url = channel.logoURL {
+//                 AsyncImage(url: url) { phase in
+//                     switch phase {
+//                     case .success(let img):
+//                         img.resizable().scaledToFit()
+//                     default:
+//                         placeholder
+//                     }
+//                 }
+//             } else {
+//                 placeholder
+//             }
+//         }
+//         .frame(maxWidth: .infinity, maxHeight: .infinity) // ✅ fill the parent
+//         .background(NS.bg)
+//         .overlay(
+//             RoundedRectangle(cornerRadius: NS.Radius.lg)
+//                 .stroke(borderColour, lineWidth: 0.5)
+//         )
+//     }
+
+//     private var placeholder: some View {
+//         ZStack {
+//             NS.bg
+//             Text(channel.name.prefix(3).uppercased())
+//                 .font(NS.Font.label)
+//                 .foregroundStyle(NS.text3)
+//         }
+//     }
+// }

@@ -17,10 +17,11 @@ struct NSIconButton: View {
             Image(systemName: icon)
                 .font(.system(size: size, weight: .medium))
                 .foregroundStyle(Color.white.opacity(isDark ? 0.6 : 1))
-                .frame(width: isDark ? 22 : 32, height: isDark ? 22 : 32)
+                .frame(width: isDark ? NS.IconButton.sizeSm : NS.IconButton.sizeLg,
+                       height: isDark ? NS.IconButton.sizeSm : NS.IconButton.sizeLg)
                 .background(isDark ? Color.black.opacity(0.5) : Color.white.opacity(isHovered ? 0.1 : 0.06))
-                .clipShape(RoundedRectangle(cornerRadius: isDark ? 5 : 8))
-                .overlay(RoundedRectangle(cornerRadius: isDark ? 5 : 8)
+                .clipShape(RoundedRectangle(cornerRadius: isDark ? NS.Radius.sm : NS.Radius.md))
+                .overlay(RoundedRectangle(cornerRadius: isDark ? NS.Radius.sm : NS.Radius.md)
                     .stroke(Color.white.opacity(0.1)))
         }
         .buttonStyle(.plain)
@@ -40,8 +41,8 @@ struct NSChip: View {
             Text(label)
                 .font(NS.Font.captionMed)
                 .foregroundStyle(isActive ? NS.accent2 : NS.text3)
-                .padding(.horizontal, 10)
-                .frame(height: 28)
+                .padding(.horizontal, NS.Chip.paddingH)
+                .frame(height: NS.Chip.height)
                 .background(isActive ? NS.accentGlow : Color.clear)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(isActive ? NS.accentBorder : NS.border2))
@@ -103,7 +104,7 @@ struct NSLiveBadge: View {
             HStack(spacing: 4) {
                 Circle()
                     .fill(Color.white)
-                    .frame(width: 5, height: 5)
+                    .frame(width: NS.Badge.dotSize, height: NS.Badge.dotSize)
                     .opacity(pulsing ? 0.3 : 1.0)
                     .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulsing)
                 Text("LIVE")
@@ -112,10 +113,10 @@ struct NSLiveBadge: View {
                     .kerning(0.6)
                     .foregroundStyle(.white)
             }
-            .padding(.horizontal, 8)
-            .frame(height: 24)
+            .padding(.horizontal, NS.Spacing.sm)
+            .frame(height: NS.Badge.height)
             .background(NS.live)
-            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.sm))
             .onAppear { pulsing = true }
         }
     }
@@ -130,11 +131,11 @@ struct NSQualityBadge: View {
         Text(quality)
             .font(NS.Font.monoSm)
             .foregroundStyle(Color.white.opacity(0.6))
-            .padding(.horizontal, 8)
-            .frame(height: 24)
+            .padding(.horizontal, NS.Spacing.sm)
+            .frame(height: NS.Badge.height)
             .background(Color.white.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 5))
-            .overlay(RoundedRectangle(cornerRadius: 5)
+            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.sm))
+            .overlay(RoundedRectangle(cornerRadius: NS.Radius.sm)
                 .stroke(Color.white.opacity(0.1)))
     }
 }
@@ -147,7 +148,8 @@ struct NSHealthDot: View {
     var body: some View {
         Circle()
             .fill(NS.healthColour(score: score))
-            .frame(width: 6, height: 6)
+            .frame(width: NS.Badge.healthDotSize, height: NS.Badge.healthDotSize)
+            .frame(width: NS.Badge.dotSize, height: NS.Badge.dotSize)
             .shadow(color: NS.healthColour(score: score).opacity(0.5), radius: 3)
     }
 }
@@ -160,7 +162,7 @@ struct NSPulseDot: View {
     var body: some View {
         Circle()
             .fill(NS.live)
-            .frame(width: 5, height: 5)
+            .frame(width: NS.Badge.dotSize, height: NS.Badge.dotSize)
             .opacity(pulsing ? 0.2 : 1.0)
             .animation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true), value: pulsing)
             .onAppear { pulsing = true }
@@ -174,7 +176,7 @@ struct NSGroupHeader: View {
     var count: Int? = nil
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: NS.Spacing.sm) {
             Text(title.uppercased())
                 .font(NS.Font.label)
                 .kerning(1.0)
@@ -183,11 +185,11 @@ struct NSGroupHeader: View {
                 Text("\(count)")
                     .font(NS.Font.monoSm)
                     .foregroundStyle(NS.text3)
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
+                    .padding(.horizontal, NS.Spacing.xs)
+                    .padding(.vertical, NS.Spacing.xxs)
                     .background(NS.surface2)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(NS.border))
+                    .clipShape(RoundedRectangle(cornerRadius: NS.Radius.sm))
+                    .overlay(RoundedRectangle(cornerRadius: NS.Radius.sm).stroke(NS.border))
             }
             Rectangle()
                 .fill(NS.border)
@@ -203,7 +205,7 @@ struct NSCodeBlock: View {
     @State private var copied = false
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: NS.Spacing.md) {
             Text(code)
                 .font(NS.Font.mono)
                 .foregroundStyle(NS.text2)
@@ -216,12 +218,12 @@ struct NSCodeBlock: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
             } label: {
                 Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                    .font(.system(size: 11))
+                    .font(.system(size: NS.Help.inlineIconSize))
                     .foregroundStyle(copied ? NS.green : NS.text3)
             }
             .buttonStyle(.plain)
         }
-        .padding(10)
+        .padding(NS.Spacing.md)
         .background(NS.surface2)
         .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
         .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2))
@@ -237,11 +239,11 @@ struct NSToggle: View {
         ZStack(alignment: isOn ? .trailing : .leading) {
             Capsule()
                 .fill(isOn ? NS.accent : NS.surface3)
-                .frame(width: 36, height: 20)
+                .frame(width: NS.Toggle.trackW, height: NS.Toggle.trackH)
                 .shadow(color: isOn ? NS.accent.opacity(0.4) : .clear, radius: 6)
             Circle()
                 .fill(Color.white)
-                .frame(width: 16, height: 16)
+                .frame(width: NS.Toggle.thumbSize, height: NS.Toggle.thumbSize)
                 .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
                 .padding(2)
         }
@@ -257,13 +259,13 @@ struct NSSegmentedPicker<T: Hashable>: View {
     @Binding var selected: T
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: NS.Spacing.xs) {
             ForEach(options, id: \.value) { option in
                 Button(option.label) { selected = option.value }
                     .font(NS.Font.caption)
                     .foregroundStyle(selected == option.value ? NS.accent2 : NS.text3)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, NS.Chip.paddingH)
+                    .padding(.vertical, NS.Spacing.xs)
                     .background(selected == option.value ? NS.accentGlow : NS.surface3)
                     .clipShape(RoundedRectangle(cornerRadius: NS.Radius.sm))
                     .overlay(RoundedRectangle(cornerRadius: NS.Radius.sm)

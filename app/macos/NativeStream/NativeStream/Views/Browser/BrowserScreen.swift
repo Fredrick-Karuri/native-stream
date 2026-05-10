@@ -33,16 +33,16 @@ struct BrowserScreen: View {
             Spacer()
             HStack(spacing: NS.Spacing.xs) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 12))
+                    .font(.system(size: NS.Help.inlineIconSize))
                     .foregroundStyle(NS.text3)
                 TextField("Search channels…", text: $searchText)
                     .font(NS.Font.caption)
                     .foregroundStyle(NS.text)
                     .textFieldStyle(.plain)
-                    .frame(width: 200)
+                    .frame(width: NS.Browser.searchWidth)
             }
             .padding(.horizontal, NS.Spacing.md)
-            .frame(height: 28)
+            .frame(height: NS.Help.searchHeight)
             .background(NS.surface2)
             .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
             .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2, lineWidth: 0.5))
@@ -76,7 +76,7 @@ struct BrowserScreen: View {
                     }
                 }
                 .padding(NS.Spacing.xl)
-                .padding(.bottom, 80)
+                .padding(.bottom, NS.Help.emptyTopPadding)
             }
         }
     }
@@ -113,7 +113,7 @@ struct BrowserScreen: View {
 
     private var emptyView: some View {
         VStack(spacing: NS.Spacing.md) {
-            Text("📺").font(.system(size: 40))
+            Text("📺").font(.system(size: NS.Browser.emptyEmojiSize))
             Text("No channels found").font(NS.Font.display).foregroundStyle(NS.text)
             Text(searchText.isEmpty
                  ? "Add a playlist source in Settings."
