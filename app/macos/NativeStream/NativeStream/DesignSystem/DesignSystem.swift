@@ -60,6 +60,7 @@ enum NS {
     static let green  = Color(hex: "10b981")
     static let live   = Color(hex: "ef4444")
     static let amber  = Color(hex: "f59e0b")
+    static let red = Color(hex: "ef4444")
 
     // ── Gradients ─────────────────────────────────────────────────────────────
     static let liveCardGradient = LinearGradient(

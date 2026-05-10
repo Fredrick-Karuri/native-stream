@@ -10,6 +10,7 @@ struct AppShell: View {
     @Environment(SettingsStore.self)         private var settings
     @Environment(FavouritesManager.self)     private var favourites
     @Environment(ServerHealthViewModel.self) private var serverHealth
+    @Environment(ChannelManagerViewModel.self) private var channelManager
 
     @State private var destination: AppDestination = .now
     @State private var selectedChannel: Channel?   = nil

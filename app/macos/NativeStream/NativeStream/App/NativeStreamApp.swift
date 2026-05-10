@@ -12,6 +12,7 @@ struct NativeStreamApp: App {
     @State private var settings     = SettingsStore()
     @State private var favourites   = FavouritesManager()
     @State private var serverHealth = ServerHealthViewModel()
+    @State private var channelManager = ChannelManagerViewModel()
 
     var body: some Scene {
         WindowGroup {
@@ -29,6 +30,7 @@ struct NativeStreamApp: App {
                         .environment(settings)
                         .environment(favourites)
                         .environment(serverHealth)
+                        .environment(channelManager)
                 }
             }
             .task {
@@ -49,6 +51,7 @@ struct NativeStreamApp: App {
                 .environment(settings)
                 .environment(playlistVM)
                 .environment(serverHealth)
+                .environment(channelManager)
         }
     }
 }

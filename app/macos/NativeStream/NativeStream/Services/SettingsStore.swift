@@ -16,7 +16,7 @@ final class SettingsStore {
     }
 
     var epgURLString: String {
-        get { UserDefaults.standard.string(forKey: Keys.epgURL) ?? "" }
+        get { UserDefaults.standard.string(forKey: Keys.epgURL) ?? "http://localhost:8888/epg.xml" }
         set { UserDefaults.standard.set(newValue, forKey: Keys.epgURL) }
     }
 

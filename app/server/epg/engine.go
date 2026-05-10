@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -137,6 +138,7 @@ func (e *Engine) RunRefresher(ctx context.Context) {
 
 func (e *Engine) refresh() {
 	matches := e.fetchMatches()
+	matches = e.assignChannels(matches)
 
 	e.mu.Lock()
 	e.matches = matches
@@ -265,4 +267,22 @@ func (e *Engine) saveCacheToDisk(data []byte) {
 	}
 	_ = os.MkdirAll(filepath.Dir(e.cfg.CachePath), 0o755)
 	_ = os.WriteFile(e.cfg.CachePath, data, 0o644)
+}
+
+// assignChannels matches fetched matches to store channels via keywords.
+// Matches against homeTeam, awayTeam, and competition name.
+func (e *Engine) assignChannels(matches []Match) []Match {
+    channels := e.store.All()
+    for i, m := range matches {
+        searchText := strings.ToLower(m.HomeTeam + " " + m.AwayTeam + " " + m.Competition + " " + m.Sport)
+        for _, ch := range channels {
+            for _, kw := range ch.Keywords {
+                if strings.Contains(searchText, strings.ToLower(kw)) {
+                    matches[i].ChannelIDs = append(matches[i].ChannelIDs, ch.ID)
+                    break
+                }
+            }
+        }
+    }
+    return matches
 }
