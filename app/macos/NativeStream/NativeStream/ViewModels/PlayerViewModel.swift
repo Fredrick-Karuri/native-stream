@@ -131,12 +131,6 @@ private func startPlayback(url: URL) {
         pipController?.startPictureInPicture()
     }
 
-    // func enterPiP() {
-    //     // PiP is initiated from PlayerScreen via AVPictureInPictureController directly.
-    //     // This method exists for toolbar/keyboard shortcut integration.
-    //     NotificationCenter.default.post(name: .init("NativeStreamEnterPiP"), object: nil)
-    // }
-
     // MARK: - Toggle
 
     func togglePlayback() {

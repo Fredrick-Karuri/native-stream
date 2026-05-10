@@ -18,7 +18,9 @@ struct AppShell: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            SportNavRail(destination: $destination)
+            if !showPlayer {
+                SportNavRail(destination: $destination)
+            }
 
             ZStack(alignment: .bottomTrailing) {
                 destinationContent

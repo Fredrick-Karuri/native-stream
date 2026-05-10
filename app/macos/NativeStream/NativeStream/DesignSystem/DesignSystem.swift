@@ -193,6 +193,23 @@ enum NS {
         static var thumbSize:  CGFloat { 16 * NS.scale }
     }
 
+    enum Player {
+        static var sidebarWidth:       CGFloat { 230 * NS.scale }
+        static var teamBadgeSize:      CGFloat { 52  * NS.scale }
+        static var teamBadgeRadius:    CGFloat { 12  * NS.scale }
+        static var teamEmojiSize:      CGFloat { 22  * NS.scale }
+        static var teamNameMaxWidth:   CGFloat { 120 * NS.scale }
+        static var ctrlPrimary:        CGFloat { 44  * NS.scale }
+        static var ctrlSecondary:      CGFloat { 36  * NS.scale }
+        static var ctrlRadiusPrimary:  CGFloat { 11  * NS.scale }
+        static var ctrlRadiusSecondary: CGFloat { 9  * NS.scale }
+        static var errorIconSize:      CGFloat { 36  * NS.scale }
+        static var errorPadding:       CGFloat { 32  * NS.scale }
+        static var menuHeight:   CGFloat { 32 * NS.scale }
+        static var ctrlIconSm:   CGFloat { 14 * NS.scale }
+        static var ctrlIconLg:   CGFloat { 16 * NS.scale }
+    }
+
     // ── Health score → colour ─────────────────────────────────────────────────
     static func healthColour(score: Double) -> Color {
         if score >= 0.7 { return green }
