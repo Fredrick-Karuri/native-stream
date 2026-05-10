@@ -1,6 +1,4 @@
-// AppShell.swift — UX-007
-// Root window: persistent rail + destination routing.
-
+// AppShell.swift — UX-007, UX-026
 import SwiftUI
 import AVKit
 
@@ -14,9 +12,9 @@ struct AppShell: View {
     @Environment(ServerHealthViewModel.self) private var serverHealth
 
     @State private var destination: AppDestination = .now
-    @State private var selectedChannel: Channel? = nil
-    @State private var showPlayer = false
-    @State private var keyMonitor: Any? = nil
+    @State private var selectedChannel: Channel?   = nil
+    @State private var showPlayer                  = false
+    @State private var keyMonitor: Any?            = nil
 
     var body: some View {
         HStack(spacing: 0) {
@@ -38,6 +36,8 @@ struct AppShell: View {
         }
         .background(NS.bg)
         .frame(minWidth: 960, minHeight: 580)
+        .task { await loadAll() }
+        .onChange(of: settings.epgURLString) { Task { await loadEPG() } }
         .onChange(of: showPlayer) { _, isShowing in
             if isShowing {
                 keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -57,7 +57,23 @@ struct AppShell: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: playerVM.isPlaying)
     }
 
-    // MARK: - Destination routing
+    // MARK: - Load
+
+    private func loadAll() async {
+        async let playlist: () = playlistVM.loadAll()
+        async let epg: ()      = loadEPG()
+        _ = await (playlist, epg)
+        if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
+        playlistVM.scheduleAutoRefresh()
+    }
+
+    private func loadEPG() async {
+        guard let url = settings.epgURL else { return }
+        epgVM.epgURL = url
+        await epgVM.load()
+    }
+
+    // MARK: - Routing
 
     @ViewBuilder
     private var destinationContent: some View {
@@ -65,8 +81,8 @@ struct AppShell: View {
             PlayerScreen(channel: selectedChannel, onBack: {
                 playerVM.pipController?.stopPictureInPicture()
                 playerVM.pipController = nil
-                playerVM.pipActive = false
-                showPlayer = false
+                playerVM.pipActive     = false
+                showPlayer             = false
             })
             .transition(.asymmetric(
                 insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -85,6 +101,10 @@ struct AppShell: View {
                     ScheduleScreen(onSelectChannel: selectChannel)
                 case .allChannels:
                     BrowserScreen(onSelectChannel: selectChannel)
+                case .help:
+                    HelpScreen()
+                case .settings:
+                    SettingsScreen()
                 }
             }
             .transition(.asymmetric(
@@ -97,7 +117,7 @@ struct AppShell: View {
     // MARK: - Channel selection
 
     private func selectChannel(_ channel: Channel) {
-        selectedChannel = channel
+        selectedChannel       = channel
         playerVM.bufferPreset = settings.bufferPreset
         playerVM.epgViewModel = epgVM
         playerVM.play(channel: channel)

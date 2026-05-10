@@ -1,6 +1,4 @@
-// PlayerScreen.swift — UX-020, UX-021
-// Screen 2: Full-window player with overlay controls and match score overlay.
-
+// PlayerScreen.swift — UX-020 + fullscreen fix
 import SwiftUI
 import AVFoundation
 import AVKit
@@ -15,57 +13,67 @@ struct PlayerScreen: View {
     let onBack: () -> Void
 
     @State private var showControls = true
+    @State private var showSidebar  = true
     @State private var hideTask: Task<Void, Never>? = nil
 
-
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
+        HStack(spacing: 0) {
 
-            // Video
-            if let player = playerVM.player, !playerVM.pipActive {
-                AVPlayerRepresentableRef(player: player) { nsView in
-                    playerVM.setupPiP(playerLayer: nsView.avPlayerLayer)
+            // Video area
+            ZStack {
+                Color.black.ignoresSafeArea()
+
+                if let player = playerVM.player, !playerVM.pipActive {
+                    AVPlayerRepresentableRef(player: player) { nsView in
+                        playerVM.setupPiP(playerLayer: nsView.avPlayerLayer)
+                    }
+                    .ignoresSafeArea()
                 }
-                .ignoresSafeArea()
-            }
 
-            // Top bar
-            if showControls || playerVM.error != nil {
-                VStack {
-                    
-                    PlayerTopBar(channel: channel, programme: currentProgramme, onBack: onBack, onStop: {
-                        playerVM.stop()
-                        onBack()
-                    })
-                    Spacer()
+                if showControls || playerVM.error != nil {
+                    VStack {
+                        PlayerTopBar(
+                            channel: channel,
+                            programme: currentProgramme,
+                            onBack: onBack,
+                            onStop: { playerVM.stop(); onBack() }
+                        )
+                        Spacer()
+                    }
+                    .transition(.opacity)
                 }
-                .transition(.opacity)
-            }
 
-            // Match score overlay
-            if let prog = currentProgramme, let score = parseScore(prog.title) {
-                MatchScoreOverlay(programme: prog, score: score)
-            }
-
-            // Error overlay
-            if let error = playerVM.error {
-                PlayerErrorOverlay(error: error, onRetry: { playerVM.retry() })
-            }
-
-            // Bottom controls
-            if showControls || playerVM.error != nil {
-                VStack {
-                    Spacer()
-                    PlayerControls(pipController: playerVM.pipController)
+                if let prog = currentProgramme, let score = parseScore(prog.title) {
+                    MatchScoreOverlay(programme: prog, score: score)
                 }
-                .transition(.opacity)
+
+                if let error = playerVM.error {
+                    PlayerErrorOverlay(error: error, onRetry: { playerVM.retry() })
+                }
+
+                if showControls || playerVM.error != nil {
+                    VStack {
+                        Spacer()
+                        PlayerControls(
+                            pipController: playerVM.pipController,
+                            showSidebar: $showSidebar
+                        )
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: showControls)
+            .contentShape(Rectangle())
+            .onTapGesture { showControlsTemporarily() }
+            .onHover { if $0 { showControlsTemporarily() } }
+
+            // Sidebar — hidden in fullscreen
+            if showSidebar {
+                PlayerSidebar(currentChannel: channel)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: showControls)
-        .contentShape(Rectangle())
-        .onTapGesture { showControlsTemporarily() }
-        .onHover { if $0 { showControlsTemporarily() } }
+        .animation(.easeInOut(duration: 0.2), value: showSidebar)
     }
 
     private var currentProgramme: Programme? {
@@ -83,9 +91,7 @@ struct PlayerScreen: View {
         }
     }
 
-    // Parse "Team A vs Team B — Competition" for score overlay
     private func parseScore(_ title: String) -> (home: Int, away: Int)? {
-        // Look for pattern like "1 – 0" or "1-0"
         let pattern = #"(\d+)\s*[–\-]\s*(\d+)"#
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: title, range: NSRange(title.startIndex..., in: title)),
@@ -94,6 +100,149 @@ struct PlayerScreen: View {
               let home = Int(title[r1]),
               let away = Int(title[r2]) else { return nil }
         return (home, away)
+    }
+}
+
+// MARK: - Player Sidebar
+
+struct PlayerSidebar: View {
+
+    @Environment(EPGViewModel.self)      private var epgVM
+    @Environment(PlaylistViewModel.self) private var playlistVM
+    @Environment(PlayerViewModel.self)   private var playerVM
+
+    let currentChannel: Channel?
+
+    enum SidebarTab { case onNow, schedule }
+    @State private var tab: SidebarTab = .onNow
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                sidebarTab("On now",   tab: .onNow)
+                sidebarTab("Schedule", tab: .schedule)
+            }
+            .background(Color.black.opacity(0.6))
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.white.opacity(0.07)).frame(height: 0.5)
+            }
+
+            switch tab {
+            case .onNow:    PlayerOnNowTab(currentChannel: currentChannel)
+            case .schedule: PlayerScheduleTab(channel: currentChannel)
+            }
+        }
+        .frame(width: 230)
+        .background(Color(hex: "0e0e0e"))
+        .overlay(alignment: .leading) {
+            Rectangle().fill(Color.white.opacity(0.07)).frame(width: 0.5)
+        }
+    }
+
+    private func sidebarTab(_ label: String, tab: SidebarTab) -> some View {
+        Button { self.tab = tab } label: {
+            Text(label)
+                .font(NS.Font.captionMed)
+                .foregroundStyle(self.tab == tab ? Color.white.opacity(0.85) : Color.white.opacity(0.35))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, NS.Spacing.sm)
+                .overlay(alignment: .bottom) {
+                    if self.tab == tab {
+                        Rectangle().fill(NS.accent).frame(height: 1.5)
+                    }
+                }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - On Now Tab
+
+struct PlayerOnNowTab: View {
+
+    @Environment(EPGViewModel.self)      private var epgVM
+    @Environment(PlaylistViewModel.self) private var playlistVM
+    @Environment(PlayerViewModel.self)   private var playerVM
+
+    let currentChannel: Channel?
+
+    private var sortedChannels: [Channel] {
+        playlistVM.channels.sorted { a, b in
+            let aPlaying = playerVM.currentChannel?.id == a.id
+            let bPlaying = playerVM.currentChannel?.id == b.id
+            if aPlaying != bPlaying { return aPlaying }
+            let aLive = epgVM.currentProgramme(for: a) != nil
+            let bLive = epgVM.currentProgramme(for: b) != nil
+            if aLive != bLive { return aLive }
+            return epgVM.nextProgramme(for: a) != nil && epgVM.nextProgramme(for: b) == nil
+        }
+    }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 2) {
+                ForEach(sortedChannels) { channel in
+                    PlayerSidebarRow(channel: channel)
+                }
+            }
+            .padding(NS.Spacing.sm)
+        }
+    }
+}
+
+// MARK: - Schedule Tab
+
+struct PlayerScheduleTab: View {
+
+    @Environment(EPGViewModel.self)    private var epgVM
+    @Environment(PlayerViewModel.self) private var playerVM
+
+    let channel: Channel?
+
+    private var programmes: [Programme] {
+        guard let ch = channel else { return [] }
+        return epgVM.schedule(for: ch, hours: 12).sorted { $0.start < $1.start }
+    }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(spacing: 2) {
+                ForEach(programmes, id: \.start) { prog in
+                    scheduleRow(prog)
+                }
+            }
+            .padding(NS.Spacing.sm)
+        }
+    }
+
+    private func scheduleRow(_ prog: Programme) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(prog.startTimeString)
+                .font(NS.Font.monoSm)
+                .foregroundStyle(prog.isNow ? NS.accent : Color.white.opacity(0.3))
+            if prog.isNow {
+                Text("Now playing")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(NS.accent)
+                    .kerning(0.5)
+            }
+            Text(prog.title)
+                .font(NS.Font.captionMed)
+                .foregroundStyle(prog.isNow ? Color.white.opacity(0.85) : Color.white.opacity(0.4))
+                .lineLimit(2)
+            if prog.isNow {
+                NSProgressBar(value: prog.progress, height: 2, glow: false).opacity(0.6)
+            }
+        }
+        .padding(NS.Spacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(prog.isNow ? NS.accentGlow : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: NS.Radius.md)
+                .stroke(prog.isNow ? NS.accentBorder : Color.clear, lineWidth: 0.5)
+        )
+        .opacity(prog.stop < Date() ? 0.4 : 1.0)
     }
 }
 
@@ -114,16 +263,14 @@ struct PlayerTopBar: View {
                     .frame(width: 32, height: 32)
                     .background(Color.white.opacity(0.06))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.white.opacity(0.1)))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.1)))
             }
             .buttonStyle(.plain)
             .padding(.top, 2)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(channel?.name ?? "")
-                    .font(NS.Font.heading)
-                    .foregroundStyle(.white)
+                    .font(NS.Font.heading).foregroundStyle(.white)
                 if let prog = programme {
                     Text(prog.title)
                         .font(NS.Font.caption)
@@ -136,7 +283,6 @@ struct PlayerTopBar: View {
             HStack(spacing: 6) {
                 NSLiveBadge(isLive: programme?.isNow ?? false)
                 NSIconButton(icon: "xmark") { onStop() }
-                // NSQualityBadge(quality: "720p")
             }
         }
         .padding(.horizontal, NS.Spacing.xl)
@@ -146,7 +292,7 @@ struct PlayerTopBar: View {
     }
 }
 
-// MARK: - Match score overlay (UX-021)
+// MARK: - Match score overlay
 
 struct MatchScoreOverlay: View {
     let programme: Programme
@@ -154,31 +300,25 @@ struct MatchScoreOverlay: View {
 
     private var teams: (home: String, away: String) {
         let parts = programme.title.components(separatedBy: " vs ")
-        if parts.count >= 2 {
-            let home = parts[0].trimmingCharacters(in: .whitespaces)
-            let away = parts[1].components(separatedBy: " — ").first?
-                .trimmingCharacters(in: .whitespaces) ?? parts[1]
-            return (home, away)
-        }
-        return ("Home", "Away")
+        guard parts.count >= 2 else { return ("Home", "Away") }
+        return (
+            parts[0].trimmingCharacters(in: .whitespaces),
+            parts[1].components(separatedBy: " — ").first?.trimmingCharacters(in: .whitespaces) ?? parts[1]
+        )
     }
 
     private var competition: String {
-        if let range = programme.title.range(of: " — ") {
-            return String(programme.title[range.upperBound...])
-        }
-        return ""
+        guard let range = programme.title.range(of: " — ") else { return "" }
+        return String(programme.title[range.upperBound...])
     }
 
     var body: some View {
         VStack(spacing: 20) {
             if !competition.isEmpty {
                 Text(competition.uppercased())
-                    .font(NS.Font.label)
-                    .kerning(1.4)
+                    .font(NS.Font.label).kerning(1.4)
                     .foregroundStyle(Color.white.opacity(0.3))
             }
-
             HStack(alignment: .center, spacing: 28) {
                 TeamBlock(name: teams.home, emoji: "⚽")
                 ScoreBlock(home: score.home, away: score.away, minute: currentMinute)
@@ -188,8 +328,7 @@ struct MatchScoreOverlay: View {
     }
 
     private var currentMinute: Int {
-        let elapsed = Date().timeIntervalSince(programme.start)
-        return min(90, max(0, Int(elapsed / 60)))
+        min(90, max(0, Int(Date().timeIntervalSince(programme.start) / 60)))
     }
 }
 
@@ -202,17 +341,13 @@ struct TeamBlock: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.white.opacity(0.05))
-                    .overlay(RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.1)))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1)))
                 Text(emoji).font(.system(size: 22))
             }
             .frame(width: 52, height: 52)
-
             Text(name)
-                .font(NS.Font.cardTitle)
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 120)
+                .font(NS.Font.cardTitle).foregroundStyle(.white)
+                .multilineTextAlignment(.center).frame(maxWidth: 120)
         }
     }
 }
@@ -225,15 +360,11 @@ struct ScoreBlock: View {
     var body: some View {
         VStack(spacing: 8) {
             Text("\(home) – \(away)")
-                .font(NS.Font.scoreXL)
-                .foregroundStyle(.white)
+                .font(NS.Font.scoreXL).foregroundStyle(.white)
                 .shadow(color: NS.accent.opacity(0.3), radius: 20)
-
             Text("\(minute)'")
-                .font(NS.Font.mono)
-                .foregroundStyle(NS.accent2)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 2)
+                .font(NS.Font.mono).foregroundStyle(NS.accent2)
+                .padding(.horizontal, 10).padding(.vertical, 2)
                 .background(NS.accentGlow)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(NS.accentBorder))
@@ -241,73 +372,6 @@ struct ScoreBlock: View {
     }
 }
 
-// MARK: - Player controls
-
-struct PlayerControls: View {
-
-    @Environment(PlayerViewModel.self) private var playerVM
-    var pipController: AVPictureInPictureController?
-
-    var body: some View {
-        VStack(spacing: 12) {
-            // Progress
-            PlayerProgressBar()
-
-            // Control row
-            HStack(spacing: 10) {
-                CtrlButton(icon: "backward.end.fill", size: 14) { }
-
-                CtrlButton(
-                    icon: playerVM.isPlaying ? "pause.fill" : "play.fill",
-                    size: 16,
-                    isPrimary: true
-                ) { playerVM.togglePlayback() }
-
-                CtrlButton(icon: "forward.end.fill", size: 14) { }
-
-                Spacer()
-
-                // Quality pill
-                Menu {
-                    ForEach(StreamQuality.presets, id: \.displayName) { q in
-                        Button(q.displayName) { playerVM.setQuality(q) }
-                    }
-                } label: {
-                    Text(playerVM.quality.displayName)
-                        .font(NS.Font.monoSm)
-                        .foregroundStyle(Color.white.opacity(0.6))
-                        .padding(.horizontal, 10)
-                        .frame(height: 32)
-                        .background(Color.white.opacity(0.07))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.white.opacity(0.08)))
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-
-                // PiP
-                if let pip = pipController {
-                    CtrlButton(icon: "rectangle.inset.bottomright.filled", size: 14) {
-                        pip.startPictureInPicture()
-                    }
-                }
-                
-                NSIconButton(icon: playerVM.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill", size: 14) {
-                    playerVM.toggleMute()
-                }
-
-                // AirPlay
-                AVRoutePickerViewRepresentable()
-                    .frame(width: 36, height: 36)
-            }
-        }
-        .padding(.horizontal, NS.Spacing.xl)
-        .padding(.top, 32)
-        .padding(.bottom, 20)
-        .background(NS.playerBottomGradient)
-    }
-}
 
 struct CtrlButton: View {
     let icon: String
@@ -322,10 +386,7 @@ struct CtrlButton: View {
                 .font(.system(size: size, weight: .medium))
                 .foregroundStyle(isPrimary ? NS.bg : (isHovered ? .white : Color.white.opacity(0.7)))
                 .frame(width: isPrimary ? 44 : 36, height: isPrimary ? 44 : 36)
-                .background(
-                    isPrimary ? NS.accent :
-                    isHovered ? Color.white.opacity(0.12) : Color.white.opacity(0.07)
-                )
+                .background(isPrimary ? NS.accent : isHovered ? Color.white.opacity(0.12) : Color.white.opacity(0.07))
                 .clipShape(RoundedRectangle(cornerRadius: isPrimary ? 11 : 9))
                 .overlay(RoundedRectangle(cornerRadius: isPrimary ? 11 : 9)
                     .stroke(Color.white.opacity(isPrimary ? 0 : 0.08)))
@@ -336,35 +397,27 @@ struct CtrlButton: View {
     }
 }
 
-// MARK: - Progress bar
-
 struct PlayerProgressBar: View {
     @Environment(PlayerViewModel.self) private var playerVM
-    @State private var progress: Double = 0.38
     @State private var isHovering = false
     let timer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        VStack(spacing: 6) {
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.white.opacity(0.1))
-                    .frame(height: isHovering ? 4 : 3)
-
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(NS.accent)
-                    .frame(width: .infinity * progress, height: isHovering ? 4 : 3)
-                    .shadow(color: NS.accent.opacity(0.6), radius: 4)
-            }
-            .frame(height: 4)
-            .animation(.easeOut(duration: 0.12), value: isHovering)
-            .onHover { isHovering = $0 }
+        ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(Color.white.opacity(0.1))
+                .frame(height: isHovering ? 4 : 3)
+            RoundedRectangle(cornerRadius: 2)
+                .fill(NS.accent)
+                .frame(width: .infinity * 0.38, height: isHovering ? 4 : 3)
+                .shadow(color: NS.accent.opacity(0.6), radius: 4)
         }
-        .onReceive(timer) { _ in } // trigger view refresh for progress updates
+        .frame(height: 4)
+        .animation(.easeOut(duration: 0.12), value: isHovering)
+        .onHover { isHovering = $0 }
+        .onReceive(timer) { _ in }
     }
 }
-
-// MARK: - Error overlay
 
 struct PlayerErrorOverlay: View {
     let error: PlayerError
@@ -375,11 +428,9 @@ struct PlayerErrorOverlay: View {
             Color.black.opacity(0.75)
             VStack(spacing: 16) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 36))
-                    .foregroundStyle(NS.amber)
+                    .font(.system(size: 36)).foregroundStyle(NS.amber)
                 Text(error.errorDescription ?? "Stream unavailable")
-                    .font(NS.Font.bodyMedium)
-                    .foregroundStyle(.white)
+                    .font(NS.Font.bodyMedium).foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                 if let suggestion = error.recoverySuggestion {
                     Text(suggestion)
@@ -388,30 +439,10 @@ struct PlayerErrorOverlay: View {
                         .multilineTextAlignment(.center)
                 }
                 Button("Retry", action: onRetry)
-                    .buttonStyle(.borderedProminent)
-                    .tint(NS.amber)
+                    .buttonStyle(.borderedProminent).tint(NS.amber)
             }
             .padding(32)
         }
         .ignoresSafeArea()
-    }
-}
-
-// MARK: - Field texture
-
-struct FieldTexture: View {
-    var body: some View {
-        Canvas { ctx, size in
-            let step: CGFloat = 60
-            ctx.withCGContext { cg in
-                cg.setStrokeColor(CGColor(red: 0.3, green: 0.87, blue: 0.5, alpha: 1))
-                cg.setLineWidth(1)
-                var x: CGFloat = 0
-                while x <= size.width { cg.move(to: CGPoint(x: x, y: 0)); cg.addLine(to: CGPoint(x: x, y: size.height)); x += step }
-                var y: CGFloat = 0
-                while y <= size.height { cg.move(to: CGPoint(x: 0, y: y)); cg.addLine(to: CGPoint(x: size.width, y: y)); y += step }
-                cg.strokePath()
-            }
-        }
     }
 }

@@ -1,54 +1,59 @@
-// BrowserScreen.swift — UX-010, UX-011, UX-012, UX-013
-// Screen 1: Channel browser with sport nav rail, filter bar, card grid, group sections.
+// BrowserScreen.swift — UX-026
+// All channels browser. Search + group by groupTitle.
+// Sport filtering lives in MatchDayScreen. Now screen lives in NowScreen.
 
 import SwiftUI
 
-
-// MARK: - Filter model
-
-enum ChannelFilter: String, CaseIterable {
-    case all     = "All"
-    case live    = "🔴 Live now"
-    case uk      = "🇬🇧 UK"
-    case us      = "🇺🇸 US"
-    case hd      = "1080p"
-}
-
-// MARK: - Browser screen
-
 struct BrowserScreen: View {
 
-    @Environment(PlaylistViewModel.self)  private var playlistVM
-    @Environment(EPGViewModel.self)       private var epgVM
-    @Environment(FavouritesManager.self)  private var favourites
+    @Environment(PlaylistViewModel.self) private var playlistVM
+    @Environment(EPGViewModel.self)      private var epgVM
 
     let onSelectChannel: (Channel) -> Void
 
-    @State private var sport: SportCategory = .favourites
-    @State private var filter: ChannelFilter = .all
-    @State private var searchText = ""
-    @State private var viewMode: ViewMode = .grid
+    @State private var searchText  = ""
     @State private var gridWidth: CGFloat = 0
 
-    enum ViewMode { case grid, list }
-
     var body: some View {
-        HStack(spacing: 0) {
-            SportNavRail(selected: $sport)
+        VStack(spacing: 0) {
+            topBar
             Divider().overlay(NS.border)
-
-            VStack(spacing: 0) {
-                FilterBar(
-                    searchText: $searchText,
-                    filter: $filter,
-                    viewMode: $viewMode,
-                    channelCount: filtered.count
-                )
-                Divider().overlay(NS.border)
-                channelContent
-            }
+            channelContent
         }
         .background(NS.bg)
+    }
+
+    // MARK: - Top bar
+
+    private var topBar: some View {
+        HStack {
+            Text("All Channels")
+                .font(NS.Font.heading)
+                .foregroundStyle(NS.text)
+            Spacer()
+            HStack(spacing: NS.Spacing.xs) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12))
+                    .foregroundStyle(NS.text3)
+                TextField("Search channels…", text: $searchText)
+                    .font(NS.Font.caption)
+                    .foregroundStyle(NS.text)
+                    .textFieldStyle(.plain)
+                    .frame(width: 200)
+            }
+            .padding(.horizontal, NS.Spacing.md)
+            .frame(height: 28)
+            .background(NS.surface2)
+            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2, lineWidth: 0.5))
+
+            Text("\(filtered.count) channels")
+                .font(NS.Font.caption)
+                .foregroundStyle(NS.text3)
+        }
+        .padding(.horizontal, NS.Spacing.xl)
+        .padding(.vertical, NS.Spacing.md)
+        .background(NS.surface)
     }
 
     // MARK: - Content
@@ -61,7 +66,7 @@ struct BrowserScreen: View {
             emptyView
         } else {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: NS.Spacing.xxl, pinnedViews: []) {
+                LazyVStack(alignment: .leading, spacing: NS.Spacing.xxl) {
                     ForEach(groupedSections, id: \.name) { section in
                         VStack(alignment: .leading, spacing: NS.Spacing.md) {
                             NSGroupHeader(title: section.name, count: section.channels.count)
@@ -96,6 +101,8 @@ struct BrowserScreen: View {
         )
     }
 
+    // MARK: - Empty / loading
+
     private var loadingView: some View {
         VStack(spacing: NS.Spacing.md) {
             ProgressView().scaleEffect(0.8)
@@ -108,7 +115,9 @@ struct BrowserScreen: View {
         VStack(spacing: NS.Spacing.md) {
             Text("📺").font(.system(size: 40))
             Text("No channels found").font(NS.Font.display).foregroundStyle(NS.text)
-            Text(searchText.isEmpty ? "Add a playlist source in Settings." : "Try a different search or filter.")
+            Text(searchText.isEmpty
+                 ? "Add a playlist source in Settings."
+                 : "Try a different search term.")
                 .font(NS.Font.caption).foregroundStyle(NS.text3)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -117,91 +126,17 @@ struct BrowserScreen: View {
     // MARK: - Filtering & grouping
 
     private var filtered: [Channel] {
-        var channels = playlistVM.channels
-
-        if sport == .favourites {
-            channels = favourites.favourites(from: channels)
-        } else if sport != .regions {
-            let kws = sport.groupKeywords
-            channels = channels.filter { ch in
-                kws.contains { ch.groupTitle.lowercased().contains($0) }
-            }
+        guard !searchText.isEmpty else { return playlistVM.channels }
+        return playlistVM.channels.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) ||
+            $0.groupTitle.localizedCaseInsensitiveContains(searchText)
         }
-
-        if !searchText.isEmpty {
-            channels = channels.filter {
-                $0.name.localizedCaseInsensitiveContains(searchText) ||
-                $0.groupTitle.localizedCaseInsensitiveContains(searchText)
-            }
-        }
-
-        switch filter {
-        case .all: break
-        case .live:
-            channels = channels.filter { epgVM.currentProgramme(for: $0) != nil }
-        case .uk:
-            channels = channels.filter { $0.groupTitle.lowercased().contains("uk") || $0.name.lowercased().contains("uk") }
-        case .us:
-            channels = channels.filter { $0.groupTitle.lowercased().contains("us") || $0.groupTitle.lowercased().contains("usa") }
-        case .hd:
-            channels = channels.filter { ($0 as AnyObject) is Channel } // placeholder
-        }
-
-        return channels
     }
 
     private struct ChannelSection { let name: String; let channels: [Channel] }
 
     private var groupedSections: [ChannelSection] {
-        if sport == .favourites {
-            return [ChannelSection(name: "⭐ Favourites", channels: filtered)]
-        }
         let groups = Dictionary(grouping: filtered, by: \.groupTitle)
         return groups.keys.sorted().map { ChannelSection(name: $0, channels: groups[$0]!) }
-    }
-}
-
-// MARK: - Nav Icon
-
-struct NavIcon: View {
-    let icon: String
-    let isActive: Bool
-    let action: () -> Void
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: action) {
-            Text(icon)
-                .font(.system(size: 16))
-                .frame(width: 40, height: 40)
-                .background(isActive ? NS.accentGlow : (isHovered ? NS.surface2 : Color.clear))
-                .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
-                .overlay(
-                    RoundedRectangle(cornerRadius: NS.Radius.lg)
-                        .stroke(isActive ? NS.accentBorder : Color.clear, lineWidth: 0.5)
-                )
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
-    }
-}
-
-// MARK: - View Toggle Button
-
-struct ViewToggleBtn: View {
-    let icon: String
-    let isActive: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 11))
-                .foregroundStyle(isActive ? NS.text2 : NS.text3)
-                .frame(width: 28, height: 28)
-                .background(isActive ? NS.surface3 : Color.clear)
-                .clipShape(RoundedRectangle(cornerRadius: NS.Radius.sm))
-        }
-        .buttonStyle(.plain)
     }
 }

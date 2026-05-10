@@ -1,6 +1,4 @@
 // SportNavRail.swift — UX-007, UX-008
-// Persistent left rail. Primary navigation for all screens.
-
 import SwiftUI
 
 // MARK: - App Destination
@@ -11,6 +9,8 @@ enum AppDestination: Hashable {
     case favourites
     case schedule
     case allChannels
+    case help
+    case settings
 }
 
 // MARK: - Sport Category
@@ -56,7 +56,6 @@ struct SportNavRail: View {
     @Environment(EPGViewModel.self)      private var epgVM
     @Environment(PlaylistViewModel.self) private var playlistVM
 
-    /// Sports that have content, live-first. Falls back to all if EPG unavailable.
     private var visibleSports: [SportCategory] {
         let active = epgVM.activeSports(in: playlistVM.channels)
         return active.isEmpty ? SportCategory.allCases : active
@@ -64,7 +63,6 @@ struct SportNavRail: View {
 
     var body: some View {
         VStack(spacing: 2) {
-
             RailIcon(icon: "play.fill", label: "Now", isActive: destination == .now) {
                 destination = .now
             }
@@ -72,11 +70,7 @@ struct SportNavRail: View {
             railDivider
 
             ForEach(visibleSports, id: \.self) { sport in
-                RailIcon(
-                    icon: sport.icon,
-                    label: sport.label,
-                    isActive: destination == .sport(sport)
-                ) {
+                RailIcon(icon: sport.icon, label: sport.label, isActive: destination == .sport(sport)) {
                     destination = .sport(sport)
                 }
             }
@@ -88,22 +82,21 @@ struct SportNavRail: View {
             RailIcon(icon: "star", label: "Favourites", isActive: destination == .favourites) {
                 destination = .favourites
             }
-
             RailIcon(icon: "calendar", label: "Schedule", isActive: destination == .schedule) {
                 destination = .schedule
             }
-
             RailIcon(icon: "square.grid.2x2", label: "All Channels", isActive: destination == .allChannels) {
                 destination = .allChannels
             }
 
             railDivider
 
-            SettingsLink {
-                RailIconLabel(icon: "gearshape", isActive: false)
+            RailIcon(icon: "questionmark.circle", label: "Help", isActive: destination == .help) {
+                destination = .help
             }
-            .buttonStyle(.plain)
-            .help("Settings")
+            RailIcon(icon: "gearshape", label: "Settings", isActive: destination == .settings) {
+                destination = .settings
+            }
         }
         .padding(.vertical, NS.Spacing.md)
         .frame(width: 52)
@@ -140,8 +133,6 @@ struct RailIcon: View {
     }
 }
 
-// MARK: - Rail Icon Label
-
 struct RailIconLabel: View {
     let icon: String
     let isActive: Bool
@@ -150,15 +141,9 @@ struct RailIconLabel: View {
     var body: some View {
         Image(systemName: icon)
             .font(.system(size: 15, weight: .medium))
-            .foregroundStyle(
-                isActive  ? NS.accent2 :
-                isHovered ? NS.text2   : NS.text3
-            )
+            .foregroundStyle(isActive ? NS.accent2 : isHovered ? NS.text2 : NS.text3)
             .frame(width: 38, height: 38)
-            .background(
-                isActive  ? NS.accentGlow :
-                isHovered ? NS.surface2   : Color.clear
-            )
+            .background(isActive ? NS.accentGlow : isHovered ? NS.surface2 : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
             .overlay(
                 RoundedRectangle(cornerRadius: NS.Radius.lg)
