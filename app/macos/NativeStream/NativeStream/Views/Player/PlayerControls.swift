@@ -71,3 +71,12 @@ struct PlayerControls: View {
         .background(NS.playerBottomGradient)
     }
 }
+
+
+struct AVRoutePickerViewRepresentable: NSViewRepresentable {
+    func makeNSView(context: Context) -> AVRoutePickerView {
+        let picker = AVRoutePickerView()
+        return picker
+    }
+    func updateNSView(_ nsView: AVRoutePickerView, context: Context) {}
+}
