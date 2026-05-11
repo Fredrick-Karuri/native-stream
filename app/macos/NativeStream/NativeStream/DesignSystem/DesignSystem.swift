@@ -1,6 +1,9 @@
 // DesignSystem.swift — UX-001
 // Single source of truth for all colours, typography, and spacing.
 // Every view uses NS.* — never hardcoded hex values.
+//
+// Scale: NS.scale is an @AppStorage-backed multiplier (default 1.0).
+// All sizing tokens multiply by it. No view code changes needed for scaling.
 
 import SwiftUI
 
@@ -26,6 +29,11 @@ extension Color {
 
 enum NS {
 
+    // ── Global scale ──────────────────────────────────────────────────────────
+    // Stored in UserDefaults so it persists across launches.
+    // Range: 0.8 – 1.5. All sizing tokens multiply by this value.
+    @AppStorage("uiScale") static var scale: Double = 1.5
+
     // ── Backgrounds ───────────────────────────────────────────────────────────
     static let bg       = Color(hex: "060810")
     static let surface  = Color(hex: "0d1120")
@@ -33,9 +41,9 @@ enum NS {
     static let surface3 = Color(hex: "1a2035")
 
     // ── Borders ───────────────────────────────────────────────────────────────
-    static let border   = Color.white.opacity(0.043)   // #ffffff0b
-    static let border2  = Color.white.opacity(0.086)   // #ffffff16
-    static let border3  = Color.white.opacity(0.141)   // #ffffff24
+    static let border   = Color.white.opacity(0.043)
+    static let border2  = Color.white.opacity(0.086)
+    static let border3  = Color.white.opacity(0.141)
 
     // ── Text ──────────────────────────────────────────────────────────────────
     static let text     = Color(hex: "e8eaf0")
@@ -76,39 +84,113 @@ enum NS {
     )
 
     // ── Typography ────────────────────────────────────────────────────────────
+    // Base sizes are the design-intent values at scale 1.0.
+    // Computed properties re-evaluate whenever NS.scale changes.
     enum Font {
-        static let displayXL  = SwiftUI.Font.custom("Syne-ExtraBold",  size: 36)
-        static let display     = SwiftUI.Font.custom("Syne-Bold",       size: 20)
-        static let heading     = SwiftUI.Font.custom("Syne-Bold",       size: 16)
-        static let label       = SwiftUI.Font.custom("Syne-Bold",       size: 11)  // uppercase
-        static let cardTitle   = SwiftUI.Font.custom("Syne-Bold",       size: 13)
-        static let scoreXL     = SwiftUI.Font.custom("Syne-ExtraBold",  size: 60)
-        static let body        = SwiftUI.Font.custom("InstrumentSans",  size: 13)
-        static let bodyMedium  = SwiftUI.Font.custom("InstrumentSans-Medium", size: 13)
-        static let caption     = SwiftUI.Font.custom("InstrumentSans",  size: 11)
-        static let captionMed  = SwiftUI.Font.custom("InstrumentSans-Medium", size: 11)
-        static let mono        = SwiftUI.Font.custom("DMMono-Regular",  size: 11)
-        static let monoSm      = SwiftUI.Font.custom("DMMono-Regular",  size: 10)
-        static let monoMed     = SwiftUI.Font.custom("DMMono-Medium",   size: 11)
+        private static func s(_ base: CGFloat) -> CGFloat { base * NS.scale }
+
+        static var displayXL: SwiftUI.Font { .custom("Syne-ExtraBold",  size: s(36)) }
+        static var display:   SwiftUI.Font { .custom("Syne-Bold",       size: s(20)) }
+        static var heading:   SwiftUI.Font { .custom("Syne-Bold",       size: s(16)) }
+        static var label:     SwiftUI.Font { .custom("Syne-Bold",       size: s(11)) }   // uppercase
+        static var cardTitle: SwiftUI.Font { .custom("Syne-Bold",       size: s(13)) }
+        static var scoreXL:   SwiftUI.Font { .custom("Syne-ExtraBold",  size: s(60)) }
+
+        static var body:       SwiftUI.Font { .custom("InstrumentSans",          size: s(13)) }
+        static var bodyMedium: SwiftUI.Font { .custom("InstrumentSans-Medium",   size: s(13)) }
+        static var caption:    SwiftUI.Font { .custom("InstrumentSans",          size: s(11)) }
+        static var captionMed: SwiftUI.Font { .custom("InstrumentSans-Medium",   size: s(11)) }
+
+        static var mono:    SwiftUI.Font { .custom("DMMono-Regular", size: s(11)) }
+        static var monoSm:  SwiftUI.Font { .custom("DMMono-Regular", size: s(10)) }
+        static var monoMed: SwiftUI.Font { .custom("DMMono-Medium",  size: s(11)) }
     }
 
     // ── Spacing ───────────────────────────────────────────────────────────────
     enum Spacing {
-        static let xs: CGFloat  = 4
-        static let sm: CGFloat  = 8
-        static let md: CGFloat  = 12
-        static let lg: CGFloat  = 16
-        static let xl: CGFloat  = 20
-        static let xxl: CGFloat = 28
+        static var xxs: CGFloat { 2 * NS.scale }
+        static var xs:  CGFloat { 4  * NS.scale }
+        static var sm:  CGFloat { 8  * NS.scale }
+        static var md:  CGFloat { 12 * NS.scale }
+        static var lg:  CGFloat { 16 * NS.scale }
+        static var xl:  CGFloat { 20 * NS.scale }
+        static var xxl: CGFloat { 28 * NS.scale }
     }
 
     // ── Radius ────────────────────────────────────────────────────────────────
     enum Radius {
-        static let sm: CGFloat  = 6
-        static let md: CGFloat  = 8
-        static let lg: CGFloat  = 10
-        static let xl: CGFloat  = 12
-        static let pill: CGFloat = 20
+        static var sm:   CGFloat { 6  * NS.scale }
+        static var md:   CGFloat { 8  * NS.scale }
+        static var lg:   CGFloat { 10 * NS.scale }
+        static var xl:   CGFloat { 12 * NS.scale }
+        static var pill: CGFloat { 20 * NS.scale }
+    }
+
+    // ── Card sizing ───────────────────────────────────────────────────────────
+    enum CardSize {
+        static var minWidth: CGFloat { 220 * NS.scale }
+    }
+
+    // ── Rail sizing ───────────────────────────────────────────────────────────
+    enum Rail {
+        static var width:    CGFloat { 52 * NS.scale }
+        static var iconSize: CGFloat { 38 * NS.scale }
+    }
+
+    // ── Settings sizing ───────────────────────────────────────────────────────
+    enum Settings {
+        static var sidebarWidth: CGFloat { 200 * NS.scale }
+        static var navItemHeight: CGFloat { 34  * NS.scale }
+        static var navIconSize:   CGFloat { 16  * NS.scale }
+    }
+
+    enum Helpers {
+        static var addButtonHeight: CGFloat { 40 * NS.scale }
+    }
+
+    enum Help {
+        static var sidebarWidth:   CGFloat { 180 * NS.scale }
+        static var searchWidth:    CGFloat { 180 * NS.scale }
+        static var searchHeight:   CGFloat { 28  * NS.scale }
+        static var tabHeight:      CGFloat { 26  * NS.scale }
+        static var emptyIconSize:  CGFloat { 28  * NS.scale }
+        static var emptyTopPadding: CGFloat { 80 * NS.scale }
+        static var inlineIconSize: CGFloat { 12  * NS.scale }
+    }
+
+    enum Browser {
+        static var searchWidth:    CGFloat { 200 * NS.scale }
+        static var emptyEmojiSize: CGFloat { 40  * NS.scale }
+    }
+
+    enum Schedule {
+        static var chipScrollMaxWidth: CGFloat { 480 * NS.scale }
+        static var emptyEmojiSize:     CGFloat { 32  * NS.scale }
+        static var timeColumnWidth:    CGFloat { 44  * NS.scale }
+        static var teamBadgeSize:      CGFloat { 22  * NS.scale }
+        static var microLabelSize:     CGFloat { 7   * NS.scale }
+    }
+
+    enum Chip {
+        static var height:   CGFloat { 28 * NS.scale }
+        static var paddingH: CGFloat { 10 * NS.scale }
+    }
+
+    enum Badge {
+        static var height:       CGFloat { 24 * NS.scale }
+        static var dotSize:      CGFloat { 5  * NS.scale }
+        static var healthDotSize: CGFloat { 6 * NS.scale }
+    }
+
+    enum IconButton {
+        static var sizeSm: CGFloat { 22 * NS.scale }
+        static var sizeLg: CGFloat { 32 * NS.scale }
+    }
+
+    enum Toggle {
+        static var trackW:     CGFloat { 36 * NS.scale }
+        static var trackH:     CGFloat { 20 * NS.scale }
+        static var thumbSize:  CGFloat { 16 * NS.scale }
     }
 
     // ── Health score → colour ─────────────────────────────────────────────────
@@ -117,5 +199,4 @@ enum NS {
         if score >= 0.4 { return accent }
         return live
     }
-
 }

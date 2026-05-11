@@ -1,23 +1,6 @@
-// AppShell.swift — UX-002
-// Root window: custom tab bar + tab content switching.
-// Replaces NavigationSplitView entirely.
-
+// AppShell.swift — UX-007, UX-026
 import SwiftUI
 import AVKit
-
-enum AppTab: String, CaseIterable {
-    case browse   = "browse"
-    case matchDay = "matchDay"
-    case tvGuide  = "tvGuide"
-
-    var label: String {
-        switch self {
-        case .browse:   return "⊞  Browse"
-        case .matchDay: return "⚽  Match Day"
-        case .tvGuide:  return "📺  TV Guide"
-        }
-    }
-}
 
 struct AppShell: View {
 
@@ -28,60 +11,100 @@ struct AppShell: View {
     @Environment(FavouritesManager.self)     private var favourites
     @Environment(ServerHealthViewModel.self) private var serverHealth
 
-    @State var activeTab: AppTab = .browse
-    @State var selectedChannel: Channel? = nil
-    @State var showPlayer = false
+    @State private var destination: AppDestination = .now
+    @State private var selectedChannel: Channel?   = nil
+    @State private var showPlayer                  = false
+    @State private var keyMonitor: Any?            = nil
 
     var body: some View {
-        VStack(spacing: 0) {
-            if !showPlayer{
-            AppTabBar(activeTab: $activeTab, onRefresh: { Task { await playlistVM.loadAll() } })
-            Divider().overlay(NS.border)
-            }
+        HStack(spacing: 0) {
+            SportNavRail(destination: $destination)
 
             ZStack(alignment: .bottomTrailing) {
-                tabContent
+                destinationContent
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                // Floating mini player
                 if playerVM.currentChannel != nil && !showPlayer {
                     MiniPlayerWidget(onExpand: { showPlayer = true }, onClose: { playerVM.stop() })
-                        .padding(16)
+                        .padding(NS.Spacing.lg)
                         .transition(.asymmetric(
                             insertion: .move(edge: .bottom).combined(with: .opacity),
                             removal:   .move(edge: .bottom).combined(with: .opacity)
                         ))
                 }
             }
-            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: playerVM.isPlaying)
         }
         .background(NS.bg)
         .frame(minWidth: 960, minHeight: 580)
+        .task { await loadAll() }
+        .onChange(of: settings.epgURLString) { Task { await loadEPG() } }
+        .onChange(of: showPlayer) { _, isShowing in
+            if isShowing {
+                keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                    switch event.charactersIgnoringModifiers {
+                    case " ": playerVM.togglePlayback()
+                    case "m", "M": playerVM.toggleMute()
+                    case "p", "P": playerVM.enterPiP()
+                    case "f", "F": NSApp.mainWindow?.toggleFullScreen(nil)
+                    default: break
+                    }
+                    return event
+                }
+            } else {
+                if let m = keyMonitor { NSEvent.removeMonitor(m); keyMonitor = nil }
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: playerVM.isPlaying)
     }
 
+    // MARK: - Load
+
+    private func loadAll() async {
+        async let playlist: () = playlistVM.loadAll()
+        async let epg: ()      = loadEPG()
+        _ = await (playlist, epg)
+        if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
+        playlistVM.scheduleAutoRefresh()
+    }
+
+    private func loadEPG() async {
+        guard let url = settings.epgURL else { return }
+        epgVM.epgURL = url
+        await epgVM.load()
+    }
+
+    // MARK: - Routing
+
     @ViewBuilder
-    private var tabContent: some View {
+    private var destinationContent: some View {
         if showPlayer {
-            
             PlayerScreen(channel: selectedChannel, onBack: {
                 playerVM.pipController?.stopPictureInPicture()
                 playerVM.pipController = nil
-                playerVM.pipActive = false
-                showPlayer = false
+                playerVM.pipActive     = false
+                showPlayer             = false
             })
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                    removal:   .move(edge: .leading).combined(with: .opacity)
-                ))
+            .transition(.asymmetric(
+                insertion: .move(edge: .trailing).combined(with: .opacity),
+                removal:   .move(edge: .leading).combined(with: .opacity)
+            ))
         } else {
             Group {
-                switch activeTab {
-                case .browse:
+                switch destination {
+                case .now:
+                    NowScreen(onSelectChannel: selectChannel)
+                case .sport(let sport):
+                    MatchDayScreen(sport: sport, onSelectChannel: selectChannel)
+                case .favourites:
+                    FavouritesScreen(onSelectChannel: selectChannel)
+                case .schedule:
+                    ScheduleScreen(onSelectChannel: selectChannel)
+                case .allChannels:
                     BrowserScreen(onSelectChannel: selectChannel)
-                case .matchDay:
-                    MatchDayScreen(onSelectChannel: selectChannel)
-                case .tvGuide:
-                    EPGGridScreen(onSelectChannel: selectChannel)
+                case .help:
+                    HelpScreen()
+                case .settings:
+                    SettingsScreen()
                 }
             }
             .transition(.asymmetric(
@@ -91,97 +114,14 @@ struct AppShell: View {
         }
     }
 
+    // MARK: - Channel selection
+
     private func selectChannel(_ channel: Channel) {
-        selectedChannel = channel
+        selectedChannel       = channel
         playerVM.bufferPreset = settings.bufferPreset
         playerVM.epgViewModel = epgVM
         playerVM.play(channel: channel)
         withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
-    }
-}
-
-// MARK: - Tab Bar
-
-struct AppTabBar: View {
-    @Binding var activeTab: AppTab
-    let onRefresh: () -> Void
-
-    var body: some View {
-        HStack(spacing: 0) {
-            Spacer()
-            HStack(spacing: 2) {
-                ForEach(AppTab.allCases, id: \.self) { tab in
-                    TabSegment(tab: tab, isActive: activeTab == tab) {
-                        withAnimation(.easeInOut(duration: 0.22)) { activeTab = tab }
-                    }
-                }
-            }
-            Spacer()
-            HStack(spacing: 6) {
-
-                Button(action: onRefresh) {
-                    TBButtonLabel(label: "↻")
-                }
-                .buttonStyle(.plain)
-
-                SettingsLink {
-                    TBButtonLabel(label: "⚙")
-                }
-                .buttonStyle(.plain)
-
-            }
-            .padding(.trailing, 16)
-        }
-        .frame(height: 44)
-        .background(NS.surface)
-    }
-}
-
-struct TabSegment: View {
-    let tab: AppTab
-    let isActive: Bool
-    let action: () -> Void
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: action) {
-            Text(tab.label)
-                .font(NS.Font.captionMed)
-                .foregroundStyle(isActive ? NS.accent2 : (isHovered ? NS.text2 : NS.text3))
-                .padding(.horizontal, 12)
-                .frame(height: 28)
-                .background(
-                    Group {
-                        if isActive { NS.accentGlow }
-                        else if isHovered { NS.surface2 }
-                        else { Color.clear }
-                    }
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 7))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 7)
-                        .stroke(isActive ? NS.accentBorder : Color.clear)
-                )
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
-    }
-}
-
-struct TBButtonLabel: View {
-    let label: String
-    @State private var isHovered = false
-
-    var body: some View {
-        Text(label)
-            .font(NS.Font.caption)
-            .foregroundStyle(isHovered ? NS.text : NS.text2)
-            .padding(.horizontal, 10)
-            .frame(height: 26)
-            .background(isHovered ? NS.surface3 : NS.surface2)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(NS.border2))
-            .onHover { isHovered = $0 }
     }
 }
 

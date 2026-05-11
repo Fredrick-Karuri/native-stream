@@ -17,7 +17,6 @@ struct MiniPlayerWidget: View {
             // Mini video area
             ZStack {
                 NS.bg
-                FieldTexture().opacity(0.04)
 
                 if let prog {
                     Text(extractScore(prog.title) ?? "● Live")

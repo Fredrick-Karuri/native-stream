@@ -1,7 +1,6 @@
 import SwiftUI
 
-
-// MARK: - Channel Card (UX-012)
+// MARK: - Channel Card (UX-003)
 
 struct ChannelCard: View {
 
@@ -18,103 +17,95 @@ struct ChannelCard: View {
     private var isPlaying: Bool { playerVM.currentChannel?.id == channel.id }
     private var programme: Programme? { epgVM.currentProgramme(for: channel) }
 
+    private var borderColour: Color {
+        isPlaying ? NS.accentBorder :
+        isLive    ? Color(hex: "ef4444").opacity(0.157) :
+                    NS.border
+    }
+
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
-                // Logo area
-                ZStack(alignment: .topTrailing) {
-                    ChannelLogoView(channel: channel)
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(16/9, contentMode: .fit)
+            VStack(alignment: .leading, spacing: 6) {
 
-                    if isLive {
-                        Text("LIVE")
-                            .font(.system(size: 8, weight: .bold))
-                            .kerning(0.6)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(NS.live)
-                            .clipShape(RoundedRectangle(cornerRadius: 3))
-                            .padding(5)
+                // Artwork
+                ZStack(alignment: .bottom) {
+                    ChannelLogoView(channel: channel, borderColour: borderColour)
+
+                    if let prog = programme {
+                        NSProgressBar(value: prog.progress, height: 3, glow: false)
+                            .clipShape(.rect(
+                                bottomLeadingRadius: NS.Radius.lg,
+                                bottomTrailingRadius: NS.Radius.lg
+                            ))
+                    }
+
+                    VStack {
+                        HStack(alignment: .top) {
+                            if isLive { NSLiveBadge(isLive: true) }
+                            Spacer()
+                            if isPlaying { playingBadge } else { starButton }
+                        }
+                        .padding(8)
+                        Spacer()
                     }
                 }
+                .scaleEffect(isHovered ? 1.02 : 1.0)
+                .animation(.easeOut(duration: 0.12), value: isHovered)
 
-                // Name
+                // Channel name
                 Text(channel.name)
                     .font(NS.Font.captionMed)
                     .foregroundStyle(NS.text)
                     .lineLimit(1)
 
-                // Programme / EPG
+                // EPG line
                 if let prog = programme {
                     Text(prog.title)
-                        .font(.system(size: 10))
+                        .font(NS.Font.caption)
                         .foregroundStyle(NS.accent2)
                         .lineLimit(1)
-                    NSProgressBar(value: prog.progress, height: 2, glow: false)
                 } else if let next = epgVM.nextProgramme(for: channel) {
                     Text(next.title)
-                        .font(.system(size: 10))
+                        .font(NS.Font.caption)
                         .foregroundStyle(NS.text3)
                         .lineLimit(1)
                 }
-
-                // Footer
-                HStack {
-                    NSQualityBadge(quality: "720p")
-                    Spacer()
-                    NSHealthDot(score: 0.9)
-                    Button {
-                        favourites.toggle(channel)
-                    } label: {
-                        Image(systemName: favourites.isFavourite(channel) ? "star.fill" : "star")
-                            .font(.system(size: 11))
-                            .foregroundStyle(favourites.isFavourite(channel) ? NS.accent : NS.text3)
-                    }
-                    .buttonStyle(.plain)
-                }
             }
-            .padding(12)
         }
         .buttonStyle(.plain)
-        .background(cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
-        .overlay(cardBorder)
-        .offset(y: isHovered ? -1 : 0)
-        .shadow(color: .black.opacity(isHovered ? 0.31 : 0), radius: isHovered ? 12 : 0, y: 8)
-        .animation(.easeOut(duration: 0.12), value: isHovered)
         .onHover { isHovered = $0 }
     }
 
-    @ViewBuilder
-    private var cardBackground: some View {
-        if isPlaying {
-            NS.activeCardGradient
-        } else if isLive {
-            NS.liveCardGradient
-        } else if isHovered {
-            NS.surface3
-        } else {
-            NS.surface2
+    private var playingBadge: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "play.fill").font(.system(size: 7))
+            Text("NOW").font(NS.Font.monoSm).fontWeight(.bold)
         }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(NS.accentGlow)
+        .clipShape(RoundedRectangle(cornerRadius: NS.Radius.sm))
+        .padding(8)
     }
 
-private var cardBorder: some View {
-    RoundedRectangle(cornerRadius: NS.Radius.lg)
-        .stroke(
-            isPlaying ? NS.accentBorder :
-            isLive    ? Color(hex: "ef4444").opacity(0.157) :
-            isHovered ? NS.border3 : NS.border,
-            lineWidth: 0.5
-        )
-}
+    private var starButton: some View {
+        Button { favourites.toggle(channel) } label: {
+            Image(systemName: favourites.isFavourite(channel) ? "star.fill" : "star")
+                .font(.system(size: 12))
+                .foregroundStyle(favourites.isFavourite(channel) ? NS.amber : .white)
+                .shadow(color: .black.opacity(0.5), radius: 3)
+        }
+        .buttonStyle(.plain)
+        .padding(8)
+    }
 }
 
-// MARK: - Channel Logo
+// MARK: - Channel Logo (UX-004)
 
 struct ChannelLogoView: View {
     let channel: Channel
+    var borderColour: Color = NS.border
 
     var body: some View {
         Group {
@@ -122,7 +113,7 @@ struct ChannelLogoView: View {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
-                        img.resizable().scaledToFit()
+                        img.resizable().scaledToFill()
                     default:
                         placeholder
                     }
@@ -131,16 +122,61 @@ struct ChannelLogoView: View {
                 placeholder
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity) // ✅ fill the parent
-        .background(NS.bg)
+        .aspectRatio(16/9, contentMode: .fit)
+        .frame(maxWidth: .infinity)
+        .background(NS.surface2)
+        .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
+        .overlay(
+            RoundedRectangle(cornerRadius: NS.Radius.lg)
+                .stroke(borderColour, lineWidth: 0.5)
+        )
     }
 
     private var placeholder: some View {
         ZStack {
-            NS.bg
+            NS.surface2
             Text(channel.name.prefix(3).uppercased())
                 .font(NS.Font.label)
                 .foregroundStyle(NS.text3)
         }
     }
 }
+
+// MARK: - Channel Logo
+
+// struct ChannelLogoView: View {
+//     let channel: Channel
+//     var borderColour: Color = NS.border
+
+//     var body: some View {
+//         Group {
+//             if let url = channel.logoURL {
+//                 AsyncImage(url: url) { phase in
+//                     switch phase {
+//                     case .success(let img):
+//                         img.resizable().scaledToFit()
+//                     default:
+//                         placeholder
+//                     }
+//                 }
+//             } else {
+//                 placeholder
+//             }
+//         }
+//         .frame(maxWidth: .infinity, maxHeight: .infinity) // ✅ fill the parent
+//         .background(NS.bg)
+//         .overlay(
+//             RoundedRectangle(cornerRadius: NS.Radius.lg)
+//                 .stroke(borderColour, lineWidth: 0.5)
+//         )
+//     }
+
+//     private var placeholder: some View {
+//         ZStack {
+//             NS.bg
+//             Text(channel.name.prefix(3).uppercased())
+//                 .font(NS.Font.label)
+//                 .foregroundStyle(NS.text3)
+//         }
+//     }
+// }

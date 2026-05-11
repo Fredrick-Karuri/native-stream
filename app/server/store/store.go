@@ -130,6 +130,14 @@ func (s *Store) Update(id string, updates map[string]any) error {
 	if group, ok := updates["group_title"].(string); ok {
 		ch.GroupTitle = group
 	}
+	if kws, ok := updates["keywords"].([]interface{}); ok {
+		ch.Keywords = make([]string, 0, len(kws))
+		for _, k := range kws {
+			if s, ok := k.(string); ok {
+				ch.Keywords = append(ch.Keywords, s)
+			}
+		}
+	}
 	if url, ok := updates["stream_url"].(string); ok {
 		link := &LinkScore{
 			URL:          url,

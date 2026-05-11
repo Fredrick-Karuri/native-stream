@@ -9,7 +9,7 @@ import (
 )
 
 func newStoreWithChannel(id, name string, keywords []string) *store.Store {
-	s := store.New("/tmp/test-matcher.json")
+	s := store.New("/tmp/test-matcher.json", 0.0)
 	s.Add(&store.Channel{
 		ID:        id,
 		Name:      name,

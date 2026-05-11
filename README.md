@@ -41,7 +41,56 @@ Open `app/macos/NativeStream.xcodeproj` → ⌘R
 
 ## First Channel
 
+```bash# NativeStream
+
+Native macOS live sports TV — hardware-decoded HLS playback with auto-discovering stream links.
+
+## Two parts
+
+**NativeStream Mac** — SwiftUI app. Channel browser, EPG guide, PiP, AirPlay, Now Playing.  
+**NativeStream Server** — Go binary on localhost. Finds stream links, validates them, self-heals dead ones.
+
+## Quick start
+
 ```bash
+# 1. Clone
+git clone https://github.com/yourname/nativestream.git
+cd nativestream
+
+# 2. Start server
+make build-server && make run-server
+
+# 3. Add a channel
+curl -X POST http://localhost:8888/api/channels \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Sky Sports 1","group_title":"Football","keywords":["sky","skysports"],"stream_url":"https://your-stream.m3u8"}'
+
+# 4. Open Mac app
+open app/macos/NativeStreamMac.xcodeproj  # then ⌘R
+```
+
+## Documentation
+
+| Doc | Contents |
+|---|---|
+| [`docs/product.md`](docs/product.md) | What it is, goals, design principles |
+| [`docs/system-design.md`](docs/system-design.md) | Full architecture, components, data flows, API |
+| [`docs/server.md`](docs/server.md) | Server setup, config, API usage, troubleshooting |
+| [`docs/client.md`](docs/client.md) | Mac app setup, features, shortcuts, troubleshooting |
+
+## Performance targets
+
+| Metric | Target |
+|---|---|
+| Boot to live video | < 2s |
+| CPU at 1080p/60fps | < 10% (M1) |
+| RAM steady-state | < 200 MB app + < 30 MB server |
+
+## Prerequisites
+
+- macOS 14 (Sonoma)+, Apple Silicon recommended
+- Go 1.22+ (server)
+- Xcode 15+ (Mac app)
 curl -X POST http://localhost:8888/api/channels \
   -H "Content-Type: application/json" \
   -d '{
