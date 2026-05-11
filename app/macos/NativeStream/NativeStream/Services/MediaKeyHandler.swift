@@ -54,25 +54,27 @@ final class MediaKeyHandler {
         guard let playerVM, let playlistVM else { return }
         let channels = playlistVM.channels
         guard !channels.isEmpty else { return }
+        let next: Channel
         if let current = playerVM.currentChannel,
            let idx = channels.firstIndex(of: current) {
-            let next = channels[(idx + 1) % channels.count]
-            playerVM.play(channel: next)
+            next = channels[(idx + 1) % channels.count]
         } else {
-            playerVM.play(channel: channels[0])
+            next = channels[0]
         }
+        Task { try? await playerVM.play(channel: next) }
     }
 
     private func playPreviousChannel() {
         guard let playerVM, let playlistVM else { return }
         let channels = playlistVM.channels
         guard !channels.isEmpty else { return }
+        let prev: Channel
         if let current = playerVM.currentChannel,
            let idx = channels.firstIndex(of: current) {
-            let prev = channels[(idx - 1 + channels.count) % channels.count]
-            playerVM.play(channel: prev)
+            prev = channels[(idx - 1 + channels.count) % channels.count]
         } else {
-            playerVM.play(channel: channels[channels.count - 1])
+            prev = channels[channels.count - 1]
         }
+        Task { try? await playerVM.play(channel: prev) }
     }
 }

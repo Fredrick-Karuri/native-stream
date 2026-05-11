@@ -7,7 +7,7 @@ import Foundation
 
 enum AppError: Error, LocalizedError, Sendable {
     case networkUnavailable
-    case playlistFetchFailed(url: URL, underlying: Error)
+    case playlistFetchFailed(url: URL? = nil, underlying: Error)
     case playlistParseError(line: Int, reason: String)
     case epgFetchFailed(underlying: Error)
     case epgParseError(reason: String)
@@ -17,7 +17,7 @@ enum AppError: Error, LocalizedError, Sendable {
         case .networkUnavailable:
             return "No network connection. Please check your internet and try again."
         case .playlistFetchFailed(let url, let err):
-            return "Failed to fetch playlist from \(url.host ?? url.absoluteString): \(err.localizedDescription)"
+            return "Failed to fetch playlist\(url.map { " from \($0.host ?? $0.absoluteString)" } ?? ""): \(err.localizedDescription)"
         case .playlistParseError(let line, let reason):
             return "Playlist parse error at line \(line): \(reason)"
         case .epgFetchFailed(let err):

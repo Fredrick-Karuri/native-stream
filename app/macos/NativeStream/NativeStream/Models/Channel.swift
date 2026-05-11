@@ -4,7 +4,7 @@
 import Foundation
 
 struct Channel: Identifiable, Codable, Sendable, Hashable {
-    let id: UUID
+    let id: String
     let tvgId: String
     let name: String
     let groupTitle: String
@@ -12,7 +12,7 @@ struct Channel: Identifiable, Codable, Sendable, Hashable {
     let streamURL: URL
 
     init(
-        id: UUID = UUID(),
+        id: String = UUID().uuidString,
         tvgId: String,
         name: String,
         groupTitle: String = "Uncategorised",

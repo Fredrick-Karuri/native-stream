@@ -37,13 +37,19 @@ final class PlayerViewModel:NSObject {
 
     // MARK: - Playback
 
-    func play(channel: Channel) {
-        // Cancel any in-flight retry observation
+    func play(channel: Channel) async throws {
         playerItemObservation?.cancel()
         error = nil
         retryCount = 0
         currentChannel = channel
-        startPlayback(url: channel.streamURL)
+
+        if let detail = try? await APIClient.shared.getChannel(id: channel.id),
+           let activeURL = detail.activeLink.flatMap({ URL(string: $0.url) }) {
+            startPlayback(url: activeURL)
+        } else {
+            // Fall back to the URL embedded in the channel model
+            startPlayback(url: channel.streamURL)
+        }
     }
 
 private func startPlayback(url: URL) {
@@ -58,7 +64,7 @@ private func startPlayback(url: URL) {
     }
 
     player?.play()
-    isPlaying = true  // ← add this
+    isPlaying = true
     observePlayerItem(item)
     setupNowPlaying()
 }
@@ -104,8 +110,15 @@ private func startPlayback(url: URL) {
 
         retryCount += 1
         try? await Task.sleep(for: .seconds(retryDelay))
-        guard !Task.isCancelled, let url = currentChannel?.streamURL else { return }
-        startPlayback(url: url)
+        guard !Task.isCancelled, let channel = currentChannel else { return }
+
+        // Re-fetch — server may have a fresher active link after a probe
+        guard let detail = try? await APIClient.shared.getChannel(id: channel.id),
+              let activeURL = detail.activeLink.flatMap({ URL(string: $0.url) }) else {
+            error = .noActiveLink
+            return
+        }
+        startPlayback(url: activeURL)
     }
 
     // MARK: - Retry (manual, from UI)
@@ -114,7 +127,7 @@ private func startPlayback(url: URL) {
         error = nil
         retryCount = 0
         guard let channel = currentChannel else { return }
-        play(channel: channel)
+        Task { try? await play(channel: channel) }
     }
 
     // PiP

@@ -43,16 +43,15 @@ final class SettingsStore {
         set { UserDefaults.standard.set(newValue, forKey: Keys.onboardingComplete) }
     }
 
-    var favouriteChannelIDs: Set<UUID> {
+    var favouriteChannelIDs: Set<String> {
         get {
             let strings = UserDefaults.standard.stringArray(forKey: Keys.favourites) ?? []
-            return Set(strings.compactMap { UUID(uuidString: $0) })
+            return Set(strings)
         }
         set {
-            UserDefaults.standard.set(newValue.map(\.uuidString), forKey: Keys.favourites)
+            UserDefaults.standard.set(Array(newValue), forKey: Keys.favourites)
         }
     }
-
     // MARK: - Keys
 
     private enum Keys {

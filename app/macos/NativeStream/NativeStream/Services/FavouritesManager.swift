@@ -9,13 +9,12 @@ final class FavouritesManager {
 
     private let key = "favouriteChannelIDs"
 
-    var favouriteIDs: Set<UUID> {
+    var favouriteIDs: Set<String> {
         get {
-            let strings = UserDefaults.standard.stringArray(forKey: key) ?? []
-            return Set(strings.compactMap { UUID(uuidString: $0) })
+            Set(UserDefaults.standard.stringArray(forKey: key) ?? [])
         }
         set {
-            UserDefaults.standard.set(newValue.map(\.uuidString), forKey: key)
+            UserDefaults.standard.set(Array(newValue), forKey: key)
         }
     }
 

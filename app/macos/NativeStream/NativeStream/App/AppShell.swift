@@ -71,8 +71,6 @@ struct AppShell: View {
     }
 
     private func loadEPG() async {
-        guard let url = settings.epgURL else { return }
-        epgVM.epgURL = url
         await epgVM.load()
     }
 
@@ -123,7 +121,7 @@ struct AppShell: View {
         selectedChannel       = channel
         playerVM.bufferPreset = settings.bufferPreset
         playerVM.epgViewModel = epgVM
-        playerVM.play(channel: channel)
+        Task { try? await playerVM.play(channel: channel) }
         withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
     }
 }

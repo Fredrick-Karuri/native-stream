@@ -13,19 +13,18 @@ final class EPGViewModel {
     var store: EPGStore? = nil
     var isLoading: Bool = false
     var isAvailable: Bool = true
-    var epgURL: URL? = nil
 
     private let parser = EPGParser()
 
     // MARK: - Load
 
     func load() async {
-        guard let url = epgURL else { return }
         isLoading = true
         defer { isLoading = false }
 
         do {
-            let loaded = try await parser.parse(url: url)
+            let data = try await APIClient.shared.epgData()
+            let loaded = try await parser.parse(data: data)
             store = loaded
             isAvailable = true
         } catch {

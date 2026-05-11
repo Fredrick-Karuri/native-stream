@@ -17,8 +17,9 @@ struct PlayerSidebarRow: View {
 
     var body: some View {
         Button {
-            playerVM.play(channel: channel)
-        } label: {
+            Task { try? await playerVM.play(channel: channel) }
+        }
+        label: {
             HStack(spacing: NS.Spacing.sm) {
 
                 ChannelLogoSquare(

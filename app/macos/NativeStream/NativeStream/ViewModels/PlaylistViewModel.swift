@@ -43,16 +43,22 @@ final class PlaylistViewModel {
         guard !isLoading else { return }
         isLoading = true
         error = nil
-
+ 
         var allChannels: [Channel] = []
-
+ 
         await withTaskGroup(of: [Channel].self) { group in
             for source in sources {
                 group.addTask { [weak self] in
                     guard let self else { return [] }
                     do {
-                        let result = try await self.parser.parse(url: source.url)
-                        // Log warnings but don't surface to user
+                        // Use APIClient for server playlist URLs for proper error handling
+                        let data: Data
+                        if source.url.host == "localhost" || source.url.host == "127.0.0.1" {
+                            data = try await APIClient.shared.playlistData()
+                        } else {
+                            data = try await URLSession.shared.data(from: source.url).0
+                        }
+                        let result = try await self.parser.parse(data: data)
                         for warning in result.warnings {
                             print("⚠️ [M3U] Line \(warning.line): \(warning.reason)")
                         }
@@ -65,25 +71,16 @@ final class PlaylistViewModel {
                     }
                 }
             }
-
-            for await fetched in group {
-                allChannels.append(contentsOf: fetched)
-            }
+            for await fetched in group { allChannels.append(contentsOf: fetched) }
         }
-
+ 
         channels = allChannels
         isLoading = false
-
-        // Mark sources as fetched
         let now = Date()
-        sources = sources.map { source in
-            var updated = source
-            updated.lastFetched = now
-            return updated
-        }
+        sources = sources.map { var s = $0; s.lastFetched = now; return s }
         saveSourcesToDisk()
     }
-
+ 
     /// Refresh a single source and merge changes.
     func refresh(source: PlaylistSource) async {
         do {

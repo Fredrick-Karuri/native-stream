@@ -36,7 +36,6 @@ struct NativeStreamApp: App {
             .task {
                 guard let url = settings.serverURL else { return }
                 await serverHealth.check(serverURL: url)
-                epgVM.epgURL = settings.epgURL
                 async let _ = playlistVM.loadAll()
                 async let _ = epgVM.load()
                 playlistVM.scheduleAutoRefresh()
