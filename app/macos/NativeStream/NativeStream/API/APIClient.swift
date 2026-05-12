@@ -167,6 +167,32 @@ struct StatusResponse: Decodable {
     let status: String
 }
 
+struct MatchResponse: Decodable, Identifiable {
+    let id: String
+    let homeTeam: String
+    let awayTeam: String
+    let competition: String
+    let sport: String
+    let kickOff: Date
+    let durationMin: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id, competition, sport
+        case homeTeam    = "home_team"
+        case awayTeam    = "away_team"
+        case kickOff     = "kick_off"
+        case durationMin = "duration_min"
+    }
+    
+    var title: String { "\(homeTeam) vs \(awayTeam)" }
+    var end: Date { kickOff.addingTimeInterval(TimeInterval(durationMin * 60)) }
+    var isNow: Bool { kickOff <= Date() && Date() < end }
+}
+
+struct MatchListResponse: Decodable {
+    let matches: [MatchResponse]
+}
+
 // MARK: - APIClient
 
 actor APIClient {
@@ -255,6 +281,11 @@ actor APIClient {
 
     func assignUnmatchedLink(channelID: String, url: String) async throws {
         try await updateChannel(id: channelID, UpdateChannelRequest(streamURL: url))
+    }
+
+    func matches() async throws -> [MatchResponse] {
+        let r: MatchListResponse = try await get("api/epg/matches")
+        return r.matches
     }
 
     // MARK: - Probe

@@ -13,6 +13,7 @@ final class EPGViewModel {
     var store: EPGStore? = nil
     var isLoading: Bool = false
     var isAvailable: Bool = true
+    var matches: [MatchResponse] = []
 
     private let parser = EPGParser()
 
@@ -24,12 +25,22 @@ final class EPGViewModel {
 
         do {
             let data = try await APIClient.shared.epgData()
+            print("📺 EPG data received: \(data.count) bytes")
             let loaded = try await parser.parse(data: data)
+            print("📺 EPG parsed: \(loaded.channelCount) channels, \(loaded.programmeCount) programmes")
             store = loaded
             isAvailable = true
         } catch {
             isAvailable = false
             print("⚠️ [EPG] Failed to load: \(error.localizedDescription)")
+        }
+    }
+
+    func loadMatches() async {
+        do {
+            matches = try await APIClient.shared.matches()
+        } catch {
+            print("⚠️ [EPG] Failed to load matches: \(error.localizedDescription)")
         }
     }
 

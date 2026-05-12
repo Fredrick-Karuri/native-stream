@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -176,77 +175,56 @@ func (e *Engine) fetchMatches() []Match {
 }
 
 func (e *Engine) fetchESPN() ([]Match, error) {
-	// ESPN public scoreboard API — no key required
-	url := "https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard"
-	resp, err := e.client.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-	return parseESPNResponse(body), nil
+    url := "https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard"
+    resp, err := e.client.Get(url)
+    if err != nil {
+        return nil, err
+    }
+    defer resp.Body.Close()
+    body, _ := io.ReadAll(resp.Body)
+    matches := parseESPNResponse(body)
+    fmt.Fprintf(os.Stderr, "[epg] ESPN returned %d matches\n", len(matches)) 
+    return matches, nil
 }
 
 func (e *Engine) fetchFootballData() ([]Match, error) {
-	// football-data.org — requires free API key
-	today := time.Now().Format("2006-01-02")
-	url := fmt.Sprintf("https://api.football-data.org/v4/matches?dateFrom=%s&dateTo=%s", today, today)
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("X-Auth-Token", e.cfg.FootballDataKey)
-	resp, err := e.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-	return parseFootballDataResponse(body), nil
+    today := time.Now().Format("2006-01-02")
+    future := time.Now().AddDate(0, 0, 7).Format("2006-01-02")  // 7 days ahead
+    url := fmt.Sprintf("https://api.football-data.org/v4/matches?dateFrom=%s&dateTo=%s", today, future)
+    req, _ := http.NewRequest("GET", url, nil)
+    req.Header.Set("X-Auth-Token", e.cfg.FootballDataKey)
+    resp, err := e.client.Do(req)
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "[epg] football-data request failed: %v\n", err)
+        return nil, err
+    }
+    defer resp.Body.Close()
+    body, _ := io.ReadAll(resp.Body)
+    fmt.Fprintf(os.Stderr, "[epg] football-data status=%d body=%s\n", resp.StatusCode, string(body[:min(200, len(body))]))
+    return parseFootballDataResponse(body), nil
 }
 
 // ── XMLTV generation (NS-133) ─────────────────────────────────────────────────
 
 func (e *Engine) generateXMLTV(matches []Match) []byte {
-	channels := e.store.HealthyChannels()
-
-	tv := xmlTV{}
-	seen := map[string]bool{}
-
-	for _, ch := range channels {
-		if !seen[ch.TvgID] {
-			tv.Channels = append(tv.Channels, xmlChannel{
-				ID:          ch.TvgID,
-				DisplayName: ch.Name,
-			})
-			seen[ch.TvgID] = true
-		}
-	}
-
-	for _, m := range matches {
-		title := fmt.Sprintf("%s vs %s — %s", m.HomeTeam, m.AwayTeam, m.Competition)
-		dur := m.Duration
-		if dur == 0 {
-			dur = 110 * time.Minute
-		}
-		stop := m.KickOff.Add(dur)
-		for _, chID := range m.ChannelIDs {
-			// Find tvg-id for this store channel id
-			ch := e.store.Get(chID)
-			if ch == nil {
-				continue
-			}
-			tv.Programmes = append(tv.Programmes, xmlProgramme{
-				Start:   m.KickOff.UTC().Format("20060102150405 +0000"),
-				Stop:    stop.UTC().Format("20060102150405 +0000"),
-				Channel: ch.TvgID,
-				Title:   title,
-			})
-		}
-	}
-
-	out, err := xml.MarshalIndent(tv, "", "  ")
-	if err != nil {
-		return []byte(`<?xml version="1.0"?><tv></tv>`)
-	}
-	return append([]byte(xml.Header), out...)
+    channels := e.store.HealthyChannels()
+    tv := xmlTV{}
+    seen := map[string]bool{}
+    for _, ch := range channels {
+        if !seen[ch.TvgID] {
+            tv.Channels = append(tv.Channels, xmlChannel{
+                ID:          ch.TvgID,
+                DisplayName: ch.Name,
+            })
+            seen[ch.TvgID] = true
+        }
+    }
+    // No programmes — matches served via /api/epg/matches
+    out, err := xml.MarshalIndent(tv, "", "  ")
+    if err != nil {
+        return []byte(`<?xml version="1.0"?><tv></tv>`)
+    }
+    return append([]byte(xml.Header), out...)
 }
 
 // ── Cache persistence ─────────────────────────────────────────────────────────
@@ -271,18 +249,13 @@ func (e *Engine) saveCacheToDisk(data []byte) {
 
 // assignChannels matches fetched matches to store channels via keywords.
 // Matches against homeTeam, awayTeam, and competition name.
+
+func (e *Engine) Matches() []Match {
+    e.mu.RLock()
+    defer e.mu.RUnlock()
+    return e.matches
+}
 func (e *Engine) assignChannels(matches []Match) []Match {
-    channels := e.store.All()
-    for i, m := range matches {
-        searchText := strings.ToLower(m.HomeTeam + " " + m.AwayTeam + " " + m.Competition + " " + m.Sport)
-        for _, ch := range channels {
-            for _, kw := range ch.Keywords {
-                if strings.Contains(searchText, strings.ToLower(kw)) {
-                    matches[i].ChannelIDs = append(matches[i].ChannelIDs, ch.ID)
-                    break
-                }
-            }
-        }
-    }
+    // Matches are decoupled from channels — served via /api/epg/matches
     return matches
 }

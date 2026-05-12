@@ -37,7 +37,6 @@ struct NativeStreamApp: App {
                 guard let url = settings.serverURL else { return }
                 await serverHealth.check(serverURL: url)
                 async let _ = playlistVM.loadAll()
-                async let _ = epgVM.load()
                 playlistVM.scheduleAutoRefresh()
                 serverHealth.startPolling(serverURL: url)
             }

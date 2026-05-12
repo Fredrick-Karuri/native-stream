@@ -21,33 +21,17 @@ struct NowScreen: View {
     }
 
     /// Channels with a live programme whose title matches a sport keyword.
-    private var liveMatches: [(channel: Channel, programme: Programme)] {
-        playlistVM.channels.compactMap { channel in
-            guard let prog = epgVM.currentProgramme(for: channel), isMatch(prog) else { return nil }
-            return (channel, prog)
-        }
-    }
-
-    /// Channels live but not a sport match — studio shows, PGA coverage, snooker etc.
-    private var liveOnAir: [(channel: Channel, programme: Programme)] {
-        playlistVM.channels.compactMap { channel in
-            guard let prog = epgVM.currentProgramme(for: channel), !isMatch(prog) else { return nil }
-            return (channel, prog)
-        }
+    private var liveMatches: [MatchResponse] {
+        epgVM.matches.filter { $0.isNow }
     }
 
     /// Channels with nothing live but a next programme starting within 2 hours.
-    private var startingSoon: [(channel: Channel, programme: Programme)] {
+    private var startingSoon: [MatchResponse] {
         let cutoff = Date().addingTimeInterval(2 * 3600)
-        return playlistVM.channels.compactMap { channel in
-            guard epgVM.currentProgramme(for: channel) == nil,
-                  let next = epgVM.nextProgramme(for: channel),
-                  next.start <= cutoff else { return nil }
-            return (channel, next)
-        }
+        return epgVM.matches.filter { !$0.isNow && $0.kickOff <= cutoff }
     }
 
-    private var liveCount: Int { liveMatches.count + liveOnAir.count }
+    private var liveCount: Int { liveMatches.count }
     private var soonCount: Int { startingSoon.count }
 
     // MARK: - Body
@@ -90,7 +74,6 @@ struct NowScreen: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: NS.Spacing.xxl) {
                     if !liveMatches.isEmpty { matchesSection }
-                    if !liveOnAir.isEmpty   { onAirSection }
                     if !startingSoon.isEmpty { soonSection }
                 }
                 .padding(NS.Spacing.xl)
@@ -101,63 +84,44 @@ struct NowScreen: View {
 
     // MARK: - Matches live section
 
-    private var matchesSection: some View {
-        VStack(alignment: .leading, spacing: NS.Spacing.md) {
-            HStack(spacing: NS.Spacing.sm) {
-                NSPulseDot()
-                NSGroupHeader(title: "Matches live", count: liveMatches.count)
-            }
-
-            // Hero card — first match
-            if let first = liveMatches.first {
-                MatchHeroCard(channel: first.channel, programme: first.programme) {
-                    onSelectChannel(first.channel)
-                }
-            }
-
-            // Small grid — remaining matches
-            if liveMatches.count > 1 {
-                MatchSmallGrid(
-                    items: Array(liveMatches.dropFirst()),
-                    onSelectChannel: onSelectChannel
-                )
-            }
+private var matchesSection: some View {
+    VStack(alignment: .leading, spacing: NS.Spacing.md) {
+        HStack(spacing: NS.Spacing.sm) {
+            NSPulseDot()
+            NSGroupHeader(title: "Matches live", count: liveMatches.count)
+        }
+        if let first = liveMatches.first {
+            // MatchHeroCard needs a match not a channel — adapt or pass title/competition
+            Text("\(first.title) · \(first.competition)")
+                .font(NS.Font.heading)
+                .foregroundStyle(NS.text)
+        }
+        // remaining matches
+        ForEach(liveMatches.dropFirst()) { match in
+            Text("\(match.title) · \(match.competition)")
+                .font(NS.Font.caption)
+                .foregroundStyle(NS.text2)
         }
     }
-
-    // MARK: - Live on air section
-
-    private var onAirSection: some View {
-        VStack(alignment: .leading, spacing: NS.Spacing.md) {
-            HStack(spacing: NS.Spacing.sm) {
-                Image(systemName: "tv")
-                    .font(.system(size: 11))
-                    .foregroundStyle(NS.text3)
-                NSGroupHeader(title: "Live on air", count: liveOnAir.count)
-            }
-            VStack(spacing: NS.Spacing.sm) {
-                ForEach(liveOnAir, id: \.channel.id) { item in
-                    LiveOnAirRow(channel: item.channel, programme: item.programme) {
-                        onSelectChannel(item.channel)
-                    }
-                }
-            }
-        }
-    }
+}
 
     // MARK: - Starting soon section
 
-    private var soonSection: some View {
-        VStack(alignment: .leading, spacing: NS.Spacing.md) {
-            HStack(spacing: NS.Spacing.sm) {
-                Image(systemName: "clock")
-                    .font(.system(size: 11))
-                    .foregroundStyle(NS.text3)
-                NSGroupHeader(title: "Starting soon", count: startingSoon.count)
+private var soonSection: some View {
+    VStack(alignment: .leading, spacing: NS.Spacing.md) {
+        HStack(spacing: NS.Spacing.sm) {
+            Image(systemName: "clock").font(.system(size: 11)).foregroundStyle(NS.text3)
+            NSGroupHeader(title: "Starting soon", count: startingSoon.count)
+        }
+        ForEach(startingSoon) { match in
+            HStack {
+                Text(match.title).font(NS.Font.caption).foregroundStyle(NS.text)
+                Spacer()
+                Text(match.kickOff, style: .time).font(NS.Font.monoSm).foregroundStyle(NS.accent)
             }
-            StartingSoonGrid(items: startingSoon, onSelectChannel: onSelectChannel)
         }
     }
+}
 
     // MARK: - Loading / empty
 

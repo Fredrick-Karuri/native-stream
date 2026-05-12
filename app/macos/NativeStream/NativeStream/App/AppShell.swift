@@ -65,6 +65,7 @@ struct AppShell: View {
     private func loadAll() async {
         async let playlist: () = playlistVM.loadAll()
         async let epg: ()      = loadEPG()
+        async let matches: ()  = epgVM.loadMatches()
         _ = await (playlist, epg)
         if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
         playlistVM.scheduleAutoRefresh()

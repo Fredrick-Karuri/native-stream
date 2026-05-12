@@ -46,63 +46,53 @@ struct ScheduleScreen: View {
     // MARK: - Events
 
     private struct EventItem: Identifiable {
-        let id = UUID()
-        let channel: Channel
-        let programme: Programme
+        let id: String
+        let match: MatchResponse
     }
 
     private var events: [EventItem] {
         let dayStart = selectedDate.date
         guard let dayEnd = Calendar.current.date(byAdding: .day, value: 1, to: dayStart) else { return [] }
 
-        return playlistVM.channels.flatMap { ch in
-            epgVM.schedule(for: ch, hours: 24)
-                .filter { $0.start >= dayStart && $0.start < dayEnd }
-                .filter { prog in
-                    guard let sport = selectedSport else { return true }
-                    return sport.epgKeywords.contains {
-                        prog.title.lowercased().contains($0) ||
-                        ch.groupTitle.lowercased().contains($0)
-                    }
+        return epgVM.matches
+            .filter { $0.kickOff >= dayStart && $0.kickOff < dayEnd }
+            .filter { match in
+                guard let sport = selectedSport else { return true }
+                return sport.epgKeywords.contains {
+                    match.title.lowercased().contains($0) ||
+                    match.competition.lowercased().contains($0)
                 }
-                .map { EventItem(channel: ch, programme: $0) }
-        }
-        .sorted { $0.programme.start < $1.programme.start }
+            }
+            .sorted { $0.kickOff < $1.kickOff }
+            .map { EventItem(id: $0.id, match: $0) }
     }
 
     // Group events into time brackets
-    private var groupedEvents: [(label: String, isLive: Bool, items: [EventItem])] {
-        let now = Date()
-        var live: [EventItem] = []
-        var tonight: [EventItem] = []
-        var afternoon: [EventItem] = []
-        var morning: [EventItem] = []
+private var groupedEvents: [(label: String, isLive: Bool, items: [EventItem])] {
+    var live:      [EventItem] = []
+    var morning:   [EventItem] = []
+    var afternoon: [EventItem] = []
+    var tonight:   [EventItem] = []
 
-        for ev in events {
-            if ev.programme.isNow {
-                live.append(ev)
-            } else {
-                let hour = Calendar.current.component(.hour, from: ev.programme.start)
-                if hour >= 18       { tonight.append(ev) }
-                else if hour >= 12  { afternoon.append(ev) }
-                else                { morning.append(ev) }
-            }
-        }
-
-        var result: [(label: String, isLive: Bool, items: [EventItem])] = []
-        if !live.isEmpty      { result.append(("Live now",        true,  live)) }
-        if !morning.isEmpty   { result.append(("Morning",         false, morning)) }
-        if !afternoon.isEmpty { result.append(("This afternoon",  false, afternoon)) }
-        if !tonight.isEmpty   { result.append(("Tonight",         false, tonight)) }
-        return result
+    for ev in events {
+        if ev.match.isNow { live.append(ev); continue }
+        let hour = Calendar.current.component(.hour, from: ev.match.kickOff)
+        if hour >= 18      { tonight.append(ev) }
+        else if hour >= 12 { afternoon.append(ev) }
+        else               { morning.append(ev) }
     }
+
+    var result: [(label: String, isLive: Bool, items: [EventItem])] = []
+    if !live.isEmpty      { result.append(("Live now",       true,  live)) }
+    if !morning.isEmpty   { result.append(("Morning",        false, morning)) }
+    if !afternoon.isEmpty { result.append(("This afternoon", false, afternoon)) }
+    if !tonight.isEmpty   { result.append(("Tonight",        false, tonight)) }
+    return result
+}
 
     private func eventCount(for date: DateItem) -> Int {
         guard let dayEnd = Calendar.current.date(byAdding: .day, value: 1, to: date.date) else { return 0 }
-        return playlistVM.channels.flatMap {
-            epgVM.schedule(for: $0, hours: 24)
-                .filter { $0.start >= date.date && $0.start < dayEnd }
-        }.count
+        return epgVM.matches.filter { $0.kickOff >= date.date && $0.kickOff < dayEnd }.count
     }
 
     // MARK: - Body
@@ -235,10 +225,21 @@ struct ScheduleScreen: View {
                             }
                             VStack(spacing: NS.Spacing.xs) {
                                 ForEach(group.items) { item in
-                                    ScheduleEventRow(
-                                        channel: item.channel,
-                                        programme: item.programme
-                                    ) { onSelectChannel(item.channel) }
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(item.match.title)
+                                                .font(NS.Font.captionMed)
+                                                .foregroundStyle(NS.text)
+                                            Text(item.match.competition)
+                                                .font(NS.Font.monoSm)
+                                                .foregroundStyle(NS.text3)
+                                        }
+                                        Spacer()
+                                        Text(item.match.kickOff, style: .time)
+                                            .font(NS.Font.monoSm)
+                                            .foregroundStyle(item.match.isNow ? NS.accent : NS.text3)
+                                    }
+                                    .padding(.vertical, NS.Spacing.xs)
                                 }
                             }
                         }

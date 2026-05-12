@@ -6,6 +6,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -48,9 +49,12 @@ func New(
 
 // Router registers all routes and returns the mux.
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /api/import/m3u", h.handleImportM3U)
+
 	// Playlist & EPG
 	mux.HandleFunc("GET /playlist.m3u", h.handlePlaylist)
 	mux.HandleFunc("GET /epg.xml", h.handleEPG)
+	mux.HandleFunc("GET /api/epg/matches", h.handleEPGMatches)
 
 	// Proxy
 	mux.HandleFunc("GET /stream/{id}/proxy", h.proxy.ServeHTTP)
@@ -61,10 +65,12 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/channels", h.handleCreateChannel)
 	mux.HandleFunc("PUT /api/channels/{id}", h.handleUpdateChannel)
 	mux.HandleFunc("DELETE /api/channels/{id}", h.handleDeleteChannel)
+	mux.HandleFunc("DELETE /api/channels", h.handleDeleteAllChannels)
 
 	// Health & probe
 	mux.HandleFunc("GET /api/health", h.handleHealth)
 	mux.HandleFunc("POST /api/probe", h.handleProbe)
+
 
 }
 
@@ -257,4 +263,153 @@ func slugify(s string) string {
 		}
 	}
 	return strings.Trim(out.String(), "-")
+}
+
+func (h *Handler) handleDeleteAllChannels(w http.ResponseWriter, r *http.Request) {
+    channels := h.store.All()
+    for _, ch := range channels {
+        h.store.Delete(ch.ID)
+    }
+    writeJSON(w, http.StatusOK, map[string]any{"deleted": len(channels)})
+}
+
+func (h *Handler) handleImportM3U(w http.ResponseWriter, r *http.Request) {
+    var body struct {
+        URL string `json:"url"`
+    }
+    if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.URL == "" {
+        writeJSON(w, http.StatusBadRequest, map[string]string{"error": "url required"})
+        return
+    }
+
+    resp, err := http.Get(body.URL)
+    if err != nil || resp.StatusCode != 200 {
+        writeJSON(w, http.StatusBadGateway, map[string]string{"error": "failed to fetch M3U"})
+        return
+    }
+    defer resp.Body.Close()
+
+    entries, err := parseM3U(resp.Body)
+    if err != nil {
+        writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
+        return
+    }
+
+    imported := 0
+    for _, e := range entries {
+        id := slugify(e.name)
+        if id == "" { continue }
+        ch := &store.Channel{
+            ID:         id,
+            Name:       e.name,
+            GroupTitle: e.groupTitle,
+            TvgID:      e.tvgID,
+            LogoURL:    e.logoURL,
+            Keywords:   autoKeywords(e.name, e.groupTitle),
+        }
+        if e.streamURL != "" {
+            link := &store.LinkScore{URL: e.streamURL, ChannelID: id, State: store.StateCandidate}
+            ch.Candidates = []*store.LinkScore{link}
+            h.validator.Submit(validator.Candidate{URL: e.streamURL, ChannelID: id})
+        }
+        h.store.Add(ch)
+        imported++
+    }
+
+    writeJSON(w, http.StatusOK, map[string]any{"imported": imported})
+}
+
+type m3uEntry struct {
+    name, groupTitle, tvgID, logoURL, streamURL string
+}
+
+func parseM3U(r io.Reader) ([]m3uEntry, error) {
+    data, err := io.ReadAll(r)
+    if err != nil { return nil, err }
+    lines := strings.Split(string(data), "\n")
+
+    var entries []m3uEntry
+    var pending *m3uEntry
+
+    for _, raw := range lines {
+        line := strings.TrimSpace(raw)
+        if line == "" || line == "#EXTM3U" { continue }
+
+        if strings.HasPrefix(line, "#EXTINF:") {
+            pending = &m3uEntry{}
+            pending.name = extinfName(line)
+            pending.tvgID = extinfAttr("tvg-id", line)
+            pending.groupTitle = extinfAttr("group-title", line)
+            pending.logoURL = extinfAttr("tvg-logo", line)
+            if pending.groupTitle == "" { pending.groupTitle = "Uncategorised" }
+            continue
+        }
+
+        if strings.HasPrefix(line, "#") { continue }
+
+        if pending != nil {
+            pending.streamURL = line
+            entries = append(entries, *pending)
+            pending = nil
+        }
+    }
+    return entries, nil
+}
+
+func extinfName(line string) string {
+    if i := strings.LastIndex(line, ","); i >= 0 {
+        return strings.TrimSpace(line[i+1:])
+    }
+    return ""
+}
+
+func extinfAttr(key, line string) string {
+    prefix := key + `="`
+    i := strings.Index(line, prefix)
+    if i < 0 { return "" }
+    rest := line[i+len(prefix):]
+    if j := strings.Index(rest, `"`); j >= 0 { return rest[:j] }
+    return ""
+}
+
+// autoKeywords seeds keywords from name and group for EPG matching.
+func autoKeywords(name, group string) []string {
+    seen := map[string]bool{}
+    var kws []string
+    for _, s := range []string{name, group} {
+        w := strings.ToLower(strings.TrimSpace(s))
+        if w != "" && !seen[w] {
+            seen[w] = true
+            kws = append(kws, w)
+        }
+    }
+    return kws
+}
+
+func (h *Handler) handleEPGMatches(w http.ResponseWriter, r *http.Request) {
+    matches := h.epg.Matches()
+    type matchRow struct {
+        ID          string    `json:"id"`
+        HomeTeam    string    `json:"home_team"`
+        AwayTeam    string    `json:"away_team"`
+        Competition string    `json:"competition"`
+        Sport       string    `json:"sport"`
+        KickOff     time.Time `json:"kick_off"`
+        DurationMin int       `json:"duration_min"`
+    }
+    rows := make([]matchRow, len(matches))
+    for i, m := range matches {
+        dur := m.Duration
+        if dur == 0 { dur = 110 * time.Minute }
+        rows[i] = matchRow{
+            ID:          m.ID,
+            HomeTeam:    m.HomeTeam,
+            AwayTeam:    m.AwayTeam,
+            Competition: m.Competition,
+            Sport:       m.Sport,
+            KickOff:     m.KickOff,
+            DurationMin: int(dur.Minutes()),
+        }
+    }
+    writeJSON(w, http.StatusOK, map[string]any{"matches": rows})
 }

@@ -39,7 +39,7 @@ struct EPGStore: Sendable {
 
 // MARK: - Parser
 
-actor EPGParser: NSObject {
+final class EPGParser: NSObject {
 
     private var programmes: [String: [Programme]] = [:]
     private var currentChannelId: String?
@@ -113,27 +113,19 @@ actor EPGParser: NSObject {
 
 extension EPGParser: XMLParserDelegate {
 
-    nonisolated func parser(
-        _ parser: XMLParser,
-        didStartElement element: String,
-        namespaceURI: String?,
-        qualifiedName qName: String?,
-        attributes: [String: String]
-    ) {
-        Task { await handleStartElement(element, attributes: attributes) }
+    func parser(_ parser: XMLParser, didStartElement element: String,
+                namespaceURI: String?, qualifiedName qName: String?,
+                attributes: [String: String]) {
+        handleStartElement(element, attributes: attributes)
     }
 
-    nonisolated func parser(
-        _ parser: XMLParser,
-        didEndElement element: String,
-        namespaceURI: String?,
-        qualifiedName qName: String?
-    ) {
-        Task { await handleEndElement(element) }
+    func parser(_ parser: XMLParser, didEndElement element: String,
+                namespaceURI: String?, qualifiedName qName: String?) {
+        handleEndElement(element)
     }
 
-    nonisolated func parser(_ parser: XMLParser, foundCharacters string: String) {
-        Task { await appendChars(string) }
+    func parser(_ parser: XMLParser, foundCharacters string: String) {
+        appendChars(string)
     }
 
     private func handleStartElement(_ element: String, attributes: [String: String]) {
