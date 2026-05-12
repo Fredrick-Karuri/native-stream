@@ -130,6 +130,7 @@ enum NS {
     // ── Card sizing ───────────────────────────────────────────────────────────
     enum CardSize {
         static var minWidth: CGFloat { 220 * NS.scale }
+        static var logoHeight:  CGFloat { minWidth * (9/16) }
     }
 
     // ── Rail sizing ───────────────────────────────────────────────────────────

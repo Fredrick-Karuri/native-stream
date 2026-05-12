@@ -4,10 +4,7 @@
 package discovery
 
 import (
-	"fmt"
-	"os"
 	"strings"
-
 	"github.com/fredrick-karuri/nativestream/server/store"
 )
 
@@ -24,7 +21,6 @@ func NewMatcher(s *store.Store) *ChannelMatcher {
 func (m *ChannelMatcher) Match(link *CandidateLink) string {
 	channels := m.store.All()
 	combined := strings.ToLower(link.URL + " " + link.ContextText)
-	fmt.Fprintf(os.Stderr, "[matcher] combined=%q channels=%d\n", combined[:min(80, len(combined))], len(channels))
 
 	for _, ch := range channels {
 		for _, kw := range ch.Keywords {

@@ -134,4 +134,5 @@ struct AppShell: View {
         .environment(SettingsStore())
         .environment(FavouritesManager())
         .environment(ServerHealthViewModel())
+        .environment(ChannelManagerViewModel())
 }
