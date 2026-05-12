@@ -26,54 +26,54 @@ struct ChannelCard: View {
     var body: some View {
         Button(action: onTap) {
             
+            VStack(alignment: .leading, spacing: 6) {
                 
-                VStack(alignment: .leading, spacing: 6) {
+                // Artwork
+                ZStack(alignment: .bottom) {
+                    ChannelLogoView(channel: channel, borderColour: borderColour)
                     
-                    // Artwork
-                    ZStack(alignment: .bottom) {
-                        ChannelLogoView(channel: channel, borderColour: borderColour)
-                        
-                        if let prog = programme {
-                            NSProgressBar(value: prog.progress, height: 3, glow: false)
-                                .clipShape(.rect(
-                                    bottomLeadingRadius: NS.Radius.lg,
-                                    bottomTrailingRadius: NS.Radius.lg
-                                ))
-                        }
-                        
-                        VStack {
-                            HStack(alignment: .top) {
-                                if isLive { NSLiveBadge(isLive: true) }
-                                Spacer()
-                                if isPlaying { playingBadge } else { starButton }
-                            }
-                            .padding(8)
-                            Spacer()
-                        }
-                    }
-                    .scaleEffect(isHovered ? 1.02 : 1.0)
-                    .animation(.easeOut(duration: 0.12), value: isHovered)
-                    
-                    // Channel name
-                    Text(channel.name)
-                        .font(NS.Font.captionMed)
-                        .foregroundStyle(NS.text)
-                        .lineLimit(1)
-                    
-                    // EPG line
                     if let prog = programme {
-                        Text(prog.title)
-                            .font(NS.Font.caption)
-                            .foregroundStyle(NS.accent2)
-                            .lineLimit(1)
-                    } else if let next = epgVM.nextProgramme(for: channel) {
-                        Text(next.title)
-                            .font(NS.Font.caption)
-                            .foregroundStyle(NS.text3)
-                            .lineLimit(1)
+                        NSProgressBar(value: prog.progress, height: 3, glow: false)
+                            .clipShape(.rect(
+                                bottomLeadingRadius: NS.Radius.lg,
+                                bottomTrailingRadius: NS.Radius.lg
+                            ))
                     }
+                    
+                    VStack {
+                        HStack(alignment: .top) {
+                            if isLive { NSLiveBadge(isLive: true) }
+                            Spacer()
+                            if isPlaying { playingBadge } else { starButton }
+                        }
+                        .padding(8)
+                        Spacer()
+                    }
+                }
+                .scaleEffect(isHovered ? 1.02 : 1.0)
+                .animation(.easeOut(duration: 0.12), value: isHovered)
                 
-            }}
+                // Channel name
+                Text(channel.name)
+                    .font(NS.Font.captionMed)
+                    .foregroundStyle(NS.text)
+                    .lineLimit(1)
+                
+                // EPG line
+                if let prog = programme {
+                    Text(prog.title)
+                        .font(NS.Font.caption)
+                        .foregroundStyle(NS.accent2)
+                        .lineLimit(1)
+                } else if let next = epgVM.nextProgramme(for: channel) {
+                    Text(next.title)
+                        .font(NS.Font.caption)
+                        .foregroundStyle(NS.text3)
+                        .lineLimit(1)
+                }
+                
+            }
+        }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
     }
@@ -115,7 +115,9 @@ struct ChannelLogoView: View {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
-                        img.resizable().scaledToFit()
+                        img.resizable()
+                            .scaledToFit()
+                            .padding(NS.Spacing.xxxl)
                     default:
                         placeholder
                     }

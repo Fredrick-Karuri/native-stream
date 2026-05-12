@@ -116,6 +116,7 @@ enum NS {
         static var lg:  CGFloat { 16 * NS.scale }
         static var xl:  CGFloat { 20 * NS.scale }
         static var xxl: CGFloat { 28 * NS.scale }
+        static var xxxl: CGFloat { 36 * NS.scale }
     }
 
     // ── Radius ────────────────────────────────────────────────────────────────
@@ -130,7 +131,8 @@ enum NS {
     // ── Card sizing ───────────────────────────────────────────────────────────
     enum CardSize {
         static var minWidth: CGFloat { 220 * NS.scale }
-        static var logoHeight:  CGFloat { minWidth * (9/16) }
+        static var cardHeight: CGFloat { 320 * NS.scale }
+        static var logoHeight: CGFloat { cardHeight / 2 }
     }
 
     // ── Rail sizing ───────────────────────────────────────────────────────────
