@@ -1,6 +1,6 @@
-
-// ScheduleScreen.swift — UX-018
-// Full programme guide by date, filterable by sport.
+// ScheduleScreen.swift — UX-018, FX-004, FX-011
+// FX-004: replaced schedule(for:hours:) with schedule(for:from:to:) so future
+// dates return correct results. Fixed in both events and eventCount.
 
 import SwiftUI
 
@@ -12,12 +12,12 @@ struct ScheduleScreen: View {
     let onSelectChannel: (Channel) -> Void
 
     @State private var selectedDate: DateItem = DateItem.today
-    @State private var selectedSport: SportCategory? = nil  // nil = all sports
+    @State private var selectedSport: SportCategory? = nil
 
     // MARK: - Date model
 
     struct DateItem: Identifiable, Equatable {
-        let id: Int // offset from today
+        let id: Int
         let date: Date
 
         static let today = DateItem(id: 0, date: Calendar.current.startOfDay(for: Date()))
@@ -33,12 +33,17 @@ struct ScheduleScreen: View {
             let f = DateFormatter(); f.dateFormat = "d MMM"
             return f.string(from: date)
         }
+
+        var dayEnd: Date {
+            Calendar.current.date(byAdding: .day, value: 1, to: date) ?? date
+        }
     }
 
     private var dates: [DateItem] {
         (0..<7).compactMap { offset in
-            guard let d = Calendar.current.date(byAdding: .day, value: offset, to: DateItem.today.date)
-            else { return nil }
+            guard let d = Calendar.current.date(
+                byAdding: .day, value: offset, to: DateItem.today.date
+            ) else { return nil }
             return DateItem(id: offset, date: d)
         }
     }
@@ -52,57 +57,51 @@ struct ScheduleScreen: View {
     }
 
     private var events: [EventItem] {
-        let dayStart = selectedDate.date
-        guard let dayEnd = Calendar.current.date(byAdding: .day, value: 1, to: dayStart) else { return [] }
+        let from = selectedDate.date
+        let to   = selectedDate.dayEnd
 
         return playlistVM.channels.flatMap { ch in
-            epgVM.schedule(for: ch, hours: 24)
-                .filter { $0.start >= dayStart && $0.start < dayEnd }
+            // FX-004: use explicit date range — not hours from now
+            epgVM.schedule(for: ch, from: from, to: to)
                 .filter { prog in
                     guard let sport = selectedSport else { return true }
-                    return sport.epgKeywords.contains {
-                        prog.title.lowercased().contains($0) ||
-                        ch.groupTitle.lowercased().contains($0)
-                    }
+                    return epgVM.matchesSport(sport, programme: prog, channel: ch)
                 }
                 .map { EventItem(channel: ch, programme: $0) }
         }
         .sorted { $0.programme.start < $1.programme.start }
     }
 
-    // Group events into time brackets
     private var groupedEvents: [(label: String, isLive: Bool, items: [EventItem])] {
-        let now = Date()
         var live: [EventItem] = []
-        var tonight: [EventItem] = []
-        var afternoon: [EventItem] = []
         var morning: [EventItem] = []
+        var afternoon: [EventItem] = []
+        var tonight: [EventItem] = []
 
         for ev in events {
             if ev.programme.isNow {
                 live.append(ev)
             } else {
                 let hour = Calendar.current.component(.hour, from: ev.programme.start)
-                if hour >= 18       { tonight.append(ev) }
-                else if hour >= 12  { afternoon.append(ev) }
-                else                { morning.append(ev) }
+                if hour >= 18      { tonight.append(ev) }
+                else if hour >= 12 { afternoon.append(ev) }
+                else               { morning.append(ev) }
             }
         }
 
         var result: [(label: String, isLive: Bool, items: [EventItem])] = []
-        if !live.isEmpty      { result.append(("Live now",        true,  live)) }
-        if !morning.isEmpty   { result.append(("Morning",         false, morning)) }
-        if !afternoon.isEmpty { result.append(("This afternoon",  false, afternoon)) }
-        if !tonight.isEmpty   { result.append(("Tonight",         false, tonight)) }
+        if !live.isEmpty      { result.append(("Live now",       true,  live)) }
+        if !morning.isEmpty   { result.append(("Morning",        false, morning)) }
+        if !afternoon.isEmpty { result.append(("This afternoon", false, afternoon)) }
+        if !tonight.isEmpty   { result.append(("Tonight",        false, tonight)) }
         return result
     }
 
     private func eventCount(for date: DateItem) -> Int {
-        guard let dayEnd = Calendar.current.date(byAdding: .day, value: 1, to: date.date) else { return 0 }
-        return playlistVM.channels.flatMap {
-            epgVM.schedule(for: $0, hours: 24)
-                .filter { $0.start >= date.date && $0.start < dayEnd }
-        }.count
+        // FX-004: same fix — use date range, not hours from now
+        playlistVM.channels.reduce(0) { count, ch in
+            count + epgVM.schedule(for: ch, from: date.date, to: date.dayEnd).count
+        }
     }
 
     // MARK: - Body
@@ -127,10 +126,7 @@ struct ScheduleScreen: View {
             Text("Schedule")
                 .font(NS.Font.heading)
                 .foregroundStyle(NS.text)
-
             Spacer()
-
-            // Sport chips — All + dynamic sports
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: NS.Spacing.xs) {
                     NSChip(label: "All sports", isActive: selectedSport == nil) {
@@ -143,7 +139,7 @@ struct ScheduleScreen: View {
                     }
                 }
             }
-            .frame(maxWidth: NS.Schedule.chipScrollMaxWidth)
+            .frame(maxWidth: 480)
         }
         .padding(.horizontal, NS.Spacing.xl)
         .padding(.vertical, NS.Spacing.md)
@@ -161,28 +157,22 @@ struct ScheduleScreen: View {
                 .padding(.horizontal, NS.Spacing.md)
                 .padding(.vertical, NS.Spacing.sm)
                 .background(NS.surface)
-
             Divider().overlay(NS.border)
-
             ScrollView {
                 VStack(spacing: 2) {
-                    ForEach(dates) { date in
-                        dateRow(date)
-                    }
+                    ForEach(dates) { date in dateRow(date) }
                 }
                 .padding(NS.Spacing.sm)
             }
         }
-        .frame(width: NS.Help.sidebarWidth)
+        .frame(width: 180)
         .background(NS.surface)
     }
 
     private func dateRow(_ date: DateItem) -> some View {
         let isActive = date == selectedDate
-        return Button {
-            selectedDate = date
-        } label: {
-            VStack(alignment: .leading, spacing: NS.Spacing.xxs) {
+        return Button { selectedDate = date } label: {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(date.dayLabel)
                     .font(NS.Font.captionMed)
                     .foregroundStyle(isActive ? NS.text : NS.text2)
@@ -195,7 +185,7 @@ struct ScheduleScreen: View {
                         .font(NS.Font.monoSm)
                         .foregroundStyle(NS.accent)
                         .padding(.horizontal, NS.Spacing.sm)
-                        .padding(.vertical, NS.Spacing.xxs)
+                        .padding(.vertical, 1)
                         .background(NS.accentGlow)
                         .clipShape(RoundedRectangle(cornerRadius: NS.Radius.sm))
                 }
@@ -218,7 +208,7 @@ struct ScheduleScreen: View {
     private var eventList: some View {
         if events.isEmpty {
             VStack(spacing: NS.Spacing.md) {
-                Text("📅").font(.system(size: NS.Schedule.emptyEmojiSize))
+                Text("📅").font(.system(size: 32))
                 Text("Nothing scheduled").font(NS.Font.display).foregroundStyle(NS.text)
                 Text("Try a different date or sport filter.")
                     .font(NS.Font.caption).foregroundStyle(NS.text3)
@@ -245,7 +235,7 @@ struct ScheduleScreen: View {
                     }
                 }
                 .padding(NS.Spacing.xl)
-                .padding(.bottom, NS.Help.emptyTopPadding)
+                .padding(.bottom, 80)
             }
         }
     }
