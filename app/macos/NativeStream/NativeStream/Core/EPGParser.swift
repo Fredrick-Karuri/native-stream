@@ -1,16 +1,7 @@
-// EPGParser.swift — FX-001
-// Parses XMLTV-format EPG data using SAX-style XMLParser for memory efficiency.
-// XMLTV files can be large (100MB+) — we never load the full tree into memory.
-//
-// FX-001: Was an `actor` with nonisolated delegate methods firing fire-and-forget
-// Tasks. xmlParser.parse() returned before any Tasks ran → empty EPGStore.
-// Fix: plain `final class`. Delegate mutates state synchronously on the parser
-// thread. EPGViewModel runs parse() in Task.detached for background execution.
-
+// EPGParser.swift — FX-001, FX-002
 import Foundation
 
-
-// MARK: - Parser
+// MARK: - Parser (FX-001: plain final class, no actor)
 
 final class EPGParser: NSObject {
 
@@ -29,8 +20,6 @@ final class EPGParser: NSObject {
         f.locale = Locale(identifier: "en_US_POSIX")
         return f
     }()
-
-    // MARK: - Public API
 
     func parse(data: Data) throws -> EPGStore {
         reset()
@@ -59,16 +48,11 @@ final class EPGParser: NSObject {
         return try parse(data: data)
     }
 
-    // MARK: - Internal
-
     private func reset() {
         programmes = [:]
-        currentChannelId = nil
-        currentTitle = nil
-        currentStart = nil
-        currentStop = nil
-        insideProgramme = false
-        insideTitle = false
+        currentChannelId = nil; currentTitle = nil
+        currentStart = nil; currentStop = nil
+        insideProgramme = false; insideTitle = false
         charBuffer = ""
     }
 
@@ -77,19 +61,13 @@ final class EPGParser: NSObject {
     }
 }
 
-// MARK: - XMLParserDelegate
-// Delegate methods are called synchronously by XMLParser on the calling thread.
-// No async dispatch needed — state is mutated directly.
+// MARK: - XMLParserDelegate (synchronous — no Task dispatch)
 
 extension EPGParser: XMLParserDelegate {
 
-    func parser(
-        _ parser: XMLParser,
-        didStartElement element: String,
-        namespaceURI: String?,
-        qualifiedName qName: String?,
-        attributes: [String: String] = [:]
-    ) {
+    func parser(_ parser: XMLParser, didStartElement element: String,
+                namespaceURI: String?, qualifiedName: String?,
+                attributes: [String: String] = [:]) {
         switch element {
         case "programme":
             insideProgramme  = true
@@ -98,45 +76,31 @@ extension EPGParser: XMLParserDelegate {
             currentStop      = attributes["stop"].flatMap(EPGParser.parseDate)
             currentTitle     = nil
             charBuffer       = ""
-
         case "title" where insideProgramme:
             insideTitle = true
             charBuffer  = ""
-
-        default:
-            break
+        default: break
         }
     }
 
-    func parser(
-        _ parser: XMLParser,
-        didEndElement element: String,
-        namespaceURI: String?,
-        qualifiedName qName: String?
-    ) {
+    func parser(_ parser: XMLParser, didEndElement element: String,
+                namespaceURI: String?, qualifiedName: String?) {
         switch element {
         case "title" where insideTitle:
             currentTitle = charBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
             insideTitle  = false
             charBuffer   = ""
-
         case "programme":
-            if let channelId = currentChannelId,
-               let title     = currentTitle,
-               let start     = currentStart,
-               let stop      = currentStop {
-                programmes[channelId, default: []].append(
-                    Programme(channelId: channelId, title: title, start: start, stop: stop)
+            if let id = currentChannelId, let title = currentTitle,
+               let start = currentStart, let stop = currentStop {
+                programmes[id, default: []].append(
+                    Programme(channelId: id, title: title, start: start, stop: stop)
                 )
             }
             insideProgramme  = false
-            currentChannelId = nil
-            currentTitle     = nil
-            currentStart     = nil
-            currentStop      = nil
-
-        default:
-            break
+            currentChannelId = nil; currentTitle = nil
+            currentStart     = nil; currentStop  = nil
+        default: break
         }
     }
 
