@@ -55,14 +55,12 @@ final class PlayerViewModel:NSObject {
 private func startPlayback(url: URL) {
     let item = AVPlayerItem(url: url)
     item.preferredForwardBufferDuration = bufferPreset.seconds
+    item.automaticallyPreservesTimeOffsetFromLive = true  // add this
 
-    if player == nil {
-        player = AVPlayer(playerItem: item)
-        player?.automaticallyWaitsToMinimizeStalling = true
-    } else {
-        player?.replaceCurrentItem(with: item)
-    }
-
+    playerItemObservation?.cancel()
+    player?.pause()
+    player = AVPlayer(playerItem: item)
+    player?.automaticallyWaitsToMinimizeStalling = true
     player?.play()
     isPlaying = true
     observePlayerItem(item)
@@ -70,32 +68,30 @@ private func startPlayback(url: URL) {
 }
 
     // MARK: - NS-042: Retry logic via async KVO observation
-
     private func observePlayerItem(_ item: AVPlayerItem) {
         playerItemObservation?.cancel()
         playerItemObservation = Task { [weak self] in
             guard let self else { return }
 
-            // Poll status — Swift concurrency KVO bridge
-            for await status in item.publisher(for: \.status).values {
-                guard !Task.isCancelled else { return }
-                switch status {
-                case .readyToPlay:
-                    await MainActor.run { self.isPlaying = true }
-
-                case .failed:
-                    let err = item.error
-                    await MainActor.run {
-                        self.isPlaying = false
-                        Task { await self.handleFailure(underlyingError: err) }
+            await withTaskGroup(of: Void.self) { group in
+                // Status observation (existing)
+                group.addTask {
+                    for await status in item.publisher(for: \.status).values {
+                        guard !Task.isCancelled else { return }
+                        if status == .failed {
+                            await self.handleFailure(underlyingError: item.error)
+                            return
+                        }
                     }
-                    return
+                }
 
-                case .unknown:
-                    break
-
-                @unknown default:
-                    break
+                // Stall observation (new)
+                group.addTask {
+                    for await _ in NotificationCenter.default
+                        .notifications(named: .AVPlayerItemPlaybackStalled, object: item) {
+                        guard !Task.isCancelled else { return }
+                        await MainActor.run { self.player?.play() }  // attempt resume
+                    }
                 }
             }
         }

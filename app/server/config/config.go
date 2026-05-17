@@ -59,6 +59,7 @@ type ProxyConfig struct {
 	Enabled   bool
 	Referer   string
 	UserAgent string
+	Origin    string
 }
 
 type DiscoveryConfig struct {
@@ -158,6 +159,7 @@ func Load() (Config, error) {
 			Enabled   bool   `yaml:"enabled"`
 			Referer   string `yaml:"referer"`
 			UserAgent string `yaml:"user_agent"`
+			Origin    string `yaml:"origin"`
 		} `yaml:"proxy"`
 
 		Discovery struct {
@@ -212,6 +214,7 @@ func Load() (Config, error) {
 	cfg.Proxy.Enabled = raw.Proxy.Enabled
 	if raw.Proxy.Referer   != "" { cfg.Proxy.Referer = raw.Proxy.Referer }
 	if raw.Proxy.UserAgent != "" { cfg.Proxy.UserAgent = raw.Proxy.UserAgent }
+	if raw.Proxy.Origin != "" { cfg.Proxy.Origin = raw.Proxy.Origin }
 
 	cfg.Discovery.Enabled = raw.Discovery.Enabled
 	if d, err := time.ParseDuration(raw.Discovery.DefaultInterval);  err == nil { cfg.Discovery.DefaultInterval = d }

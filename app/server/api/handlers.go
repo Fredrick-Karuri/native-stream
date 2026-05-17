@@ -61,6 +61,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/channels", h.handleCreateChannel)
 	mux.HandleFunc("PUT /api/channels/{id}", h.handleUpdateChannel)
 	mux.HandleFunc("DELETE /api/channels/{id}", h.handleDeleteChannel)
+	mux.HandleFunc("DELETE /api/channels", h.handleDeleteAllChannels)
 
 	// Health & probe
 	mux.HandleFunc("GET /api/health", h.handleHealth)
@@ -257,4 +258,9 @@ func slugify(s string) string {
 		}
 	}
 	return strings.Trim(out.String(), "-")
+}
+
+func (h *Handler) handleDeleteAllChannels(w http.ResponseWriter, r *http.Request) {
+    h.store.DeleteAll()
+    writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

@@ -342,3 +342,9 @@ func (s *Store) RunSnapshotter(ctx context.Context, interval time.Duration) {
 		}
 	}
 }
+
+func (s *Store) DeleteAll() {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    s.channels = make(map[string]*Channel)
+}

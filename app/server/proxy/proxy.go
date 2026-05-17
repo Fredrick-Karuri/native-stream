@@ -18,6 +18,7 @@ type Config struct {
 	Enabled   bool
 	Referer   string
 	UserAgent string
+	Origin    string
 }
 
 type Proxy struct {
@@ -74,6 +75,10 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
 	}
 	req.Header.Set("User-Agent", ua)
+
+	if p.cfg.Origin != "" {
+		req.Header.Set("Origin", p.cfg.Origin)
+	}
 
 	// Forward range header if present (important for segment requests)
 	if rng := r.Header.Get("Range"); rng != "" {

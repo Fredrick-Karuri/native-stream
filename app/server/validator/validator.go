@@ -54,15 +54,17 @@ type Validator struct {
 	lastProbe time.Time
     referer   string
     userAgent string
+	origin    string 
 }
 
-func New(cfg Config, s *store.Store, referer, userAgent string) *Validator {
+func New(cfg Config, s *store.Store, referer, userAgent string, origin string) *Validator {
 	return &Validator{
 		cfg:   cfg,
 		store: s,
 		queue: make(chan Candidate, 500),
 		referer:   referer,
 		userAgent: userAgent,
+		origin:    origin,
 		client: &http.Client{
 			Timeout: cfg.Timeout,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -179,16 +181,19 @@ func (v *Validator) measure(url string) *store.LinkScore {
 
 	start := time.Now()
 
-	// HEAD request first — cheap, gets status + headers
-	req, err := http.NewRequest(http.MethodHead, url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		link.Score = 0
 		return link
 	}
 
+	req.Header.Set("Range", "bytes=0-1023")
 	req.Header.Set("User-Agent", v.userAgent)
 	if v.referer != "" {
 		req.Header.Set("Referer", v.referer)
+	}
+	if v.origin != "" {
+		req.Header.Set("Origin", v.origin)
 	}
 
 	resp, err := v.client.Do(req)
@@ -201,10 +206,10 @@ func (v *Validator) measure(url string) *store.LinkScore {
 		return link
 	}
 	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
 
 	reachability := reachabilityScore(resp.StatusCode)
 
-	// Partial GET for bitrate estimation + HLS format check
 	bitrate := 0
 	if reachability > 0 {
 		bitrate = v.estimateBitrate(url)
@@ -225,6 +230,10 @@ func (v *Validator) estimateBitrate(url string) int {
 	req.Header.Set("User-Agent", v.userAgent)
 	if v.referer != "" {
 		req.Header.Set("Referer", v.referer)
+	}
+
+	if v.origin != "" {
+		req.Header.Set("Origin", v.origin)
 	}
 
 	start := time.Now()
