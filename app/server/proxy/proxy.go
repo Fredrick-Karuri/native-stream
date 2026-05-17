@@ -6,11 +6,13 @@ package proxy
 import (
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/fredrick-karuri/nativestream/server/store"
 )
+
 
 type Config struct {
 	Enabled   bool
@@ -20,9 +22,10 @@ type Config struct {
 }
 
 type Proxy struct {
-	cfg    Config
-	store  *store.Store
-	client *http.Client
+	cfg          Config
+	store        *store.Store
+	client       *http.Client
+	segmentCache sync.Map
 }
 
 func New(cfg Config, s *store.Store) *Proxy {
@@ -33,51 +36,59 @@ func New(cfg Config, s *store.Store) *Proxy {
 	}
 }
 
-// ServeHTTP handles GET /stream/:id/proxy
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// 🟢 PERMANENT FIXED ENDPOINT: Intercept the query-escaped absolute AWS R2 links
-	if strings.Contains(r.URL.Path, "/proxy/segment") {
-		rawTarget := r.URL.Query().Get("target")
-		decodedTarget, err := url.QueryUnescape(rawTarget)
-		if err != nil || decodedTarget == "" {
-			http.Error(w, "invalid proxy target payload", http.StatusBadRequest)
+	path := r.URL.Path
+
+	// 🟢 INTERCEPT STABLE DETERMINISTIC CHUNKS
+	if strings.Contains(path, "/proxy/seg/") {
+		startIdx := strings.Index(path, "/proxy/seg/") + 11
+		endIdx := strings.LastIndex(path, ".ts")
+		if startIdx >= endIdx || startIdx < 11 {
+			http.Error(w, "malformed segment signature", http.StatusBadRequest)
 			return
 		}
+		segID := path[startIdx:endIdx]
 
-		// Create request directly to the raw, unexpired AWS S3 URL extracted from the query
-		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, decodedTarget, nil)
+		targetURLVal, exists := p.segmentCache.Load(segID)
+		if !exists {
+			http.Error(w, "segment token expired from proxy reference", http.StatusGone)
+			return
+		}
+		targetURL := targetURLVal.(string)
+
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, targetURL, nil)
 		if err != nil {
-			http.Error(w, "bad segment URL translation", http.StatusBadRequest)
+			http.Error(w, "bad target build", http.StatusBadRequest)
 			return
 		}
 
-		// Injects your mandatory security Referer safely
 		injectHeaders(req, r, p.cfg)
 
 		resp, err := p.client.Do(req)
 		if err != nil {
-			http.Error(w, "upstream media error", http.StatusBadGateway)
+			http.Error(w, "upstream target server error", http.StatusBadGateway)
 			return
 		}
 		defer resp.Body.Close()
 
-		// Copy upstream metadata headers
 		copyResponseHeaders(w, resp)
-
-		// 🟢 OVERRIDE: Force proper stream format container headers
-		// Replaces the provider's fake text/plain mask to ensure AVPlayer uses its hardware decoder pipeline
+		
 		w.Header().Set("Content-Type", "video/MP2T")
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-
-		w.WriteHeader(resp.StatusCode)
 		
-		// Transparent streaming pipeline with zero structural data parsing overhead
+		if resp.StatusCode == http.StatusPartialContent {
+			if cr := resp.Header.Get("Content-Range"); cr != "" {
+				w.Header().Set("Content-Range", cr)
+			}
+		}
+		
+		w.WriteHeader(resp.StatusCode)
 		io.Copy(w, resp.Body)
 		return
 	}
 
-	// ── ORIGINAL PLAYLIST ROUTING LOGIC (Untouched except path variables) ──
-	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	// ── ORIGINAL PLAYLIST ROUTING ──
+	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) < 3 {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
@@ -135,4 +146,16 @@ func copyResponseHeaders(w http.ResponseWriter, resp *http.Response) {
 			w.Header().Add(k, v)
 		}
 	}
+}
+
+// 🟢 REPAIRED HELPER: Explicitly stores mapping via the deterministic hash key
+func (p *Proxy) cacheTargetURL(key, targetURL string) {
+	p.segmentCache.Store(key, targetURL)
+	
+	// Evict keys safely after 8 minutes
+	go func(id string) {
+		t := time.NewTimer(8 * time.Minute)
+		<-t.C
+		p.segmentCache.Delete(id)
+	}(key)
 }
