@@ -55,19 +55,16 @@ final class PlayerViewModel:NSObject {
 
 private func startPlayback(url: URL) {
     let item = AVPlayerItem(url: url)
-    item.preferredForwardBufferDuration = bufferPreset.seconds
-    item.automaticallyPreservesTimeOffsetFromLive = true  // add this
+    item.preferredForwardBufferDuration = 0 // Let AVPlayer handle native buffering smoothly
+    item.automaticallyPreservesTimeOffsetFromLive = true
 
-    playerItemObservation?.cancel()
     player?.pause()
     player = AVPlayer(playerItem: item)
     player?.automaticallyWaitsToMinimizeStalling = true
     player?.play()
-    startLiveEdgeRefresh()
     isPlaying = true
-    observePlayerItem(item)
-    setupNowPlaying()
 }
+
 
     // MARK: - NS-042: Retry logic via async KVO observation
     private func observePlayerItem(_ item: AVPlayerItem) {

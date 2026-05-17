@@ -53,7 +53,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /epg.xml", h.handleEPG)
 
 	// Proxy
-	mux.HandleFunc("GET /stream/{id}/proxy", h.proxy.ServeHTTP)
+	mux.HandleFunc("GET /stream/{id}/proxy/", h.proxy.ServeHTTP)
 
 	// Channel management
 	mux.HandleFunc("GET /api/channels", h.handleListChannels)

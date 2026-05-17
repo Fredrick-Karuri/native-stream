@@ -1,20 +1,13 @@
 // proxy/rewriter.go
-// Rewrites internal .m3u8 playlist URLs to route through the proxy.
-// Handles both segment lines and URI= attributes in HLS tags (e.g. #EXT-X-MEDIA).
-
 package proxy
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 )
 
 func (p *Proxy) rewritePlaylist(body, baseURL, channelID string) string {
-	base, err := url.Parse(baseURL)
-	if err != nil {
-		return body
-	}
-
 	lines := strings.Split(body, "\n")
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
@@ -22,26 +15,22 @@ func (p *Proxy) rewritePlaylist(body, baseURL, channelID string) string {
 			continue
 		}
 
-		// Rewrite URI= attributes in tags like #EXT-X-MEDIA
+		// 1. Intercept pre-signed AWS URLs inside complex HLS metadata tags
 		if strings.HasPrefix(trimmed, "#") && strings.Contains(trimmed, `URI="`) {
-			lines[i] = rewriteURIAttr(trimmed, base)
+			lines[i] = p.proxySecureURIAttr(trimmed, channelID)
 			continue
 		}
 
-		// Rewrite stream/segment URLs
+		// 2. Catch standard plain segment lines if they appear
 		if !strings.HasPrefix(trimmed, "#") {
-			ref, err := url.Parse(trimmed)
-			if err != nil {
-				continue
-			}
-			lines[i] = base.ResolveReference(ref).String()
+			lines[i] = p.wrapURLInProxy(trimmed, channelID)
 		}
 	}
 
 	return strings.Join(lines, "\n")
 }
 
-func rewriteURIAttr(line string, base *url.URL) string {
+func (p *Proxy) proxySecureURIAttr(line string, channelID string) string {
 	start := strings.Index(line, `URI="`)
 	if start == -1 {
 		return line
@@ -54,11 +43,15 @@ func rewriteURIAttr(line string, base *url.URL) string {
 	}
 
 	rawURI := line[start : start+end]
-	ref, err := url.Parse(rawURI)
-	if err != nil {
-		return line
-	}
+	proxiedURI := p.wrapURLInProxy(rawURI, channelID)
+	
+	return line[:start] + proxiedURI + line[start+end:]
+}
 
-	absolute := base.ResolveReference(ref).String()
-	return line[:start] + absolute + line[start+end:]
+func (p *Proxy) wrapURLInProxy(targetURL string, channelID string) string {
+	// Query-escape the absolute AWS link so characters like '?' and '&' don't break Go routing
+	escapedTarget := url.QueryEscape(targetURL)
+	
+	// Route it to your dedicated server sub-endpoint
+	return fmt.Sprintf("/stream/%s/proxy/segment?target=%s", channelID, escapedTarget)
 }
