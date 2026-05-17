@@ -34,6 +34,7 @@ final class PlayerViewModel:NSObject {
     private var playerItemObservation: Task<Void, Never>?
     private let maxRetries = 3
     private let retryDelay: TimeInterval = 2
+    private var liveEdgeTimer: Timer? = nil
 
     // MARK: - Playback
 
@@ -62,6 +63,7 @@ private func startPlayback(url: URL) {
     player = AVPlayer(playerItem: item)
     player?.automaticallyWaitsToMinimizeStalling = true
     player?.play()
+    startLiveEdgeRefresh()
     isPlaying = true
     observePlayerItem(item)
     setupNowPlaying()
@@ -215,9 +217,25 @@ private func startPlayback(url: URL) {
         pipController?.playerLayer.opacity = hidden ? 0 : 1
     }
 
+    private func startLiveEdgeRefresh() {
+        liveEdgeTimer?.invalidate()
+        liveEdgeTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.isPlaying, self.error == nil else { return }
+                self.player?.seek(to: .positiveInfinity)
+            }
+        }
+    }
+
+    private func stopLiveEdgeRefresh() {
+        liveEdgeTimer?.invalidate()
+        liveEdgeTimer = nil
+    }
+
     // MARK: - Cleanup
 
     func cleanup() {
+        stopLiveEdgeRefresh()
         pipController?.stopPictureInPicture()   // ← new
         pipController = nil                      // ← new
         playerItemObservation?.cancel()
@@ -253,3 +271,5 @@ extension PlayerViewModel: AVPictureInPictureControllerDelegate {
         }
     }
 }
+
+
