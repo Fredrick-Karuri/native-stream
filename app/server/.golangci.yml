@@ -14,19 +14,24 @@ linters:
     - noctx          # http requests without context
     - gosec          # security issues
     - exhaustive     # exhaustive enum switches
+    
+  settings:
+    gosec:
+      excludes:
+        - G104   # errors unhandled — covered by errcheck
 
-linters-settings:
-  gosec:
-    excludes:
-      - G104   # errors unhandled — covered by errcheck
-  goimports:
-    local-prefixes: github.com/yourname/nativestream
+  exclusions:
+    rules:
+      - path: "_test\\.go"
+        linters: [gosec, errcheck]
+      - path: "cmd/main\\.go"
+        linters: [exhaustive]
 
-issues:
-  exclude-rules:
-    - path: "_test\\.go"
-      linters: [gosec, errcheck]
-    - path: "cmd/main\\.go"
-      linters: [exhaustive]
-  max-issues-per-linter: 50
-  max-same-issues: 10
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/yourname/nativestream
