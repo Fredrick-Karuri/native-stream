@@ -1,0 +1,85 @@
+groups:
+  server:
+    description: Go server
+    commands:
+      build:
+        description: Build the server binary
+        run: "cd app/server && go build -o nativestream-server ./cmd/"
+      run:
+        description: Build and run the server
+        run: "cd app/server && go build -o nativestream-server ./cmd/ && ./nativestream-server"
+      test:
+        description: Run Go tests
+        run: "cd app/server && go test -race -v ./..."
+      vet:
+        description: Run go vet
+        run: "cd app/server && go vet ./..."
+      restart:
+        description: Rebuild and restart server in background
+        run: |
+          cd app/server && go build -o nativestream-server ./cmd/
+          lsof -ti :8888 | xargs kill -9 2>/dev/null; sleep 1
+          ./nativestream-server >> /tmp/nativestream.log 2>> /tmp/nativestream-error.log &
+          sleep 1 && echo "✓ Restarted"
+          tail -f /tmp/nativestream.log /tmp/nativestream-error.log
+      logs:
+        description: Tail server logs
+        run: "tail -f /tmp/nativestream.log /tmp/nativestream-error.log"
+
+  app:
+    description: macOS app
+    commands:
+      build:
+        description: Build Mac app (Release)
+        run: |
+          xcodebuild -project app/macos/NativeStream/NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -configuration Release \
+                     -derivedDataPath app/macos/NativeStream/DerivedData \
+                     build
+          xattr -cr app/macos/NativeStream/DerivedData/Build/Products/Release/NativeStream.app
+      run:
+        description: Build and launch Mac app (Debug)
+        run: |
+          xcodebuild -project app/macos/NativeStream/NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -configuration Debug \
+                     -derivedDataPath app/macos/NativeStream/DerivedData \
+                     build
+          open app/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
+
+  dev:
+    description: Full dev environment
+    commands:
+      start:
+        description: Start server in background and launch app
+        run: |
+          cd app/server && go build -o nativestream-server ./cmd/ && ./nativestream-server &
+          xcodebuild -project app/macos/NativeStream/NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -configuration Debug \
+                     -derivedDataPath app/macos/NativeStream/DerivedData \
+                     build
+          open app/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
+
+  service:
+    description: launchd service management
+    commands:
+      install:
+        description: Install server as launchd service
+        run: |
+          cd app/server && go build -o nativestream-server ./cmd/
+          sudo cp app/server/nativestream-server /usr/local/bin/nativestream-server
+          /usr/local/bin/nativestream-server --install-service
+      uninstall:
+        description: Remove launchd service
+        run: |
+          /usr/local/bin/nativestream-server --uninstall-service
+          sudo rm -f /usr/local/bin/nativestream-server
+
+  clean:
+    description: Cleanup
+    commands:
+      all:
+        description: Remove binaries and derived data
+        run: "rm -f app/server/nativestream-server && rm -rf app/macos/NativeStream/DerivedData"
