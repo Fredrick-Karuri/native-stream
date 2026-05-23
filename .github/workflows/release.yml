@@ -1,0 +1,158 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "VERSION"
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history for changelog generation
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Check tag does not exist
+        id: tag_check
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Go
+        if: steps.tag_check.outputs.exists == 'false'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: app/server/go.mod
+
+      - name: Run server tests
+        if: steps.tag_check.outputs.exists == 'false'
+        working-directory: app/server
+        run: go test -race ./...
+
+      - name: Build release binaries
+        if: steps.tag_check.outputs.exists == 'false'
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          mkdir -p dist
+
+          # darwin arm64 (Apple Silicon — primary target)
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 \
+            go build -C app/server \
+            -ldflags="-s -w -X main.version=${VERSION}" \
+            -o ../../dist/nativestream-server-darwin-arm64 ./cmd/
+
+          # darwin amd64 (Intel Mac)
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 \
+            go build -C app/server \
+            -ldflags="-s -w -X main.version=${VERSION}" \
+            -o ../../dist/nativestream-server-darwin-amd64 ./cmd/
+
+          # linux amd64 (Docker / VPS)
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+            go build -C app/server \
+            -ldflags="-s -w -X main.version=${VERSION}" \
+            -o ../../dist/nativestream-server-linux-amd64 ./cmd/
+
+          # linux arm64 (Raspberry Pi / ARM VPS)
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
+            go build -C app/server \
+            -ldflags="-s -w -X main.version=${VERSION}" \
+            -o ../../dist/nativestream-server-linux-arm64 ./cmd/
+
+          # Create tarballs
+          cd dist
+          tar -czf nativestream-server-darwin-arm64.tar.gz nativestream-server-darwin-arm64
+          tar -czf nativestream-server-darwin-amd64.tar.gz nativestream-server-darwin-amd64
+          tar -czf nativestream-server-linux-amd64.tar.gz  nativestream-server-linux-amd64
+          tar -czf nativestream-server-linux-arm64.tar.gz  nativestream-server-linux-arm64
+
+          # Generate SHA256 checksums
+          shasum -a 256 *.tar.gz > checksums.txt
+          cat checksums.txt
+
+      - name: Generate changelog
+        if: steps.tag_check.outputs.exists == 'false'
+        id: changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="${PREV_TAG}..HEAD"
+          fi
+
+          CHANGELOG=$(git log ${RANGE} \
+            --pretty=format:"- %s (%h)" \
+            --no-merges \
+            -- app/server/ app/macos/ \
+            | head -50)
+
+          echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create Git tag
+        if: steps.tag_check.outputs.exists == 'false'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.tag }}" \
+            -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Create GitHub Release
+        if: steps.tag_check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: NativeStream ${{ steps.version.outputs.tag }}
+          body: |
+            ## What's Changed
+
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Server Installation
+
+            ### Homebrew (recommended)
+            ```bash
+            brew tap yourname/nativestream
+            brew install nativestream-server
+            brew services start nativestream-server
+            ```
+
+            ### Direct download
+            Download the binary for your platform below, extract, and run.
+
+            ### Docker
+            ```bash
+            docker pull ghcr.io/${{ github.repository }}/nativestream-server:${{ steps.version.outputs.version }}
+            docker-compose up -d
+            ```
+
+            ## Checksums
+            See `checksums.txt` in the release assets.
+          files: |
+            dist/nativestream-server-darwin-arm64.tar.gz
+            dist/nativestream-server-darwin-amd64.tar.gz
+            dist/nativestream-server-linux-amd64.tar.gz
+            dist/nativestream-server-linux-arm64.tar.gz
+            dist/checksums.txt
+          draft: false
+          prerelease: false

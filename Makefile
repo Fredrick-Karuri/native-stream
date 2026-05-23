@@ -1,5 +1,7 @@
 .PHONY: build-server run-server clean build-app run-app dev test-server
 
+VERSION := $(shell cat VERSION)
+
 # ── Go Server ─────────────────────────────────────────────────────────────────
 SERVER_DIR := app/server
 SERVER_BIN := $(SERVER_DIR)/nativestream-server
@@ -19,6 +21,9 @@ test-server:
 
 vet-server:
 	cd $(SERVER_DIR) && go vet ./...
+
+lint-server:
+	cd app/server && golangci-lint run --timeout 5m
 
 restart-server: build-server
 	@echo "→ Stopping server..."
@@ -56,6 +61,9 @@ run-app:
 	@echo "→ Launching NativeStream..."
 	open $(DERIVED)/Build/Products/Debug/NativeStream.app
 
+lint-client:
+	swiftlint lint --path app/macos/NativeStreamMac
+
 # ── Dev (server + app together) ───────────────────────────────────────────────
 dev:
 	@echo "→ Starting server in background..."
@@ -64,14 +72,45 @@ dev:
 	@echo "→ Launching app..."
 	$(MAKE) run-app
 
-# ── Cleanup ───────────────────────────────────────────────────────────────────
-clean:
-	@echo "→ Cleaning..."
-	rm -f $(SERVER_BIN)
-	rm -rf $(DERIVED)
-	@echo "✓ Clean"
+# ── Docker ────────────────────────────────────────────────────────────────────
+docker-build:
+	docker build -t nativestream-server:$(VERSION) -t nativestream-server:latest .
+ 
+docker-run:
+	docker-compose up -d
+ 
+docker-stop:
+	docker-compose down
+ 
+docker-logs:
+	docker-compose logs -f server
+ 
+docker-test: docker-build
+	docker run --rm -d -e NATIVESTREAM_DOCKER=1 -p 8888:8888 --name ns-test nativestream-server:$(VERSION)
+	sleep 3
+	curl -sf http://localhost:8888/api/health && echo "✓ health OK" || true
+	docker stop ns-test
 
-# ── Install service (macOS) ───────────────────────────────────────────────────
+# ── Release ───────────────────────────────────────────────────────────────────
+release-binaries:
+	@echo "→ Building release binaries v$(VERSION)"
+	@mkdir -p dist
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -C app/server \
+		-ldflags="-s -w -X main.version=$(VERSION)" \
+		-o ../../dist/nativestream-server-darwin-arm64 ./cmd/
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -C app/server \
+		-ldflags="-s -w -X main.version=$(VERSION)" \
+		-o ../../dist/nativestream-server-darwin-amd64 ./cmd/
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -C app/server \
+		-ldflags="-s -w -X main.version=$(VERSION)" \
+		-o ../../dist/nativestream-server-linux-amd64 ./cmd/
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C app/server \
+		-ldflags="-s -w -X main.version=$(VERSION)" \
+		-o ../../dist/nativestream-server-linux-arm64 ./cmd/
+	cd dist && shasum -a 256 nativestream-server-* > checksums.txt
+	@echo "✓ dist/ ready — $(VERSION)"
+
+# ── Service (macOS) ───────────────────────────────────────────────────
 install-service: build-server
 	@echo "→ Installing launchd service..."
 	sudo cp $(SERVER_BIN) /usr/local/bin/nativestream-server
@@ -82,3 +121,10 @@ uninstall-service:
 	/usr/local/bin/nativestream-server --uninstall-service
 	sudo rm -f /usr/local/bin/nativestream-server
 	@echo "✓ Service removed"
+
+# ── Cleanup ───────────────────────────────────────────────────────────────────
+clean:
+	@echo "→ Cleaning..."
+	rm -f $(SERVER_BIN)
+	rm -rf $(DERIVED)
+	@echo "✓ Clean"

@@ -1,0 +1,25 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nativestream-server
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8888:8888"   # localhost only — never expose externally
+    volumes:
+      - ./config/config.yaml:/config/config.yaml:ro
+      - nativestream-data:/data
+    environment:
+      - NATIVESTREAM_CONFIG=/config/config.yaml
+      - NATIVESTREAM_DATA=/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8888/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  nativestream-data:
+    driver: local
