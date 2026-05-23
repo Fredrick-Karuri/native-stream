@@ -1,0 +1,37 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck       # unchecked errors
+    - govet          # go vet checks
+    - staticcheck    # static analysis
+    - unused         # unused code
+    - gofmt          # formatting
+    - goimports      # import ordering
+    - misspell       # spelling
+    - bodyclose      # http response body not closed
+    - noctx          # http requests without context
+    - gosec          # security issues
+    - exhaustive     # exhaustive enum switches
+    
+  settings:
+    gosec:
+      excludes:
+        - G104   # errors unhandled — covered by errcheck
+
+  exclusions:
+    rules:
+      - path: "_test\\.go"
+        linters: [gosec, errcheck]
+      - path: "cmd/main\\.go"
+        linters: [exhaustive]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/yourname/nativestream

@@ -60,6 +60,7 @@ enum NS {
     static let green  = Color(hex: "10b981")
     static let live   = Color(hex: "ef4444")
     static let amber  = Color(hex: "f59e0b")
+    static let red = Color(hex: "ef4444")
 
     // ── Gradients ─────────────────────────────────────────────────────────────
     static let liveCardGradient = LinearGradient(
@@ -115,6 +116,7 @@ enum NS {
         static var lg:  CGFloat { 16 * NS.scale }
         static var xl:  CGFloat { 20 * NS.scale }
         static var xxl: CGFloat { 28 * NS.scale }
+        static var xxxl: CGFloat { 36 * NS.scale }
     }
 
     // ── Radius ────────────────────────────────────────────────────────────────
@@ -129,6 +131,8 @@ enum NS {
     // ── Card sizing ───────────────────────────────────────────────────────────
     enum CardSize {
         static var minWidth: CGFloat { 220 * NS.scale }
+        static var cardHeight: CGFloat { 320 * NS.scale }
+        static var logoHeight: CGFloat { cardHeight / 2 }
     }
 
     // ── Rail sizing ───────────────────────────────────────────────────────────
@@ -191,6 +195,23 @@ enum NS {
         static var trackW:     CGFloat { 36 * NS.scale }
         static var trackH:     CGFloat { 20 * NS.scale }
         static var thumbSize:  CGFloat { 16 * NS.scale }
+    }
+
+    enum Player {
+        static var sidebarWidth:       CGFloat { 230 * NS.scale }
+        static var teamBadgeSize:      CGFloat { 52  * NS.scale }
+        static var teamBadgeRadius:    CGFloat { 12  * NS.scale }
+        static var teamEmojiSize:      CGFloat { 22  * NS.scale }
+        static var teamNameMaxWidth:   CGFloat { 120 * NS.scale }
+        static var ctrlPrimary:        CGFloat { 44  * NS.scale }
+        static var ctrlSecondary:      CGFloat { 36  * NS.scale }
+        static var ctrlRadiusPrimary:  CGFloat { 11  * NS.scale }
+        static var ctrlRadiusSecondary: CGFloat { 9  * NS.scale }
+        static var errorIconSize:      CGFloat { 36  * NS.scale }
+        static var errorPadding:       CGFloat { 32  * NS.scale }
+        static var menuHeight:   CGFloat { 32 * NS.scale }
+        static var ctrlIconSm:   CGFloat { 14 * NS.scale }
+        static var ctrlIconLg:   CGFloat { 16 * NS.scale }
     }
 
     // ── Health score → colour ─────────────────────────────────────────────────

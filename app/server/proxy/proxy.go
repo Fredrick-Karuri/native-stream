@@ -1,50 +1,94 @@
 // proxy/proxy.go — NS-141
 // Transparent HLS proxy: forwards stream requests with injected headers.
-// Rewrites internal .m3u8 playlist URLs to route through the proxy.
 
 package proxy
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
-	"net/url"
+	"sync"
+	"time"
 
 	"github.com/fredrick-karuri/nativestream/server/store"
 )
+
 
 type Config struct {
 	Enabled   bool
 	Referer   string
 	UserAgent string
+	Origin    string
 }
 
 type Proxy struct {
-	cfg    Config
-	store  *store.Store
-	client *http.Client
+	cfg          Config
+	store        *store.Store
+	client       *http.Client
+	segmentCache sync.Map
 }
 
 func New(cfg Config, s *store.Store) *Proxy {
 	return &Proxy{
-		cfg:   cfg,
-		store: s,
-		client: &http.Client{
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				if len(via) >= 5 {
-					return fmt.Errorf("too many redirects")
-				}
-				return nil
-			},
-		},
+		cfg:    cfg,
+		store:  s,
+		client: newClient(),
 	}
 }
 
-// ServeHTTP handles GET /stream/:id/proxy
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Extract channel ID from path: /stream/{id}/proxy
-	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	path := r.URL.Path
+
+	// 🟢 INTERCEPT STABLE DETERMINISTIC CHUNKS
+	if strings.Contains(path, "/proxy/seg/") {
+		startIdx := strings.Index(path, "/proxy/seg/") + 11
+		endIdx := strings.LastIndex(path, ".ts")
+		if startIdx >= endIdx || startIdx < 11 {
+			http.Error(w, "malformed segment signature", http.StatusBadRequest)
+			return
+		}
+		segID := path[startIdx:endIdx]
+
+		targetURLVal, exists := p.segmentCache.Load(segID)
+		if !exists {
+			http.Error(w, "segment token expired from proxy reference", http.StatusGone)
+			return
+		}
+		targetURL := targetURLVal.(string)
+
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, targetURL, nil)
+		if err != nil {
+			http.Error(w, "bad target build", http.StatusBadRequest)
+			return
+		}
+
+		injectHeaders(req, r, p.cfg)
+
+		resp, err := p.client.Do(req)
+		if err != nil {
+			http.Error(w, "upstream target server error", http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+
+		copyResponseHeaders(w, resp)
+		
+		w.Header().Set("Content-Type", "video/MP2T")
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		
+		if resp.StatusCode == http.StatusPartialContent {
+			if cr := resp.Header.Get("Content-Range"); cr != "" {
+				w.Header().Set("Content-Range", cr)
+			}
+		}
+		
+		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, resp.Body)
+		return
+	}
+
+	// ── ORIGINAL PLAYLIST ROUTING ──
+	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) < 3 {
 		http.Error(w, "invalid path", http.StatusBadRequest)
 		return
@@ -65,20 +109,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Inject headers
-	if p.cfg.Referer != "" {
-		req.Header.Set("Referer", p.cfg.Referer)
-	}
-	ua := p.cfg.UserAgent
-	if ua == "" {
-		ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-	}
-	req.Header.Set("User-Agent", ua)
-
-	// Forward range header if present (important for segment requests)
-	if rng := r.Header.Get("Range"); rng != "" {
-		req.Header.Set("Range", rng)
-	}
+	injectHeaders(req, r, p.cfg)
 
 	resp, err := p.client.Do(req)
 	if err != nil {
@@ -87,80 +118,44 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// Copy response headers
+	copyResponseHeaders(w, resp)
+	
+	contentType := resp.Header.Get("Content-Type")
+	isPlaylist := strings.Contains(contentType, "mpegurl") || strings.HasSuffix(targetURL, ".m3u8")
+
+	if isPlaylist {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+	}
+	
+	w.WriteHeader(resp.StatusCode)
+
+	if isPlaylist {
+		body, _ := io.ReadAll(resp.Body)
+		rewritten := p.rewritePlaylist(string(body), targetURL, channelID)
+		w.Write([]byte(rewritten))
+	} else {
+		io.Copy(w, resp.Body)
+	}
+}
+
+func copyResponseHeaders(w http.ResponseWriter, resp *http.Response) {
 	for k, vals := range resp.Header {
 		for _, v := range vals {
 			w.Header().Add(k, v)
 		}
 	}
-	w.WriteHeader(resp.StatusCode)
-
-	// Stream body — if it's an HLS playlist, rewrite internal URLs
-	contentType := resp.Header.Get("Content-Type")
-	if strings.Contains(contentType, "mpegurl") || strings.HasSuffix(targetURL, ".m3u8") {
-		body, _ := io.ReadAll(resp.Body)
-		rewritten := p.rewritePlaylist(string(body), targetURL, channelID)
-		w.Write([]byte(rewritten))
-	} else {
-		// Binary segment — pipe directly, no buffering
-		io.Copy(w, resp.Body)
-	}
 }
 
-func (p *Proxy) rewritePlaylist(body, baseURL, channelID string) string {
-    base, err := url.Parse(baseURL)
-    if err != nil {
-        return body
-    }
-    lines := strings.Split(body, "\n")
-    for i, line := range lines {
-        trimmed := strings.TrimSpace(line)
-        if trimmed == "" {
-            continue
-        }
-        // Rewrite URI= attributes in tags like #EXT-X-MEDIA
-        if strings.HasPrefix(trimmed, "#") && strings.Contains(trimmed, `URI="`) {
-            lines[i] = rewriteURIAttr(trimmed, base)
-            continue
-        }
-        // Rewrite stream/segment URLs
-        if !strings.HasPrefix(trimmed, "#") {
-            ref, err := url.Parse(trimmed)
-            if err != nil {
-                continue
-            }
-            lines[i] = base.ResolveReference(ref).String()
-        }
-    }
-    return strings.Join(lines, "\n")
+// 🟢 REPAIRED HELPER: Explicitly stores mapping via the deterministic hash key
+func (p *Proxy) cacheTargetURL(key, targetURL string) {
+	p.segmentCache.Store(key, targetURL)
+	
+	// Evict keys safely after 8 minutes
+	go func(id string) {
+		t := time.NewTimer(8 * time.Minute)
+		<-t.C
+		p.segmentCache.Delete(id)
+	}(key)
 }
-
-func rewriteURIAttr(line string, base *url.URL) string {
-    start := strings.Index(line, `URI="`)
-    if start == -1 {
-        return line
-    }
-    start += 5
-    end := strings.Index(line[start:], `"`)
-    if end == -1 {
-        return line
-    }
-    rawURI := line[start : start+end]
-    ref, err := url.Parse(rawURI)
-    if err != nil {
-        return line
-    }
-    absolute := base.ResolveReference(ref).String()
-    return line[:start] + absolute + line[start+end:]
-}
-
-// rewritePlaylist rewrites relative and absolute URLs in HLS playlists
-// to route through this proxy so AVFoundation doesn't bypass it.
-
-// func (p *Proxy) rewritePlaylist(body, baseURL, channelID string) string {
-// 	// For a full implementation, you'd parse each line and rewrite
-// 	// relative segment URLs. For M3U8 master playlists with variant
-// 	// streams, each variant URL would also be proxied.
-// 	// Phase 2 keeps this simple — pass through and let AVFoundation handle segments.
-// 	return body
-// }

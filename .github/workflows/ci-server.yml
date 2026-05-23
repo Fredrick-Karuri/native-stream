@@ -1,0 +1,108 @@
+name: Server CI
+
+on:
+  push:
+    branches: [main, "phase/*", "feature/*"]
+    paths:
+      - "app/server/**"
+      - ".github/workflows/ci-server.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/server/**"
+
+jobs:
+  test:
+    name: Test & Vet
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: app/server/go.mod
+          cache-dependency-path: app/server/go.sum
+
+      - name: Vet
+        working-directory: app/server
+        run: go vet ./...
+
+      - name: Test (with race detector)
+        working-directory: app/server
+        run: go test -race -timeout 120s -coverprofile=coverage.out ./...
+
+      - name: Coverage report
+        working-directory: app/server
+        run: go tool cover -func=coverage.out
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-coverage
+          path: app/server/coverage.out
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: app/server/go.mod
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: app/server
+          args: --timeout 5m
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: app/server/go.mod
+
+      - name: Read version
+        id: version
+        run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Build linux/amd64
+        working-directory: app/server
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+            -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" \
+            -o ../../dist/nativestream-server-linux-amd64 ./cmd/
+
+      - name: Build darwin/arm64
+        working-directory: app/server
+        run: |
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build \
+            -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" \
+            -o ../../dist/nativestream-server-darwin-arm64 ./cmd/
+
+      - name: Build darwin/amd64
+        working-directory: app/server
+        run: |
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build \
+            -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" \
+            -o ../../dist/nativestream-server-darwin-amd64 ./cmd/
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-binaries-${{ steps.version.outputs.version }}
+          path: dist/
+          retention-days: 7

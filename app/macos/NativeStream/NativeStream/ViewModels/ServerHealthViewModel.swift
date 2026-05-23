@@ -23,15 +23,9 @@ final class ServerHealthViewModel {
         isChecking = true
         defer { isChecking = false }
 
-        let healthURL = serverURL.appendingPathComponent("api/health")
         do {
-            let (data, response) = try await URLSession.shared.data(from: healthURL)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                status = .unreachable
-                return
-            }
-            let json = try JSONDecoder().decode(HealthResponse.self, from: data)
-            status = .connected(channels: json.channels, healthy: json.healthy)
+            let health = try await APIClient.shared.health()
+            status = .connected(channels: health.channels, healthy: health.healthy)
         } catch {
             status = .unreachable
         }
@@ -47,9 +41,7 @@ final class ServerHealthViewModel {
         }
     }
 
-    func stopPolling() {
-        checkTask?.cancel()
-    }
+    func stopPolling() {checkTask?.cancel()}
 
     // MARK: - Helpers
 
@@ -58,8 +50,4 @@ final class ServerHealthViewModel {
         return false
     }
 
-    private struct HealthResponse: Decodable {
-        let channels: Int
-        let healthy: Int
-    }
 }

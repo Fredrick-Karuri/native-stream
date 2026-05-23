@@ -8,11 +8,13 @@ struct BrowserScreen: View {
 
     @Environment(PlaylistViewModel.self) private var playlistVM
     @Environment(EPGViewModel.self)      private var epgVM
+    @Environment(ChannelManagerViewModel.self) private var channelManager
 
     let onSelectChannel: (Channel) -> Void
 
     @State private var searchText  = ""
     @State private var gridWidth: CGFloat = 0
+    @State private var showAddChannel = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -21,40 +23,69 @@ struct BrowserScreen: View {
             channelContent
         }
         .background(NS.bg)
+        .sheet(isPresented: $showAddChannel) {
+            AddChannelSheet {
+                showAddChannel = false
+                Task { await playlistVM.loadAll() }
+            }
+            .environment(channelManager)
+        }
     }
 
     // MARK: - Top bar
+private var topBar: some View {
+    HStack {
+        Text("All Channels")
+            .font(NS.Font.heading)
+            .foregroundStyle(NS.text)
+        Spacer()
 
-    private var topBar: some View {
-        HStack {
-            Text("All Channels")
-                .font(NS.Font.heading)
+        // Centered search
+        HStack(spacing: NS.Spacing.xs) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: NS.Help.inlineIconSize))
+                .foregroundStyle(NS.text3)
+            TextField("Search channels…", text: $searchText)
+                .font(NS.Font.caption)
                 .foregroundStyle(NS.text)
-            Spacer()
+                .textFieldStyle(.plain)
+                .frame(width: NS.Browser.searchWidth)
+        }
+        .padding(.horizontal, NS.Spacing.md)
+        .frame(height: NS.Help.searchHeight)
+        .background(NS.surface2)
+        .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
+        .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2, lineWidth: 0.5))
+
+        Spacer()
+
+        Text("\(filtered.count) channels")
+            .font(NS.Font.caption)
+            .foregroundStyle(NS.text3)
+
+        // Visible Add Channel button
+        Button {
+            showAddChannel = true
+        } label: {
             HStack(spacing: NS.Spacing.xs) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: NS.Help.inlineIconSize))
-                    .foregroundStyle(NS.text3)
-                TextField("Search channels…", text: $searchText)
-                    .font(NS.Font.caption)
-                    .foregroundStyle(NS.text)
-                    .textFieldStyle(.plain)
-                    .frame(width: NS.Browser.searchWidth)
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("Add Channel")
+                    .font(NS.Font.captionMed)
             }
+            .foregroundStyle(NS.accent)
             .padding(.horizontal, NS.Spacing.md)
             .frame(height: NS.Help.searchHeight)
-            .background(NS.surface2)
+            .background(NS.accentGlow)
             .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2, lineWidth: 0.5))
-
-            Text("\(filtered.count) channels")
-                .font(NS.Font.caption)
-                .foregroundStyle(NS.text3)
+            .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.accentBorder, lineWidth: 0.5))
         }
-        .padding(.horizontal, NS.Spacing.xl)
-        .padding(.vertical, NS.Spacing.md)
-        .background(NS.surface)
+        .buttonStyle(.plain)
     }
+    .padding(.horizontal, NS.Spacing.xl)
+    .padding(.vertical, NS.Spacing.md)
+    .background(NS.surface)
+}
 
     // MARK: - Content
 

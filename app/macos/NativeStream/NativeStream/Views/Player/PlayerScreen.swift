@@ -56,7 +56,7 @@ struct PlayerScreen: View {
                         Spacer()
                         PlayerControls(
                             pipController: playerVM.pipController,
-                            showSidebar: $showSidebar
+                            showSidebar: $showSidebar,
                         )
                     }
                     .transition(.opacity)
@@ -132,7 +132,7 @@ struct PlayerSidebar: View {
             case .schedule: PlayerScheduleTab(channel: currentChannel)
             }
         }
-        .frame(width: 230)
+        .frame(width: NS.Player.sidebarWidth) 
         .background(Color(hex: "0e0e0e"))
         .overlay(alignment: .leading) {
             Rectangle().fill(Color.white.opacity(0.07)).frame(width: 0.5)
@@ -216,13 +216,13 @@ struct PlayerScheduleTab: View {
     }
 
     private func scheduleRow(_ prog: Programme) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: NS.Spacing.xs) {
             Text(prog.startTimeString)
                 .font(NS.Font.monoSm)
                 .foregroundStyle(prog.isNow ? NS.accent : Color.white.opacity(0.3))
             if prog.isNow {
                 Text("Now playing")
-                    .font(.system(size: 8, weight: .bold))
+                    .font(.system(size: NS.Schedule.microLabelSize, weight: .bold))
                     .foregroundStyle(NS.accent)
                     .kerning(0.5)
             }
@@ -255,18 +255,18 @@ struct PlayerTopBar: View {
     let onStop: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: NS.Spacing.md) {
             Button(action: onBack) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: NS.Help.inlineIconSize, weight: .medium))
                     .foregroundStyle(.white)
-                    .frame(width: 32, height: 32)
+                    .frame(width: NS.IconButton.sizeLg, height: NS.IconButton.sizeLg)
                     .background(Color.white.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.1)))
+                    .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
+                    .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(Color.white.opacity(0.1)))
             }
             .buttonStyle(.plain)
-            .padding(.top, 2)
+            .padding(.top, NS.Spacing.xxs)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(channel?.name ?? "")
@@ -280,14 +280,14 @@ struct PlayerTopBar: View {
 
             Spacer()
 
-            HStack(spacing: 6) {
+            HStack(spacing: NS.Spacing.sm) {
                 NSLiveBadge(isLive: programme?.isNow ?? false)
                 NSIconButton(icon: "xmark") { onStop() }
             }
         }
         .padding(.horizontal, NS.Spacing.xl)
-        .padding(.top, 16)
-        .padding(.bottom, 20)
+        .padding(.top, NS.Spacing.lg)
+        .padding(.bottom, NS.Spacing.xl)   
         .background(NS.playerTopGradient)
     }
 }
@@ -313,13 +313,13 @@ struct MatchScoreOverlay: View {
     }
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: NS.Spacing.xl) {
             if !competition.isEmpty {
                 Text(competition.uppercased())
                     .font(NS.Font.label).kerning(1.4)
                     .foregroundStyle(Color.white.opacity(0.3))
             }
-            HStack(alignment: .center, spacing: 28) {
+            HStack(alignment: .center, spacing: NS.Spacing.xxl) {
                 TeamBlock(name: teams.home, emoji: "⚽")
                 ScoreBlock(home: score.home, away: score.away, minute: currentMinute)
                 TeamBlock(name: teams.away, emoji: "⚽")
@@ -337,17 +337,19 @@ struct TeamBlock: View {
     let emoji: String
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: NS.Spacing.sm) {
             ZStack {
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: NS.Player.teamBadgeRadius)
                     .fill(Color.white.opacity(0.05))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1)))
-                Text(emoji).font(.system(size: 22))
+                    .overlay(RoundedRectangle(cornerRadius: NS.Player.teamBadgeRadius)
+                    .stroke(Color.white.opacity(0.1)))
+                Text(emoji)
+                .font(.system(size: NS.Player.teamEmojiSize))
             }
-            .frame(width: 52, height: 52)
+            .frame(width: NS.Player.teamBadgeSize, height: NS.Player.teamBadgeSize) 
             Text(name)
                 .font(NS.Font.cardTitle).foregroundStyle(.white)
-                .multilineTextAlignment(.center).frame(maxWidth: 120)
+                .multilineTextAlignment(.center).frame(maxWidth: NS.Player.teamNameMaxWidth)
         }
     }
 }
@@ -358,16 +360,17 @@ struct ScoreBlock: View {
     let minute: Int
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: NS.Spacing.sm) {
             Text("\(home) – \(away)")
                 .font(NS.Font.scoreXL).foregroundStyle(.white)
                 .shadow(color: NS.accent.opacity(0.3), radius: 20)
             Text("\(minute)'")
                 .font(NS.Font.mono).foregroundStyle(NS.accent2)
-                .padding(.horizontal, 10).padding(.vertical, 2)
+                .padding(.horizontal, NS.Chip.paddingH)
+                .padding(.vertical, NS.Spacing.xxs)
                 .background(NS.accentGlow)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(NS.accentBorder))
+                .clipShape(RoundedRectangle(cornerRadius: NS.Radius.sm)) 
+                .overlay(RoundedRectangle(cornerRadius: NS.Radius.sm).stroke(NS.accentBorder))
         }
     }
 }
@@ -385,10 +388,11 @@ struct CtrlButton: View {
             Image(systemName: icon)
                 .font(.system(size: size, weight: .medium))
                 .foregroundStyle(isPrimary ? NS.bg : (isHovered ? .white : Color.white.opacity(0.7)))
-                .frame(width: isPrimary ? 44 : 36, height: isPrimary ? 44 : 36)
+                .frame(width: isPrimary ? NS.Player.ctrlPrimary : NS.Player.ctrlSecondary,
+                        height: isPrimary ? NS.Player.ctrlPrimary : NS.Player.ctrlSecondary) 
                 .background(isPrimary ? NS.accent : isHovered ? Color.white.opacity(0.12) : Color.white.opacity(0.07))
-                .clipShape(RoundedRectangle(cornerRadius: isPrimary ? 11 : 9))
-                .overlay(RoundedRectangle(cornerRadius: isPrimary ? 11 : 9)
+                .clipShape(RoundedRectangle(cornerRadius: isPrimary ? NS.Player.ctrlRadiusPrimary : NS.Player.ctrlRadiusSecondary))
+                .overlay(RoundedRectangle(cornerRadius: isPrimary ? NS.Player.ctrlRadiusPrimary : NS.Player.ctrlRadiusSecondary)
                     .stroke(Color.white.opacity(isPrimary ? 0 : 0.08)))
                 .shadow(color: isPrimary ? NS.accent.opacity(0.5) : .clear, radius: 10)
         }
@@ -426,11 +430,13 @@ struct PlayerErrorOverlay: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.75)
-            VStack(spacing: 16) {
+            VStack(spacing: NS.Spacing.lg) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 36)).foregroundStyle(NS.amber)
+                    .font(.system(size: NS.Player.errorIconSize))
+                    .foregroundStyle(NS.amber)
                 Text(error.errorDescription ?? "Stream unavailable")
-                    .font(NS.Font.bodyMedium).foregroundStyle(.white)
+                    .font(NS.Font.bodyMedium)
+                    .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                 if let suggestion = error.recoverySuggestion {
                     Text(suggestion)
@@ -441,7 +447,7 @@ struct PlayerErrorOverlay: View {
                 Button("Retry", action: onRetry)
                     .buttonStyle(.borderedProminent).tint(NS.amber)
             }
-            .padding(32)
+            .padding(NS.Player.errorPadding)
         }
         .ignoresSafeArea()
     }

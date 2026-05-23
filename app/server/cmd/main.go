@@ -78,7 +78,7 @@ func main() {
 		Concurrency:     cfg.Probe.Concurrency,
 		MinScoreActive:  cfg.Probe.MinScoreActive,
 		MinScorePromote: cfg.Probe.MinScorePromote,
-	}, s,cfg.Proxy.Referer,cfg.Proxy.UserAgent)
+	}, s,cfg.Proxy.Referer,cfg.Proxy.UserAgent,cfg.Proxy.Origin)
 
 	// ── EPG ────────────────────────────────────────────────────────────────────
 	e := epg.New(epg.Config{
@@ -95,6 +95,7 @@ func main() {
 		Enabled:   cfg.Proxy.Enabled,
 		Referer:   cfg.Proxy.Referer,
 		UserAgent: cfg.Proxy.UserAgent,
+		Origin:    cfg.Proxy.Origin,
 	}
 	px := proxy.New(proxyCfg, s)
 

@@ -34,62 +34,63 @@ final class PlayerViewModel:NSObject {
     private var playerItemObservation: Task<Void, Never>?
     private let maxRetries = 3
     private let retryDelay: TimeInterval = 2
+    private var liveEdgeTimer: Timer? = nil
 
     // MARK: - Playback
 
-    func play(channel: Channel) {
-        // Cancel any in-flight retry observation
+    func play(channel: Channel) async throws {
         playerItemObservation?.cancel()
         error = nil
         retryCount = 0
         currentChannel = channel
-        startPlayback(url: channel.streamURL)
+
+        if let detail = try? await APIClient.shared.getChannel(id: channel.id),
+           let activeURL = detail.activeLink.flatMap({ URL(string: $0.url) }) {
+            startPlayback(url: activeURL)
+        } else {
+            // Fall back to the URL embedded in the channel model
+            startPlayback(url: channel.streamURL)
+        }
     }
 
 private func startPlayback(url: URL) {
     let item = AVPlayerItem(url: url)
-    item.preferredForwardBufferDuration = bufferPreset.seconds
+    item.preferredForwardBufferDuration = 0 // Let AVPlayer handle native buffering smoothly
+    item.automaticallyPreservesTimeOffsetFromLive = true
 
-    if player == nil {
-        player = AVPlayer(playerItem: item)
-        player?.automaticallyWaitsToMinimizeStalling = true
-    } else {
-        player?.replaceCurrentItem(with: item)
-    }
-
+    player?.pause()
+    player = AVPlayer(playerItem: item)
+    player?.automaticallyWaitsToMinimizeStalling = true
     player?.play()
-    isPlaying = true  // ← add this
-    observePlayerItem(item)
-    setupNowPlaying()
+    isPlaying = true
 }
 
-    // MARK: - NS-042: Retry logic via async KVO observation
 
+    // MARK: - NS-042: Retry logic via async KVO observation
     private func observePlayerItem(_ item: AVPlayerItem) {
         playerItemObservation?.cancel()
         playerItemObservation = Task { [weak self] in
             guard let self else { return }
 
-            // Poll status — Swift concurrency KVO bridge
-            for await status in item.publisher(for: \.status).values {
-                guard !Task.isCancelled else { return }
-                switch status {
-                case .readyToPlay:
-                    await MainActor.run { self.isPlaying = true }
-
-                case .failed:
-                    let err = item.error
-                    await MainActor.run {
-                        self.isPlaying = false
-                        Task { await self.handleFailure(underlyingError: err) }
+            await withTaskGroup(of: Void.self) { group in
+                // Status observation (existing)
+                group.addTask {
+                    for await status in item.publisher(for: \.status).values {
+                        guard !Task.isCancelled else { return }
+                        if status == .failed {
+                            await self.handleFailure(underlyingError: item.error)
+                            return
+                        }
                     }
-                    return
+                }
 
-                case .unknown:
-                    break
-
-                @unknown default:
-                    break
+                // Stall observation (new)
+                group.addTask {
+                    for await _ in NotificationCenter.default
+                        .notifications(named: .AVPlayerItemPlaybackStalled, object: item) {
+                        guard !Task.isCancelled else { return }
+                        await MainActor.run { self.player?.play() }  // attempt resume
+                    }
                 }
             }
         }
@@ -104,8 +105,15 @@ private func startPlayback(url: URL) {
 
         retryCount += 1
         try? await Task.sleep(for: .seconds(retryDelay))
-        guard !Task.isCancelled, let url = currentChannel?.streamURL else { return }
-        startPlayback(url: url)
+        guard !Task.isCancelled, let channel = currentChannel else { return }
+
+        // Re-fetch — server may have a fresher active link after a probe
+        guard let detail = try? await APIClient.shared.getChannel(id: channel.id),
+              let activeURL = detail.activeLink.flatMap({ URL(string: $0.url) }) else {
+            error = .noActiveLink
+            return
+        }
+        startPlayback(url: activeURL)
     }
 
     // MARK: - Retry (manual, from UI)
@@ -114,7 +122,7 @@ private func startPlayback(url: URL) {
         error = nil
         retryCount = 0
         guard let channel = currentChannel else { return }
-        play(channel: channel)
+        Task { try? await play(channel: channel) }
     }
 
     // PiP
@@ -130,12 +138,6 @@ private func startPlayback(url: URL) {
     func enterPiP() {
         pipController?.startPictureInPicture()
     }
-
-    // func enterPiP() {
-    //     // PiP is initiated from PlayerScreen via AVPictureInPictureController directly.
-    //     // This method exists for toolbar/keyboard shortcut integration.
-    //     NotificationCenter.default.post(name: .init("NativeStreamEnterPiP"), object: nil)
-    // }
 
     // MARK: - Toggle
 
@@ -212,9 +214,25 @@ private func startPlayback(url: URL) {
         pipController?.playerLayer.opacity = hidden ? 0 : 1
     }
 
+    private func startLiveEdgeRefresh() {
+        liveEdgeTimer?.invalidate()
+        liveEdgeTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.isPlaying, self.error == nil else { return }
+                self.player?.seek(to: .positiveInfinity)
+            }
+        }
+    }
+
+    private func stopLiveEdgeRefresh() {
+        liveEdgeTimer?.invalidate()
+        liveEdgeTimer = nil
+    }
+
     // MARK: - Cleanup
 
     func cleanup() {
+        stopLiveEdgeRefresh()
         pipController?.stopPictureInPicture()   // ← new
         pipController = nil                      // ← new
         playerItemObservation?.cancel()
@@ -250,3 +268,5 @@ extension PlayerViewModel: AVPictureInPictureControllerDelegate {
         }
     }
 }
+
+

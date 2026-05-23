@@ -1,4 +1,4 @@
-// AppShell.swift — UX-007, UX-026
+// AppShell.swift — FX-003, FX-006, FX-007
 import SwiftUI
 import AVKit
 
@@ -10,6 +10,8 @@ struct AppShell: View {
     @Environment(SettingsStore.self)         private var settings
     @Environment(FavouritesManager.self)     private var favourites
     @Environment(ServerHealthViewModel.self) private var serverHealth
+    // ChannelManagerViewModel is in the environment for child screens.
+    // AppShell does not use it directly — no @Environment declaration needed here.
 
     @State private var destination: AppDestination = .now
     @State private var selectedChannel: Channel?   = nil
@@ -18,7 +20,9 @@ struct AppShell: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            SportNavRail(destination: $destination)
+            if !showPlayer {
+                SportNavRail(destination: $destination)
+            }
 
             ZStack(alignment: .bottomTrailing) {
                 destinationContent
@@ -36,7 +40,7 @@ struct AppShell: View {
         }
         .background(NS.bg)
         .frame(minWidth: 960, minHeight: 580)
-        .task { await loadAll() }
+        .task { await loadAll() }                                          // FX-003: single load site
         .onChange(of: settings.epgURLString) { Task { await loadEPG() } }
         .onChange(of: showPlayer) { _, isShowing in
             if isShowing {
@@ -68,8 +72,7 @@ struct AppShell: View {
     }
 
     private func loadEPG() async {
-        guard let url = settings.epgURL else { return }
-        epgVM.epgURL = url
+        epgVM.epgURL = settings.epgURL   // FX-005: wire Settings URL
         await epgVM.load()
     }
 
@@ -91,20 +94,13 @@ struct AppShell: View {
         } else {
             Group {
                 switch destination {
-                case .now:
-                    NowScreen(onSelectChannel: selectChannel)
-                case .sport(let sport):
-                    MatchDayScreen(sport: sport, onSelectChannel: selectChannel)
-                case .favourites:
-                    FavouritesScreen(onSelectChannel: selectChannel)
-                case .schedule:
-                    ScheduleScreen(onSelectChannel: selectChannel)
-                case .allChannels:
-                    BrowserScreen(onSelectChannel: selectChannel)
-                case .help:
-                    HelpScreen()
-                case .settings:
-                    SettingsScreen()
+                case .now:          NowScreen(onSelectChannel: selectChannel)
+                case .sport(let s): MatchDayScreen(sport: s, onSelectChannel: selectChannel)
+                case .favourites:   FavouritesScreen(onSelectChannel: selectChannel)
+                case .schedule:     ScheduleScreen(onSelectChannel: selectChannel)
+                case .allChannels:  BrowserScreen(onSelectChannel: selectChannel)
+                case .help:         HelpScreen()
+                case .settings:     SettingsScreen()
                 }
             }
             .transition(.asymmetric(
@@ -114,13 +110,22 @@ struct AppShell: View {
         }
     }
 
-    // MARK: - Channel selection
+    // MARK: - Channel selection (FX-006: explicit error handling)
 
     private func selectChannel(_ channel: Channel) {
         selectedChannel       = channel
         playerVM.bufferPreset = settings.bufferPreset
         playerVM.epgViewModel = epgVM
-        playerVM.play(channel: channel)
+        Task {
+            do {
+                try await playerVM.play(channel: channel)
+            } catch {
+                // play() already falls back to channel.streamURL.
+                // If that also fails, playerVM.error is set and
+                // PlayerScreen shows the error overlay automatically.
+                print("⚠️ [AppShell] Play failed for \(channel.name): \(error.localizedDescription)")
+            }
+        }
         withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
     }
 }
@@ -133,4 +138,5 @@ struct AppShell: View {
         .environment(SettingsStore())
         .environment(FavouritesManager())
         .environment(ServerHealthViewModel())
+        .environment(ChannelManagerViewModel())
 }

@@ -25,12 +25,13 @@ struct ChannelCard: View {
 
     var body: some View {
         Button(action: onTap) {
+            
             VStack(alignment: .leading, spacing: 6) {
-
+                
                 // Artwork
                 ZStack(alignment: .bottom) {
                     ChannelLogoView(channel: channel, borderColour: borderColour)
-
+                    
                     if let prog = programme {
                         NSProgressBar(value: prog.progress, height: 3, glow: false)
                             .clipShape(.rect(
@@ -38,7 +39,7 @@ struct ChannelCard: View {
                                 bottomTrailingRadius: NS.Radius.lg
                             ))
                     }
-
+                    
                     VStack {
                         HStack(alignment: .top) {
                             if isLive { NSLiveBadge(isLive: true) }
@@ -51,13 +52,13 @@ struct ChannelCard: View {
                 }
                 .scaleEffect(isHovered ? 1.02 : 1.0)
                 .animation(.easeOut(duration: 0.12), value: isHovered)
-
+                
                 // Channel name
                 Text(channel.name)
                     .font(NS.Font.captionMed)
                     .foregroundStyle(NS.text)
                     .lineLimit(1)
-
+                
                 // EPG line
                 if let prog = programme {
                     Text(prog.title)
@@ -70,6 +71,7 @@ struct ChannelCard: View {
                         .foregroundStyle(NS.text3)
                         .lineLimit(1)
                 }
+                
             }
         }
         .buttonStyle(.plain)
@@ -113,7 +115,9 @@ struct ChannelLogoView: View {
                 AsyncImage(url: url) { phase in
                     switch phase {
                     case .success(let img):
-                        img.resizable().scaledToFill()
+                        img.resizable()
+                            .scaledToFit()
+                            .padding(NS.Spacing.xxxl)
                     default:
                         placeholder
                     }
@@ -122,8 +126,8 @@ struct ChannelLogoView: View {
                 placeholder
             }
         }
-        .aspectRatio(16/9, contentMode: .fit)
         .frame(maxWidth: .infinity)
+        .frame(height: NS.CardSize.logoHeight)
         .background(NS.surface2)
         .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
         .overlay(
@@ -141,42 +145,3 @@ struct ChannelLogoView: View {
         }
     }
 }
-
-// MARK: - Channel Logo
-
-// struct ChannelLogoView: View {
-//     let channel: Channel
-//     var borderColour: Color = NS.border
-
-//     var body: some View {
-//         Group {
-//             if let url = channel.logoURL {
-//                 AsyncImage(url: url) { phase in
-//                     switch phase {
-//                     case .success(let img):
-//                         img.resizable().scaledToFit()
-//                     default:
-//                         placeholder
-//                     }
-//                 }
-//             } else {
-//                 placeholder
-//             }
-//         }
-//         .frame(maxWidth: .infinity, maxHeight: .infinity) // ✅ fill the parent
-//         .background(NS.bg)
-//         .overlay(
-//             RoundedRectangle(cornerRadius: NS.Radius.lg)
-//                 .stroke(borderColour, lineWidth: 0.5)
-//         )
-//     }
-
-//     private var placeholder: some View {
-//         ZStack {
-//             NS.bg
-//             Text(channel.name.prefix(3).uppercased())
-//                 .font(NS.Font.label)
-//                 .foregroundStyle(NS.text3)
-//         }
-//     }
-// }
