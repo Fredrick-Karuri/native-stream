@@ -14,6 +14,7 @@ final class PlaylistViewModel {
     var sources: [PlaylistSource] = []
     var isLoading: Bool = false
     var error: AppError? = nil
+    var detectedEPGURL: URL? = nil
 
     // MARK: - Computed
 
@@ -43,15 +44,14 @@ final class PlaylistViewModel {
         guard !isLoading else { return }
         isLoading = true
         error = nil
- 
+
         var allChannels: [Channel] = []
- 
-        await withTaskGroup(of: [Channel].self) { group in
+
+        await withTaskGroup(of: (channels: [Channel], epgURL: URL?).self) { group in
             for source in sources {
                 group.addTask { [weak self] in
-                    guard let self else { return [] }
+                    guard let self else { return ([], nil) }
                     do {
-                        // Use APIClient for server playlist URLs for proper error handling
                         let data: Data
                         if source.url.host == "localhost" || source.url.host == "127.0.0.1" {
                             data = try await APIClient.shared.playlistData()
@@ -62,18 +62,21 @@ final class PlaylistViewModel {
                         for warning in result.warnings {
                             print("⚠️ [M3U] Line \(warning.line): \(warning.reason)")
                         }
-                        return result.channels
+                        return (result.channels, result.epgURL)
                     } catch {
                         await MainActor.run {
                             self.error = error as? AppError ?? .playlistFetchFailed(url: source.url, underlying: error)
                         }
-                        return []
+                        return ([], nil)
                     }
                 }
             }
-            for await fetched in group { allChannels.append(contentsOf: fetched) }
+            for await fetched in group {
+                allChannels.append(contentsOf: fetched.channels)
+                if detectedEPGURL == nil { detectedEPGURL = fetched.epgURL }
+            }
         }
- 
+
         channels = allChannels
         isLoading = false
         let now = Date()

@@ -67,6 +67,10 @@ struct AppShell: View {
         async let playlist: () = playlistVM.loadAll()
         async let epg: ()      = loadEPG()
         _ = await (playlist, epg)
+        if settings.epgURLString.isEmpty, let detected = playlistVM.detectedEPGURL {
+            settings.epgURLString = detected.absoluteString
+            await loadEPG()
+        }
         if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
         playlistVM.scheduleAutoRefresh()
     }

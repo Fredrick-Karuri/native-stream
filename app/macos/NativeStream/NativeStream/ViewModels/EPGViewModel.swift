@@ -1,6 +1,7 @@
 // EPGViewModel.swift — FX-001, FX-002, FX-004, FX-005
 import Foundation
 import Observation
+import Compression
 
 @Observable
 @MainActor
@@ -14,47 +15,75 @@ final class EPGViewModel {
     private let parser = EPGParser()
 
     // MARK: - Load
+func load() async {
+    isLoading = true
+    defer { isLoading = false }
 
-    func load() async {
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            let data: Data
-            if let directURL = epgURL {
-                // FX-005: direct XMLTV URL configured in Settings
-                if directURL.isFileURL {
-                    data = try Data(contentsOf: directURL)
-                } else {
-                    let (fetched, response) = try await URLSession.shared.data(from: directURL)
-                    guard let http = response as? HTTPURLResponse,
-                          (200...299).contains(http.statusCode) else {
-                        throw AppError.epgFetchFailed(underlying: URLError(.badServerResponse))
-                    }
-                    data = fetched
-                }
+    do {
+        let data: Data
+        if let directURL = epgURL.map(normalizeEPGURL) {
+            if directURL.isFileURL {
+                data = try Data(contentsOf: directURL)
             } else {
-                // Fallback: fetch from StreamServer
-                data = try await APIClient.shared.epgData()
+                let (fetched, response) = try await URLSession.shared.data(from: directURL)
+                guard let http = response as? HTTPURLResponse,
+                      (200...299).contains(http.statusCode) else {
+                    throw AppError.epgFetchFailed(underlying: URLError(.badServerResponse))
+                }
+                data = fetched
             }
-
-            // FX-001: parse off main thread — EPGParser is now a plain class, safe to
-            // call from Task.detached since it has no shared mutable state after init.
-            let loaded = try await Task.detached(priority: .userInitiated) { [parser] in
-                try parser.parse(data: data)
-            }.value
-
-            store = loaded
-            isAvailable = true
-
-            // FX-002: log match diagnostic after both playlist and EPG are loaded
-            // Call logMatchDiagnostic(for:) from the screen layer when channels are available.
-
-        } catch {
-            isAvailable = false
-            print("⚠️ [EPG] Failed to load: \(error.localizedDescription)")
+        } else {
+            data = try await APIClient.shared.epgData()
         }
+
+        print("📦 [EPG] Raw data size: \(data.count) bytes")
+        print("📦 [EPG] First 4 bytes: \(data.prefix(4).map { String(format: "%02x", $0) }.joined())")
+
+        let decompressed: Data
+        if let url = epgURL, url.pathExtension == "gz" {
+            guard data.count > 18 else { throw AppError.epgParseError(reason: "GZ data too short") }
+            let payload = data.subdata(in: 10..<data.count - 8)
+            let bufferSize = 10_000_000
+            var decompressedData = Data(count: bufferSize)
+            let written = decompressedData.withUnsafeMutableBytes { outPtr in
+                payload.withUnsafeBytes { inPtr in
+                    compression_decode_buffer(
+                        outPtr.bindMemory(to: UInt8.self).baseAddress!,
+                        bufferSize,
+                        inPtr.bindMemory(to: UInt8.self).baseAddress!,
+                        payload.count,
+                        nil,
+                        COMPRESSION_ZLIB
+                    )
+                }
+            }
+            guard written > 0 else { throw AppError.epgParseError(reason: "GZ decompression failed") }
+            decompressed = decompressedData.prefix(written)
+        } else {
+            decompressed = data
+        }
+
+        let loaded = try await Task.detached(priority: .userInitiated) { [parser] in
+            try parser.parse(data: decompressed)
+        }.value
+
+        store = loaded
+        print("✅ [EPG] Loaded \(loaded.programmeCount) programmes for \(loaded.channelCount) channels")
+        isAvailable = true
+
+    } catch {
+        isAvailable = false
+        print("⚠️ [EPG] Failed to load: \(error.localizedDescription)")
     }
+}
+
+private func normalizeEPGURL(_ url: URL) -> URL {
+    guard url.host == "github.com" else { return url }
+    let fixed = url.absoluteString
+        .replacingOccurrences(of: "https://github.com/", with: "https://raw.githubusercontent.com/")
+        .replacingOccurrences(of: "/raw/", with: "/")
+    return URL(string: fixed) ?? url
+}
 
     // MARK: - Diagnostic (FX-002)
 
