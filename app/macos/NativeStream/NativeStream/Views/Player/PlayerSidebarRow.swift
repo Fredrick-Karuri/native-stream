@@ -24,7 +24,7 @@ struct PlayerSidebarRow: View {
 
                 ChannelLogoSquare(
                     channel: channel,
-                    size: 32,
+                    size: NS.Channel.logoSquareSm,
                     cornerRadius: NS.Radius.sm
                 )
 

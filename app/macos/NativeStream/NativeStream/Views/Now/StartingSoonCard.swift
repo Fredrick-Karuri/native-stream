@@ -83,7 +83,7 @@ struct StartingSoonCard: View {
                 .font(.system(size: 7, weight: .medium))
                 .foregroundStyle(NS.text2)
         }
-        .frame(width: 20, height: 20)
+        .frame(width: NS.Upcoming.badgeSize, height: NS.Upcoming.badgeSize)
     }
 
     private var leftTeam: String  { teamInitials(side: 0) }

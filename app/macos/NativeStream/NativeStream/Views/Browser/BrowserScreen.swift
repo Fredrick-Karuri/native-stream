@@ -13,7 +13,7 @@ struct BrowserScreen: View {
     let onSelectChannel: (Channel) -> Void
 
     @State private var searchText  = ""
-    @State private var gridWidth: CGFloat = 0
+    @State private var gridWidth: CGFloat = 700 // FX-014: sensible default prevents 1-column flash
     @State private var showAddChannel = false
 
     var body: some View {

@@ -57,6 +57,7 @@ struct SportNavRail: View {
     @Environment(PlaylistViewModel.self) private var playlistVM
 
     private var visibleSports: [SportCategory] {
+        if epgVM.isLoading { return SportCategory.allCases }
         let active = epgVM.activeSports(in: playlistVM.channels)
         return active.isEmpty ? SportCategory.allCases : active
     }
@@ -68,12 +69,19 @@ struct SportNavRail: View {
             }
 
             railDivider
-
+            
+            // FX-013: dim sport icons while EPG is loading
             ForEach(visibleSports, id: \.self) { sport in
-                RailIcon(icon: sport.icon, label: sport.label, isActive: destination == .sport(sport)) {
+                RailIcon(
+                    icon: sport.icon,
+                    label: sport.label,
+                    isActive: destination == .sport(sport)
+                ) {
                     destination = .sport(sport)
                 }
+                .opacity(epgVM.isLoading ? 0.4 : 1.0)
             }
+            .animation(.easeOut(duration: 0.3), value: epgVM.isLoading)
 
             Spacer()
 
