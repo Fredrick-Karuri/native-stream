@@ -166,8 +166,19 @@ struct PlayerOnNowTab: View {
 
     let currentChannel: Channel?
 
+    // FX-012: Only channels with live or upcoming EPG content.
+    // Falls back to all channels if EPG has no data at all.
+
+    private var filteredChannels: [Channel] {
+        let all = playlistVM.channels
+        let withEPG = all.filter {
+            epgVM.currentProgramme(for: $0) != nil || epgVM.nextProgramme(for: $0) != nil
+        }
+        return withEPG.isEmpty ? all : withEPG
+    }
+
     private var sortedChannels: [Channel] {
-        playlistVM.channels.sorted { a, b in
+        filteredChannels.sorted { a, b in
             let aPlaying = playerVM.currentChannel?.id == a.id
             let bPlaying = playerVM.currentChannel?.id == b.id
             if aPlaying != bPlaying { return aPlaying }
