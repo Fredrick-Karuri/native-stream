@@ -56,6 +56,7 @@ struct PlayerScreen: View {
                         Spacer()
                         PlayerControls(
                             pipController: playerVM.pipController,
+                            currentProgramme: currentProgramme,
                             showSidebar: $showSidebar,
                         )
                     }
@@ -290,11 +291,8 @@ struct PlayerTopBar: View {
             }
 
             Spacer()
-
-            HStack(spacing: NS.Spacing.sm) {
-                NSLiveBadge(isLive: programme?.isNow ?? false)
-                NSIconButton(icon: "xmark") { onStop() }
-            }
+            
+            NSIconButton(icon: "xmark") { onStop() }
         }
         .padding(.horizontal, NS.Spacing.xl)
         .padding(.top, NS.Spacing.lg)
@@ -409,28 +407,6 @@ struct CtrlButton: View {
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
-    }
-}
-
-struct PlayerProgressBar: View {
-    @Environment(PlayerViewModel.self) private var playerVM
-    @State private var isHovering = false
-    let timer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
-
-    var body: some View {
-        ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color.white.opacity(0.1))
-                .frame(height: isHovering ? 4 : 3)
-            RoundedRectangle(cornerRadius: 2)
-                .fill(NS.accent)
-                .frame(width: .infinity * 0.38, height: isHovering ? 4 : 3)
-                .shadow(color: NS.accent.opacity(0.6), radius: 4)
-        }
-        .frame(height: 4)
-        .animation(.easeOut(duration: 0.12), value: isHovering)
-        .onHover { isHovering = $0 }
-        .onReceive(timer) { _ in }
     }
 }
 

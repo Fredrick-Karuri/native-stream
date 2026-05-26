@@ -8,11 +8,12 @@ import Combine
 struct PlayerControls: View {
     @Environment(PlayerViewModel.self) private var playerVM
     var pipController: AVPictureInPictureController?
+    var currentProgramme: Programme?
     @Binding var showSidebar: Bool
 
     var body: some View {
         VStack(spacing: NS.Spacing.md) {
-            PlayerProgressBar()
+            NSProgressBar(value: currentProgramme?.progress ?? 0, height: 3, glow: true)
             HStack(spacing: NS.Spacing.md) {
                 CtrlButton(icon: "backward.end.fill", size: NS.Player.ctrlIconSm) { }
                 CtrlButton(

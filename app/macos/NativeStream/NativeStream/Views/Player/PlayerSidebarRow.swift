@@ -48,8 +48,11 @@ struct PlayerSidebarRow: View {
                     Image(systemName: "play.fill")
                         .font(.system(size: 9))
                         .foregroundStyle(NS.accent)
-                } else if isLive {
-                    NSPulseDot()
+                } else if let prog = current {
+                    Text(prog.timeRemainingString)
+                        .font(NS.Font.monoSm)
+                        .foregroundStyle(Color.white.opacity(0.3))
+                
                 } else if let next {
                     Text(next.startTimeString)
                         .font(NS.Font.monoSm)

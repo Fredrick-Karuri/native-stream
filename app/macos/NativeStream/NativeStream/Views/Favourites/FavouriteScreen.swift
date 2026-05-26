@@ -184,7 +184,9 @@ struct FavouriteRow: View {
                 if isPlaying {
                     playingBadge
                 } else if isLive {
-                    NSLiveBadge(isLive: true)
+                    Text(programme.timeRemainingString)
+                        .font(NS.Font.monoSm)
+                        .foregroundStyle(NS.text3)
                 } else {
                     Text(programme.startTimeString)
                         .font(NS.Font.monoSm)

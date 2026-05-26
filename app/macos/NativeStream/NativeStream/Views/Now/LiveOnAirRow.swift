@@ -27,7 +27,10 @@ struct LiveOnAirRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                NSLiveBadge(isLive: true)
+                Text(programme.timeRemainingString)
+                    .font(NS.Font.monoSm)
+                    .foregroundStyle(NS.text3)
+
             }
             .padding(NS.Spacing.md)
         }

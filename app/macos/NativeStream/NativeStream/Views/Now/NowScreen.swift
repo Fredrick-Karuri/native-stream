@@ -17,7 +17,7 @@ struct NowScreen: View {
     }
 
     private func isMatch(_ programme: Programme) -> Bool {
-        allSportKeywords.contains { programme.title.lowercased().contains($0) }
+        programme.isSportMatch
     }
 
     /// Channels with a live programme whose title matches a sport keyword.

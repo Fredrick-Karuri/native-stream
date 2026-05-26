@@ -12,8 +12,8 @@ struct ChannelCard: View {
     let onTap: () -> Void
 
     @State private var isHovered = false
-
-    private var isLive: Bool    { epgVM.currentProgramme(for: channel) != nil }
+    
+    private var isLive: Bool { programme?.isSportMatch ?? false }
     private var isPlaying: Bool { playerVM.currentChannel?.id == channel.id }
     private var programme: Programme? { epgVM.currentProgramme(for: channel) }
 
