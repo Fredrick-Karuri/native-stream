@@ -38,12 +38,12 @@ enum SportCategory: String, CaseIterable, Hashable {
 
     var epgKeywords: [String] {
         switch self {
-        case .football:   return ["football","soccer","premier","liga","serie","bundesliga","ligue","champions","europa","nwsl","mls"]
-        case .rugby:      return ["rugby","premiership rugby","six nations","pro14"]
-        case .tennis:     return ["tennis","atp","wta","wimbledon"]
-        case .basketball: return ["basketball","nba","wnba","euroleague"]
-        case .cricket:    return ["cricket","ipl","test","odi"]
-        case .golf:       return ["golf","pga","lpga","masters","open championship","ryder"]
+        case .football:   return ["football", "soccer", "premier league", "la liga", "bundesliga", "ligue 1", "champions league", "europa league", "nwsl", "mls"]
+        case .rugby:      return ["rugby", "six nations", "pro14"]
+        case .tennis:     return ["tennis", "atp tour", "wta tour", "wimbledon"]
+        case .basketball: return ["nba", "wnba", "euroleague"]
+        case .cricket:    return ["cricket", "ipl cricket", "test match", "odi"]
+        case .golf:       return ["golf", "pga tour live", "lpga", "ryder cup", "open championship"]
         }
     }
 }

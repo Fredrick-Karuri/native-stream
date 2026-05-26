@@ -36,9 +36,6 @@ func load() async {
             data = try await APIClient.shared.epgData()
         }
 
-        print("📦 [EPG] Raw data size: \(data.count) bytes")
-        print("📦 [EPG] First 4 bytes: \(data.prefix(4).map { String(format: "%02x", $0) }.joined())")
-
         let decompressed: Data
         if let url = epgURL, url.pathExtension == "gz" {
             guard data.count > 18 else { throw AppError.epgParseError(reason: "GZ data too short") }
@@ -149,13 +146,9 @@ private func normalizeEPGURL(_ url: URL) -> URL {
             .sorted { liveCount(for: $0, in: channels) > liveCount(for: $1, in: channels) }
     }
 
-    // FX-009: check title, channel name, AND groupTitle against keywords
+    // FX-009: check title against keywords
     func matchesSport(_ sport: SportCategory, programme: Programme, channel: Channel) -> Bool {
-        let title  = programme.title.lowercased()
-        let name   = channel.name.lowercased()
-        let group  = channel.groupTitle.lowercased()
-        return sport.epgKeywords.contains {
-            title.contains($0) || name.contains($0) || group.contains($0)
-        }
+        let title = programme.title.lowercased()
+        return sport.epgKeywords.contains { title.contains($0) }
     }
 }
