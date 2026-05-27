@@ -127,6 +127,8 @@ struct NowScreen: View {
 
     // MARK: - Live on air section
 
+    @State private var showAllOnAir = false
+
     private var onAirSection: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.md) {
             HStack(spacing: NS.Spacing.sm) {
@@ -136,11 +138,19 @@ struct NowScreen: View {
                 NSGroupHeader(title: "Live on air", count: liveOnAir.count)
             }
             VStack(spacing: NS.Spacing.sm) {
-                ForEach(liveOnAir, id: \.channel.id) { item in
+                ForEach(showAllOnAir ? liveOnAir : Array(liveOnAir.prefix(10)), id: \.channel.id) { item in
                     LiveOnAirRow(channel: item.channel, programme: item.programme) {
                         onSelectChannel(item.channel)
                     }
                 }
+            }
+            if liveOnAir.count > 10 {
+                Button(showAllOnAir ? "Show less" : "Show all \(liveOnAir.count)") {
+                    withAnimation(.easeInOut(duration: 0.2)) { showAllOnAir.toggle() }
+                }
+                .font(NS.Font.captionMed)
+                .foregroundStyle(NS.accent2)
+                .buttonStyle(.plain)
             }
         }
     }

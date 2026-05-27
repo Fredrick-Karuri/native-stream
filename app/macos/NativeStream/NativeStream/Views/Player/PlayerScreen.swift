@@ -15,6 +15,15 @@ struct PlayerScreen: View {
     @State private var showControls = true
     @State private var showSidebar  = true
     @State private var hideTask: Task<Void, Never>? = nil
+    
+    private var activeChannel: Channel? {
+        playerVM.currentChannel ?? channel
+    }
+
+    private var currentProgramme: Programme? {
+        guard let ch = activeChannel else { return nil }
+        return epgVM.currentProgramme(for: ch)
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -33,7 +42,7 @@ struct PlayerScreen: View {
                 if showControls || playerVM.error != nil {
                     VStack {
                         PlayerTopBar(
-                            channel: channel,
+                            channel: activeChannel,
                             programme: currentProgramme,
                             onBack: onBack,
                             onStop: { playerVM.stop(); onBack() }
@@ -70,16 +79,11 @@ struct PlayerScreen: View {
 
             // Sidebar — hidden in fullscreen
             if showSidebar {
-                PlayerSidebar(currentChannel: channel)
+                PlayerSidebar(currentChannel: activeChannel)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.2), value: showSidebar)
-    }
-
-    private var currentProgramme: Programme? {
-        guard let ch = channel else { return nil }
-        return epgVM.currentProgramme(for: ch)
     }
 
     private func showControlsTemporarily() {
@@ -130,7 +134,7 @@ struct PlayerSidebar: View {
 
             switch tab {
             case .onNow:    PlayerOnNowTab(currentChannel: currentChannel)
-            case .schedule: PlayerScheduleTab(channel: currentChannel)
+            case .schedule: PlayerScheduleTab(channel: playerVM.currentChannel)
             }
         }
         .frame(width: NS.Player.sidebarWidth) 
