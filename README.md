@@ -1,6 +1,6 @@
-# NativeStream Mac
+# NativeStream
 
-A self-healing, native macOS live sports TV client. Hardware-decoded HLS playback, auto-discovering stream links, EPG guide, PiP, and AirPlay — no emulators, no browser wrappers.
+A self-healing, live sports TV client. Hardware-decoded HLS playback, auto-discovering stream links, EPG guide, PiP, and AirPlay — no emulators, no browser wrappers.
 
 ## Architecture
 
@@ -76,7 +76,7 @@ open app/macos/NativeStreamMac.xcodeproj  # then ⌘R
 | [`docs/product.md`](docs/product.md) | What it is, goals, design principles |
 | [`docs/system-design.md`](docs/system-design.md) | Full architecture, components, data flows, API |
 | [`docs/server.md`](docs/server.md) | Server setup, config, API usage, troubleshooting |
-| [`docs/client.md`](docs/client.md) | Mac app setup, features, shortcuts, troubleshooting |
+| [`docs/mac-client.md`](docs/mac-client.md) | Mac app setup, features, shortcuts, troubleshooting |
 
 ## Performance targets
 
