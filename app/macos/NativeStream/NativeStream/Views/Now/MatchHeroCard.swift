@@ -54,14 +54,13 @@ struct MatchHeroCard: View {
     // Two team badge circles + vs
     private var teamRow: some View {
         HStack(spacing: NS.Spacing.lg) {
-            teamBadge(initials: leftTeam,  size: NS.Match.heroBadgeSize)
-            VStack(spacing: 2) {
-                Text("LIVE")
-                    .font(NS.Font.monoSm)
-                    .foregroundStyle(NS.live)
-                    .fontWeight(.bold)
+            if programme.title.contains(" vs ") {
+                teamBadge(initials: leftTeam,  size: NS.Match.heroBadgeSize)
+                Text("LIVE").font(NS.Font.monoSm).foregroundStyle(NS.live).fontWeight(.bold)
+                teamBadge(initials: rightTeam, size: NS.Match.heroBadgeSize)
+            } else {
+                Text("LIVE").font(NS.Font.monoSm).foregroundStyle(NS.live).fontWeight(.bold)
             }
-            teamBadge(initials: rightTeam, size: NS.Match.heroBadgeSize)
         }
     }
 

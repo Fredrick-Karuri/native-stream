@@ -21,13 +21,14 @@ struct NowScreen: View {
     }
 
     /// Channels with a live programme whose title matches a sport keyword.
-    private var liveMatches: [(channel: Channel, programme: Programme)] {
-        playlistVM.channels.compactMap { channel in
-            guard let prog = epgVM.currentProgramme(for: channel), isMatch(prog) else { return nil }
-            return (channel, prog)
-        }
+private var liveMatches: [(channel: Channel, programme: Programme)] {
+    playlistVM.channels.compactMap { channel in
+        guard let prog = epgVM.currentProgramme(for: channel),
+              isMatch(prog),
+              prog.title.contains(" vs ") else { return nil }
+        return (channel, prog)
     }
-
+}
     /// Channels live but not a sport match — studio shows, PGA coverage, snooker etc.
     private var liveOnAir: [(channel: Channel, programme: Programme)] {
         playlistVM.channels.compactMap { channel in

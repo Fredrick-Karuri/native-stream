@@ -38,7 +38,7 @@ enum SportCategory: String, CaseIterable, Hashable {
 
     var epgKeywords: [String] {
         switch self {
-        case .football:   return ["football", "soccer", "premier league", "la liga", "bundesliga", "ligue 1", "champions league", "europa league", "nwsl", "mls"]
+        case .football:   return ["football", "soccer", "premier league", "bundesliga", "ligue 1", "champions league", "europa league", "nwsl", "mls"]
         case .rugby:      return ["rugby", "six nations", "pro14"]
         case .tennis:     return ["tennis", "atp tour", "wta tour", "wimbledon"]
         case .basketball: return ["nba", "wnba", "euroleague"]
