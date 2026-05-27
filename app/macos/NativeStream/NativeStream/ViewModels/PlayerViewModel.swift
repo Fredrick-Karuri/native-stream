@@ -53,17 +53,57 @@ final class PlayerViewModel:NSObject {
         }
     }
 
-private func startPlayback(url: URL) {
-    let item = AVPlayerItem(url: url)
-    item.preferredForwardBufferDuration = 0 // Let AVPlayer handle native buffering smoothly
-    item.automaticallyPreservesTimeOffsetFromLive = true
+    /// FX-018: Play any URL directly without persisting a channel.
+    /// Creates a temporary Channel not added to the playlist.
+    func playURL(_ urlString: String, headers: [String: String] = [:]) {
+        guard let url = URL(string: urlString.trimmingCharacters(in: .whitespaces)) else {
+            error = .unsupportedFormat
+            return
+        }
+        let temp = Channel(
+            tvgId: "",
+            name: urlString,
+            groupTitle: "Direct",
+            streamURL: url,
+            streamHeaders: headers
+        )
+        currentChannel = temp
+        error = nil
+        retryCount = 0
+        startPlayback(url: url, headers: headers)
+    }
 
-    player?.pause()
-    player = AVPlayer(playerItem: item)
-    player?.automaticallyWaitsToMinimizeStalling = true
-    player?.play()
-    isPlaying = true
-}
+    // MARK: - Internal playback
+
+    /// FX-017: Uses AVURLAsset when headers are present so streams requiring
+    /// Referer/User-Agent or custom tokens play without buffering failures.
+    private func startPlayback(url: URL, headers: [String: String] = [:]) {
+        let item: AVPlayerItem
+ 
+        if headers.isEmpty {
+            item = AVPlayerItem(url: url)
+        } else {
+            // AVURLAssetHTTPHeaderFieldsKey injects headers on every HLS request
+            let asset = AVURLAsset(
+                url: url,
+                options: ["AVURLAssetHTTPHeaderFieldsKey": headers]
+            )
+            item = AVPlayerItem(asset: asset)
+        }
+ 
+        item.preferredForwardBufferDuration = 0
+        item.automaticallyPreservesTimeOffsetFromLive = true
+ 
+        player?.pause()
+        player = AVPlayer(playerItem: item)
+        player?.automaticallyWaitsToMinimizeStalling = true
+        player?.play()
+        isPlaying = true
+ 
+        observePlayerItem(item)
+        setupNowPlaying()
+        startLiveEdgeRefresh()
+    }
 
 
     // MARK: - NS-042: Retry logic via async KVO observation
@@ -233,13 +273,13 @@ private func startPlayback(url: URL) {
 
     func cleanup() {
         stopLiveEdgeRefresh()
-        pipController?.stopPictureInPicture()   // ← new
-        pipController = nil                      // ← new
+        pipController?.stopPictureInPicture()
+        pipController = nil
         playerItemObservation?.cancel()
         player?.pause()
         player?.replaceCurrentItem(with: nil)
         isPlaying = false
-        pipActive = false                        // ← new
+        pipActive = false
     }
 
     func stop() {
@@ -255,7 +295,6 @@ private func startPlayback(url: URL) {
 
 extension PlayerViewModel: AVPictureInPictureControllerDelegate {
     nonisolated func pictureInPictureWillStart(_ controller: AVPictureInPictureController) {
-        print("🟢 PiP will start — delegate fired")
         Task { @MainActor in
             self.pipActive = true
             self.setMainLayerHidden(true)

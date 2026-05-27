@@ -1,4 +1,4 @@
-// AppShell.swift — FX-003, FX-006, FX-007
+// AppShell.swift — FX-003, FX-006, FX-007, FX-018
 import SwiftUI
 import AVKit
 
@@ -10,12 +10,11 @@ struct AppShell: View {
     @Environment(SettingsStore.self)         private var settings
     @Environment(FavouritesManager.self)     private var favourites
     @Environment(ServerHealthViewModel.self) private var serverHealth
-    // ChannelManagerViewModel is in the environment for child screens.
-    // AppShell does not use it directly — no @Environment declaration needed here.
 
     @State private var destination: AppDestination = .now
     @State private var selectedChannel: Channel?   = nil
     @State private var showPlayer                  = false
+    @State private var showPlayURL                 = false   // FX-018
     @State private var keyMonitor: Any?            = nil
 
     var body: some View {
@@ -40,7 +39,7 @@ struct AppShell: View {
         }
         .background(NS.bg)
         .frame(minWidth: 960, minHeight: 580)
-        .task { await loadAll() }                                          // FX-003: single load site
+        .task { await loadAll() }
         .onChange(of: settings.epgURLString) { Task { await loadEPG() } }
         .onChange(of: showPlayer) { _, isShowing in
             if isShowing {
@@ -59,6 +58,24 @@ struct AppShell: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: playerVM.isPlaying)
+        // FX-018: ⌘U opens Play URL sheet
+        .sheet(isPresented: $showPlayURL) {
+            PlayURLSheet(isPresented: $showPlayURL) {
+                withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
+            }
+            .environment(playerVM)
+        }
+        .keyboardShortcut("u", modifiers: .command)
+        .onAppear {
+            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                if event.modifierFlags.contains(.command),
+                   event.charactersIgnoringModifiers == "u" {
+                    showPlayURL = true
+                    return nil
+                }
+                return event
+            }
+        }
     }
 
     // MARK: - Load
@@ -67,17 +84,13 @@ struct AppShell: View {
         async let playlist: () = playlistVM.loadAll()
         async let epg: ()      = loadEPG()
         _ = await (playlist, epg)
-        
-        if settings.epgURLString.isEmpty, let detected = playlistVM.detectedEPGURL {
-            settings.epgURLString = detected.absoluteString
-            await loadEPG()
-        }
         if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
         playlistVM.scheduleAutoRefresh()
+        epgVM.logMatchDiagnostic(for: playlistVM.channels)
     }
 
     private func loadEPG() async {
-        epgVM.epgURL = settings.epgURL   // FX-005: wire Settings URL
+        epgVM.epgURL = settings.epgURL
         await epgVM.load()
     }
 
@@ -115,7 +128,7 @@ struct AppShell: View {
         }
     }
 
-    // MARK: - Channel selection (FX-006: explicit error handling)
+    // MARK: - Channel selection
 
     private func selectChannel(_ channel: Channel) {
         selectedChannel       = channel
@@ -125,9 +138,6 @@ struct AppShell: View {
             do {
                 try await playerVM.play(channel: channel)
             } catch {
-                // play() already falls back to channel.streamURL.
-                // If that also fails, playerVM.error is set and
-                // PlayerScreen shows the error overlay automatically.
                 print("⚠️ [AppShell] Play failed for \(channel.name): \(error.localizedDescription)")
             }
         }
