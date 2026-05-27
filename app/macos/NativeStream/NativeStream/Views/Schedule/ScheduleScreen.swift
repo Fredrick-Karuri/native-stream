@@ -61,11 +61,12 @@ struct ScheduleScreen: View {
         let to   = selectedDate.dayEnd
 
         return playlistVM.channels.flatMap { ch in
-            // FX-004: use explicit date range — not hours from now
             epgVM.schedule(for: ch, from: from, to: to)
                 .filter { prog in
-                    guard let sport = selectedSport else { return true }
-                    return epgVM.matchesSport(sport, programme: prog, channel: ch)
+                    if let sport = selectedSport {
+                        return epgVM.matchesSport(sport, programme: prog, channel: ch)
+                    }
+                    return prog.isSportMatch // ← default to sport only
                 }
                 .map { EventItem(channel: ch, programme: $0) }
         }
@@ -73,24 +74,18 @@ struct ScheduleScreen: View {
     }
 
     private var groupedEvents: [(label: String, isLive: Bool, items: [EventItem])] {
-        var live: [EventItem] = []
         var morning: [EventItem] = []
         var afternoon: [EventItem] = []
         var tonight: [EventItem] = []
 
         for ev in events {
-            if ev.programme.isNow {
-                live.append(ev)
-            } else {
-                let hour = Calendar.current.component(.hour, from: ev.programme.start)
-                if hour >= 18      { tonight.append(ev) }
-                else if hour >= 12 { afternoon.append(ev) }
-                else               { morning.append(ev) }
-            }
+            let hour = Calendar.current.component(.hour, from: ev.programme.start)
+            if hour >= 18      { tonight.append(ev) }
+            else if hour >= 12 { afternoon.append(ev) }
+            else               { morning.append(ev) }
         }
 
         var result: [(label: String, isLive: Bool, items: [EventItem])] = []
-        if !live.isEmpty      { result.append(("Live now",       true,  live)) }
         if !morning.isEmpty   { result.append(("Morning",        false, morning)) }
         if !afternoon.isEmpty { result.append(("This afternoon", false, afternoon)) }
         if !tonight.isEmpty   { result.append(("Tonight",        false, tonight)) }
@@ -98,12 +93,12 @@ struct ScheduleScreen: View {
     }
 
     private func eventCount(for date: DateItem) -> Int {
-        // FX-004: same fix — use date range, not hours from now
         playlistVM.channels.reduce(0) { count, ch in
-            count + epgVM.schedule(for: ch, from: date.date, to: date.dayEnd).count
+            count + epgVM.schedule(for: ch, from: date.date, to: date.dayEnd)
+                .filter { $0.isSportMatch }
+                .count
         }
     }
-
     // MARK: - Body
 
     var body: some View {
@@ -129,7 +124,7 @@ struct ScheduleScreen: View {
             Spacer()
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: NS.Spacing.xs) {
-                    NSChip(label: "All sports", isActive: selectedSport == nil) {
+                    NSChip(label: "All", isActive: selectedSport == nil) {
                         selectedSport = nil
                     }
                     ForEach(SportCategory.allCases, id: \.self) { sport in

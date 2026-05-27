@@ -56,8 +56,12 @@ struct ScheduleEventRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Right side
-                if isLive {
+                if isLive && programme.isSportMatch {
                     NSLiveBadge(isLive: true)
+                } else if isLive {
+                    Text(programme.timeRemainingString)
+                        .font(NS.Font.monoSm)
+                        .foregroundStyle(NS.text3)
                 } else {
                     Text(programme.startTimeString)
                         .font(NS.Font.monoSm)

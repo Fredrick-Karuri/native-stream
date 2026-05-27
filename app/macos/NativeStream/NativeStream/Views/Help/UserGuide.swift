@@ -25,6 +25,11 @@ let userGuideSections: [HelpSection] = [
             .text("The Now screen is the default view. It shows three sections: Matches live (scoreable events), Live on air (PGA coverage, snooker, studio shows, etc.), and Starting soon (events beginning within 2 hours)."),
             .tip("If you want to watch PGA or snooker, they'll appear in Live on air even though they're not football matches.")
         ]),
+        HelpItem(title: "Matches Live section", blocks: [
+            .text("Matches Live shows channels currently broadcasting a live sport event. It detects matches by reading EPG programme titles — it looks for patterns like 'Arsenal vs Chelsea' or sport keywords like 'soccer' and 'basketball'."),
+            .tip("For the best experience, add a sports IPTV source (Sky Sports, ESPN, beIN Sports, TNT Sports) with a matching XMLTV EPG. General-purpose sources like Pluto TV rarely carry live matches."),
+            .warn("If Matches Live is empty, your playlist sources may not include dedicated sports channels with live match EPG data.")
+        ]),
         HelpItem(title: "Sport filter screens", blocks: [
             .text("Tapping a sport icon in the rail shows all channels whose current EPG programme matches that sport. Channels are grouped by competition — Premier League, Champions League, La Liga etc."),
             .text("This uses EPG programme titles to decide sport, not the channel's group tag. So Sky Sports Golf appears under Golf when it's showing PGA Tour Live.")
