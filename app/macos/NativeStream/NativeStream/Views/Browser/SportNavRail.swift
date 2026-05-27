@@ -133,29 +133,40 @@ struct RailIcon: View {
 
     var body: some View {
         Button(action: action) {
-            RailIconLabel(icon: icon, isActive: isActive, isHovered: isHovered)
+            RailIconLabel(icon: icon, label: label, isActive: isActive, isHovered: isHovered)
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
-        .help(label)
     }
 }
 
 struct RailIconLabel: View {
     let icon: String
+    let label: String
     let isActive: Bool
     var isHovered: Bool = false
 
     var body: some View {
-        Image(systemName: icon)
-            .font(.system(size: 15 * NS.scale, weight: .medium))
-            .foregroundStyle(isActive ? NS.accent2 : isHovered ? NS.text2 : NS.text3)
-            .frame(width: NS.Rail.iconSize, height: NS.Rail.iconSize)
-            .background(isActive ? NS.accentGlow : isHovered ? NS.surface2 : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
-            .overlay(
-                RoundedRectangle(cornerRadius: NS.Radius.lg)
-                    .stroke(isActive ? NS.accentBorder : Color.clear, lineWidth: 0.5)
-            )
+        VStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 15 * NS.scale, weight: .medium))
+                .foregroundStyle(isActive ? NS.accent2 : isHovered ? NS.text2 : NS.text3)
+                .frame(width: NS.Rail.iconSize, height: NS.Rail.iconSize)
+                .background(isActive ? NS.accentGlow : isHovered ? NS.surface2 : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
+                .overlay(
+                    RoundedRectangle(cornerRadius: NS.Radius.lg)
+                        .stroke(isActive ? NS.accentBorder : Color.clear, lineWidth: 0.5)
+                )
+
+            if isHovered {
+                Text(label)
+                    .font(NS.Font.monoSm)
+                    .foregroundStyle(isActive ? NS.accent2 : NS.text3)
+                    .lineLimit(1)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+        }
+        .animation(.easeOut(duration: 0.1), value: isHovered)
     }
 }
