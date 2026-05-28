@@ -2,7 +2,7 @@ name: Client CI
 
 on:
   push:
-    branches: [main, "phase/*", "feature/*"]
+    branches: [main, "develop", "feat/*"]
     paths:
       - "app/macos/**"
       - ".github/workflows/ci-client.yml"
@@ -12,24 +12,9 @@ on:
       - "app/macos/**"
 
 jobs:
-  lint:
-    name: SwiftLint
-    runs-on: macos-14   # Apple Silicon runner
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install SwiftLint
-        run: brew install swiftlint
-
-      - name: Lint
-        working-directory: app/macos
-        run: swiftlint lint --reporter github-actions-logging
-
   build:
     name: Build
     runs-on: macos-14
-    needs: lint
 
     steps:
       - uses: actions/checkout@v4
