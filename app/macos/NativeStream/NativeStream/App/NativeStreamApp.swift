@@ -1,4 +1,4 @@
-// NativeStreamApp.swift — FX-003, FX-007
+// NativeStreamApp.swift
 // Single source of environment injection. No loading here — AppShell owns that.
 
 import SwiftUI
@@ -37,6 +37,20 @@ struct NativeStreamApp: App {
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
+        .commands {
+            CommandGroup(after: .newItem) {
+                Button("Open Stream…") {
+                    NotificationCenter.default.post(name: .openPlayURL, object: nil)
+                }
+                .keyboardShortcut("u", modifiers: .command)
+            }
+            CommandGroup(replacing: .help) {
+                Button("NativeStream Help") {
+                    NotificationCenter.default.post(name: .showHelp, object: nil)
+                }
+                .keyboardShortcut("?", modifiers: .command)
+            }
+        }
 
         // macOS ⌘, shortcut still works via Settings scene
         Settings {

@@ -58,23 +58,18 @@ struct AppShell: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: playerVM.isPlaying)
-        // FX-018: ⌘U opens Play URL sheet
+        //  ⌘U opens Play URL sheet
         .sheet(isPresented: $showPlayURL) {
             PlayURLSheet(isPresented: $showPlayURL) {
                 withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
             }
             .environment(playerVM)
         }
-        .keyboardShortcut("u", modifiers: .command)
-        .onAppear {
-            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                if event.modifierFlags.contains(.command),
-                   event.charactersIgnoringModifiers == "u" {
-                    showPlayURL = true
-                    return nil
-                }
-                return event
-            }
+        .onReceive(NotificationCenter.default.publisher(for: .showHelp)) { _ in
+            destination = .help
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openPlayURL)) { _ in
+            showPlayURL = true
         }
     }
 
@@ -143,6 +138,11 @@ struct AppShell: View {
         }
         withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
     }
+}
+
+extension Notification.Name {
+    static let showHelp = Notification.Name("showHelp")
+    static let openPlayURL = Notification.Name("openPlayURL")
 }
 
 #Preview {
