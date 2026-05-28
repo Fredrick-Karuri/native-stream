@@ -6,6 +6,16 @@ import SwiftUI
 
 // MARK: - Shared helpers
 
+// Copy helper
+func copyToClipboard(_ string: String) {
+#if os(macOS)
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.setString(string, forType: .string)
+#else
+    UIPasteboard.general.string = string
+#endif
+}
+
 struct SectionTitle: View {
     let title: String
     init(_ title: String) { self.title = title }

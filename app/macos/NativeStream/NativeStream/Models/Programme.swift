@@ -38,4 +38,14 @@ struct Programme: Codable, Sendable {
         let now = Date()
         return now >= start && now < stop
     }
+
+    var timeRemainingString: String {
+        let remaining = Int(stop.timeIntervalSinceNow / 60)
+        return remaining > 0 ? "\(remaining)m left" : "Ending"
+    }
+
+    var isSportMatch: Bool {
+        let keywords = SportCategory.allCases.flatMap { $0.epgKeywords }
+        return keywords.contains { title.lowercased().contains($0) }
+    }
 }

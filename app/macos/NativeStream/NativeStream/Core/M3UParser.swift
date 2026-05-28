@@ -18,7 +18,7 @@ actor M3UParser {
     // MARK: - Public API
 
     /// Parse from raw Data (used in unit tests without network).
-    func parse(data: Data) throws -> (channels: [Channel], warnings: [M3UParseWarning]) {
+    func parse(data: Data) throws -> (channels: [Channel], epgURL: URL?, warnings: [M3UParseWarning]) {
         guard let text = String(data: data, encoding: .utf8) ??
                          String(data: data, encoding: .isoLatin1) else {
             throw AppError.playlistParseError(line: 0, reason: "File is not valid UTF-8 or Latin-1 text")
@@ -27,7 +27,7 @@ actor M3UParser {
     }
 
     /// Parse from a local file:// or remote https:// URL.
-    func parse(url: URL) async throws -> (channels: [Channel], warnings: [M3UParseWarning]) {
+    func parse(url: URL) async throws -> (channels: [Channel],epgURL: URL?, warnings: [M3UParseWarning]) {
         let data: Data
         do {
             if url.isFileURL {
@@ -53,10 +53,11 @@ actor M3UParser {
 
     // MARK: - Internal parsing
 
-    private func parseText(_ text: String) -> (channels: [Channel], warnings: [M3UParseWarning]) {
+    private func parseText(_ text: String) -> (channels: [Channel],epgURL: URL?, warnings: [M3UParseWarning]) {
         var channels: [Channel] = []
         var warnings: [M3UParseWarning] = []
         let lines = text.components(separatedBy: .newlines)
+        var epgURL: URL? = nil
 
         var lineIndex = 0
         var pendingMeta: ChannelMetadata? = nil
@@ -68,10 +69,12 @@ actor M3UParser {
             if line.isEmpty { continue }
 
             if i == 0 && line.hasPrefix("#EXTM3U") {
-                // Valid header — continue
+                if let value = extractAttribute("url-tvg", from: line),
+                   let url = URL(string: value) {
+                    epgURL = url
+                }
                 continue
             }
-
             if line.hasPrefix("#EXTINF:") {
                 pendingMeta = parseExtInf(line, lineNumber: lineIndex, warnings: &warnings)
                 continue
@@ -100,7 +103,7 @@ actor M3UParser {
             pendingMeta = nil
         }
 
-        return (channels, warnings)
+        return (channels, epgURL, warnings)
     }
 
     // MARK: - EXTINF parsing

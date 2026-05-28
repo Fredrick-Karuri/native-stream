@@ -1,8 +1,4 @@
-//
-//  UserGuide.swift
-//  NativeStream
-//
-
+// UserGuide.swift
 
 // MARK: - User guide content
 
@@ -23,11 +19,16 @@ let userGuideSections: [HelpSection] = [
         HelpItem(title: "The left rail", blocks: [
             .text("The left rail is the primary navigation. At the top is the Now button — your home screen showing everything live right now across all channels."),
             .text("Below that are sport icons. These are dynamic — they only appear when at least one channel has live or upcoming content matching that sport. Sports with live content float to the top."),
-            .text("At the bottom: Favourites, Schedule, All Channels, Settings, and Help.")
+            .text("At the bottom: Favourites, Schedule, All Channels, Help, and Settings.")
         ]),
         HelpItem(title: "What's on (Now screen)", blocks: [
             .text("The Now screen is the default view. It shows three sections: Matches live (scoreable events), Live on air (PGA coverage, snooker, studio shows, etc.), and Starting soon (events beginning within 2 hours)."),
             .tip("If you want to watch PGA or snooker, they'll appear in Live on air even though they're not football matches.")
+        ]),
+        HelpItem(title: "Matches Live section", blocks: [
+            .text("Matches Live shows channels currently broadcasting a live sport event. It detects matches by reading EPG programme titles — it looks for patterns like 'Arsenal vs Chelsea' or sport keywords like 'soccer' and 'basketball'."),
+            .tip("For the best experience, add a sports IPTV source (Sky Sports, ESPN, beIN Sports, TNT Sports) with a matching XMLTV EPG. General-purpose sources like Pluto TV rarely carry live matches."),
+            .warn("If Matches Live is empty, your playlist sources may not include dedicated sports channels with live match EPG data.")
         ]),
         HelpItem(title: "Sport filter screens", blocks: [
             .text("Tapping a sport icon in the rail shows all channels whose current EPG programme matches that sport. Channels are grouped by competition — Premier League, Champions League, La Liga etc."),
@@ -39,9 +40,18 @@ let userGuideSections: [HelpSection] = [
             .text("Tap any channel card or row to start playing immediately. The player opens full-window with a sidebar showing all currently live channels."),
             .text("You can switch channels from the sidebar without leaving the player — just tap another row.")
         ]),
+        HelpItem(title: "Play any URL (⌘U)", blocks: [
+            .text("Press ⌘U from anywhere in the app to open the Play URL sheet. Paste any HLS or IPTV stream URL and hit Play — it opens in the player immediately."),
+            .text("This is a temporary session — the URL is not saved to your playlist. Use it when you find a live stream URL on a website and want to watch it in NativeStream without adding it permanently."),
+            .tip("If the stream requires authentication headers (Referer, User-Agent), expand the Headers section in the sheet and fill them in before hitting Play.")
+        ]),
+        HelpItem(title: "Add a channel permanently", blocks: [
+            .text("Go to All Channels and tap the Add button in the top bar. Enter the stream URL, channel name, and group. The channel is sent to StreamServer, validated, and added to your playlist."),
+            .text("Unlike Play URL, this persists across restarts and the server will monitor and heal the link automatically.")
+        ]),
         HelpItem(title: "Fullscreen mode", blocks: [
             .text("Click the expand icon (bottom-right of the player controls) to hide the sidebar and go fullscreen. Click again to bring the sidebar back."),
-            .text("You can also use keyboard shortcuts: Space to play/pause, M to mute, P for Picture in Picture, F for macOS fullscreen.")
+            .text("Keyboard shortcuts: Space to play/pause · M to mute · P for Picture in Picture · F for macOS fullscreen.")
         ]),
         HelpItem(title: "Picture in Picture", blocks: [
             .text("Click the PiP button in the player controls to float the video in a small overlay window. You can continue browsing channels while the stream plays."),
@@ -84,4 +94,3 @@ let userGuideSections: [HelpSection] = [
         ])
     ])
 ]
-

@@ -1,6 +1,4 @@
-// OnboardingView.swift — NS-321
-// First-launch onboarding: server check → channel setup → EPG setup.
-
+// OnboardingView.swift — FX-016
 import SwiftUI
 
 enum OnboardingStep {
@@ -12,28 +10,28 @@ enum OnboardingStep {
 
 struct OnboardingView: View {
 
-    @Environment(SettingsStore.self)     private var settings
-    @Environment(PlaylistViewModel.self) private var playlistVM
+    @Environment(SettingsStore.self)         private var settings
+    @Environment(PlaylistViewModel.self)     private var playlistVM
     @Environment(ServerHealthViewModel.self) private var serverHealth
 
     @State private var step: OnboardingStep = .serverCheck
     @State private var isChecking = false
+    @State private var playlistURLInput = ""
     @State private var epgURLInput = ""
 
     var onComplete: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
-            // Progress indicator
             HStack(spacing: 8) {
                 ForEach(0..<3) { i in
                     Capsule()
-                        .fill(stepIndex >= i ? Color.accentColor : Color.primary.opacity(0.15))
+                        .fill(stepIndex >= i ? NS.accent : NS.border2)
                         .frame(width: stepIndex == i ? 24 : 8, height: 6)
                         .animation(.spring(response: 0.3), value: stepIndex)
                 }
             }
-            .padding(.top, 32)
+            .padding(.top, NS.Spacing.xxl)
 
             Spacer()
 
@@ -53,32 +51,31 @@ struct OnboardingView: View {
 
             Spacer()
         }
-        .frame(width: 500, height: 420)
-        .background(.background)
+        .frame(width: 500, height: 440)
+        .background(NS.bg)
     }
 
-    // MARK: - Steps
+    // MARK: - Step 1: Server check
 
     private var serverCheckStep: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: NS.Spacing.xl) {
             Image(systemName: "server.rack")
                 .font(.system(size: 48))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(NS.accent)
 
             Text("Welcome to NativeStream")
-                .font(.title2.bold())
+                .font(NS.Font.display)
+                .foregroundStyle(NS.text)
 
-            Text("First, make sure the StreamServer is running.\nOpen Terminal and run:")
+            Text("Make sure StreamServer is running.\nOpen Terminal and run:")
+                .font(NS.Font.body)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(NS.text3)
 
-            CodeBlock("make run-server")
+            NSCodeBlock(code: "make run-server")
+            NSCodeBlock(code: "make install-service")
 
-            Text("Or install as a background service:")
-                .foregroundStyle(.secondary)
-            CodeBlock("make install-service")
-
-            HStack(spacing: 12) {
+            HStack(spacing: NS.Spacing.md) {
                 Button("Skip") { withAnimation { step = .channelSetup } }
                     .buttonStyle(.bordered)
 
@@ -89,64 +86,71 @@ struct OnboardingView: View {
                 .disabled(isChecking)
             }
         }
-        .padding(40)
+        .padding(NS.Spacing.xxl)
     }
+
+    // MARK: - Step 2: Channel setup (FX-016: inline URL entry)
 
     private var channelSetupStep: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: NS.Spacing.xl) {
             Image(systemName: "list.bullet.rectangle")
                 .font(.system(size: 48))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(NS.accent)
 
             Text("Add a Playlist Source")
-                .font(.title2.bold())
+                .font(NS.Font.display)
+                .foregroundStyle(NS.text)
 
-            Text("Point NativeStream at your stream server's playlist endpoint,\nor paste any M3U URL.")
+            Text("Paste your M3U playlist URL below.\nThis is usually your StreamServer's playlist endpoint.")
+                .font(NS.Font.body)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(NS.text3)
 
-            CodeBlock("http://localhost:8888/playlist.m3u")
-
-            Text("Go to Settings → Sources → Add Source to configure this.\nYou can also do it now and come back.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            HStack(spacing: 12) {
-                Button("Open Settings") {
-                    NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-                }
-                .buttonStyle(.bordered)
-
-                Button("Next →") { withAnimation { step = .epgSetup } }
-                    .buttonStyle(.borderedProminent)
-            }
-        }
-        .padding(40)
-    }
-
-    private var epgSetupStep: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "tv.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(Color.accentColor)
-
-            Text("Set Up TV Guide (EPG)")
-                .font(.title2.bold())
-
-            Text("Enter your EPG URL so NativeStream can show\nwhat's on and upcoming match times.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-
-            TextField("https://localhost:8888/epg.xml", text: $epgURLInput)
+            TextField("http://localhost:8888/playlist.m3u", text: $playlistURLInput)
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 340)
 
-            Text("Or use a public source like https://epghub.xyz")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack(spacing: NS.Spacing.md) {
+                Button("Skip") { withAnimation { step = .epgSetup } }
+                    .buttonStyle(.bordered)
 
-            HStack(spacing: 12) {
+                Button("Add & Continue") {
+                    addPlaylistSource()
+                    withAnimation { step = .epgSetup }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(playlistURLInput.isEmpty)
+            }
+        }
+        .padding(NS.Spacing.xxl)
+    }
+
+    // MARK: - Step 3: EPG setup
+
+    private var epgSetupStep: some View {
+        VStack(spacing: NS.Spacing.xl) {
+            Image(systemName: "tv.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(NS.accent)
+
+            Text("Set Up TV Guide")
+                .font(NS.Font.display)
+                .foregroundStyle(NS.text)
+
+            Text("Enter your EPG URL so NativeStream can show\nwhat's on and upcoming match times.")
+                .font(NS.Font.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(NS.text3)
+
+            TextField("http://localhost:8888/epg.xml", text: $epgURLInput)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 340)
+
+            Text("Or use a public source like https://iptv-org.github.io/epg/")
+                .font(NS.Font.monoSm)
+                .foregroundStyle(NS.text3)
+
+            HStack(spacing: NS.Spacing.md) {
                 Button("Skip") { withAnimation { step = .complete } }
                     .buttonStyle(.bordered)
 
@@ -159,21 +163,25 @@ struct OnboardingView: View {
                 .buttonStyle(.borderedProminent)
             }
         }
-        .padding(40)
+        .padding(NS.Spacing.xxl)
     }
 
+    // MARK: - Step 4: Complete
+
     private var completeStep: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: NS.Spacing.xl) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 56))
-                .foregroundStyle(.green)
+                .foregroundStyle(NS.green)
 
             Text("You're all set!")
-                .font(.title2.bold())
+                .font(NS.Font.display)
+                .foregroundStyle(NS.text)
 
-            Text("NativeStream is ready. Select a channel from the sidebar and enjoy hardware-decoded, buffer-free sports streaming.")
+            Text("NativeStream is ready. Your channels are loading now.\nSelect any channel to start watching.")
+                .font(NS.Font.body)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(NS.text3)
 
             Button("Start Watching") {
                 settings.onboardingComplete = true
@@ -182,7 +190,7 @@ struct OnboardingView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
         }
-        .padding(40)
+        .padding(NS.Spacing.xxl)
     }
 
     // MARK: - Helpers
@@ -202,36 +210,29 @@ struct OnboardingView: View {
         guard let url = settings.serverURL else { return }
         await serverHealth.check(serverURL: url)
         if serverHealth.isConnected {
+            // Auto-add server playlist if no sources configured
+            if playlistVM.sources.isEmpty {
+                let serverPlaylist = url.appendingPathComponent("playlist.m3u")
+                playlistVM.addSource(PlaylistSource(
+                    label: "StreamServer",
+                    url: serverPlaylist,
+                    refreshInterval: .sixHours
+                ))
+            }
             withAnimation { step = .channelSetup }
         }
     }
-}
 
-// MARK: - Code block helper
-
-struct CodeBlock: View {
-    let code: String
-    init(_ code: String) { self.code = code }
-
-    var body: some View {
-        HStack {
-            Text(code)
-                .font(.system(.body, design: .monospaced))
-                .textSelection(.enabled)
-            Spacer()
-            Button {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(code, forType: .string)
-            } label: {
-                Image(systemName: "doc.on.doc")
-                    .font(.caption)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-        }
-        .padding(10)
-        .background(.background.secondary)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .frame(maxWidth: 360)
+    private func addPlaylistSource() {
+        guard let url = URL(string: playlistURLInput.trimmingCharacters(in: .whitespaces)),
+              url.scheme != nil else { return }
+        let label = url.host ?? "Playlist"
+        playlistVM.addSource(PlaylistSource(
+            label: label,
+            url: url,
+            refreshInterval: .sixHours
+        ))
+        // FX-016: trigger load immediately so channels appear on complete screen
+        Task { await playlistVM.loadAll() }
     }
 }

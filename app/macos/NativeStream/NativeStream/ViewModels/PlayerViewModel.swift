@@ -1,4 +1,4 @@
-// NS-041 + NS-042: PlayerViewModel
+// PlayerViewModel
 // Owns AVPlayer lifecycle, retry logic, quality selection, and platform integrations.
 
 import Foundation
@@ -21,6 +21,7 @@ final class PlayerViewModel:NSObject {
     var error: PlayerError? = nil
     private(set) var retryCount: Int = 0
     var isMuted: Bool = false
+    var channelList: [Channel] = []
 
 
     var pipController: AVPictureInPictureController?
@@ -34,7 +35,6 @@ final class PlayerViewModel:NSObject {
     private var playerItemObservation: Task<Void, Never>?
     private let maxRetries = 3
     private let retryDelay: TimeInterval = 2
-    private var liveEdgeTimer: Timer? = nil
 
     // MARK: - Playback
 
@@ -53,17 +53,57 @@ final class PlayerViewModel:NSObject {
         }
     }
 
-private func startPlayback(url: URL) {
-    let item = AVPlayerItem(url: url)
-    item.preferredForwardBufferDuration = 0 // Let AVPlayer handle native buffering smoothly
-    item.automaticallyPreservesTimeOffsetFromLive = true
+    /// FX-018: Play any URL directly without persisting a channel.
+    /// Creates a temporary Channel not added to the playlist.
+    func playURL(_ urlString: String, headers: [String: String] = [:]) {
+        guard let url = URL(string: urlString.trimmingCharacters(in: .whitespaces)) else {
+            error = .unsupportedFormat
+            return
+        }
+        let temp = Channel(
+            tvgId: "",
+            name: urlString,
+            groupTitle: "Direct",
+            streamURL: url,
+            streamHeaders: headers
+        )
+        currentChannel = temp
+        error = nil
+        retryCount = 0
+        startPlayback(url: url, headers: headers)
+    }
 
-    player?.pause()
-    player = AVPlayer(playerItem: item)
-    player?.automaticallyWaitsToMinimizeStalling = true
-    player?.play()
-    isPlaying = true
-}
+    // MARK: - Internal playback
+
+    /// FX-017: Uses AVURLAsset when headers are present so streams requiring
+    /// Referer/User-Agent or custom tokens play without buffering failures.
+    private func startPlayback(url: URL, headers: [String: String] = [:]) {
+        let item: AVPlayerItem
+ 
+        if headers.isEmpty {
+            item = AVPlayerItem(url: url)
+        } else {
+            // AVURLAssetHTTPHeaderFieldsKey injects headers on every HLS request
+            let asset = AVURLAsset(
+                url: url,
+                options: ["AVURLAssetHTTPHeaderFieldsKey": headers]
+            )
+            item = AVPlayerItem(asset: asset)
+        }
+ 
+        item.preferredForwardBufferDuration = 0
+        item.automaticallyPreservesTimeOffsetFromLive = true
+ 
+        player?.pause()
+        player = AVPlayer(playerItem: item)
+        player?.automaticallyWaitsToMinimizeStalling = true
+        player?.play()
+        isPlaying = true
+ 
+        observePlayerItem(item)
+        setupNowPlaying()
+
+    }
 
 
     // MARK: - NS-042: Retry logic via async KVO observation
@@ -214,32 +254,16 @@ private func startPlayback(url: URL) {
         pipController?.playerLayer.opacity = hidden ? 0 : 1
     }
 
-    private func startLiveEdgeRefresh() {
-        liveEdgeTimer?.invalidate()
-        liveEdgeTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self, self.isPlaying, self.error == nil else { return }
-                self.player?.seek(to: .positiveInfinity)
-            }
-        }
-    }
-
-    private func stopLiveEdgeRefresh() {
-        liveEdgeTimer?.invalidate()
-        liveEdgeTimer = nil
-    }
-
     // MARK: - Cleanup
 
     func cleanup() {
-        stopLiveEdgeRefresh()
-        pipController?.stopPictureInPicture()   // ← new
-        pipController = nil                      // ← new
+        pipController?.stopPictureInPicture()
+        pipController = nil
         playerItemObservation?.cancel()
         player?.pause()
         player?.replaceCurrentItem(with: nil)
         isPlaying = false
-        pipActive = false                        // ← new
+        pipActive = false
     }
 
     func stop() {
@@ -251,11 +275,24 @@ private func startPlayback(url: URL) {
         isMuted.toggle()
         player?.isMuted = isMuted
     }
+
+    func playNext(in channels: [Channel]) {
+        guard let current = currentChannel,
+              let idx = channels.firstIndex(where: { $0.id == current.id }) else { return }
+        let next = channels[(idx + 1) % channels.count]
+        Task { try? await play(channel: next) }
+    }
+
+    func playPrevious(in channels: [Channel]) {
+        guard let current = currentChannel,
+              let idx = channels.firstIndex(where: { $0.id == current.id }) else { return }
+        let prev = channels[(idx - 1 + channels.count) % channels.count]
+        Task { try? await play(channel: prev) }
+    }
 }
 
 extension PlayerViewModel: AVPictureInPictureControllerDelegate {
     nonisolated func pictureInPictureWillStart(_ controller: AVPictureInPictureController) {
-        print("🟢 PiP will start — delegate fired")
         Task { @MainActor in
             self.pipActive = true
             self.setMainLayerHidden(true)

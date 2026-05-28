@@ -17,17 +17,18 @@ struct NowScreen: View {
     }
 
     private func isMatch(_ programme: Programme) -> Bool {
-        allSportKeywords.contains { programme.title.lowercased().contains($0) }
+        programme.isSportMatch
     }
 
     /// Channels with a live programme whose title matches a sport keyword.
-    private var liveMatches: [(channel: Channel, programme: Programme)] {
-        playlistVM.channels.compactMap { channel in
-            guard let prog = epgVM.currentProgramme(for: channel), isMatch(prog) else { return nil }
-            return (channel, prog)
-        }
+private var liveMatches: [(channel: Channel, programme: Programme)] {
+    playlistVM.channels.compactMap { channel in
+        guard let prog = epgVM.currentProgramme(for: channel),
+              isMatch(prog),
+              prog.title.contains(" vs ") else { return nil }
+        return (channel, prog)
     }
-
+}
     /// Channels live but not a sport match — studio shows, PGA coverage, snooker etc.
     private var liveOnAir: [(channel: Channel, programme: Programme)] {
         playlistVM.channels.compactMap { channel in
@@ -127,6 +128,8 @@ struct NowScreen: View {
 
     // MARK: - Live on air section
 
+    @State private var showAllOnAir = false
+
     private var onAirSection: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.md) {
             HStack(spacing: NS.Spacing.sm) {
@@ -136,11 +139,19 @@ struct NowScreen: View {
                 NSGroupHeader(title: "Live on air", count: liveOnAir.count)
             }
             VStack(spacing: NS.Spacing.sm) {
-                ForEach(liveOnAir, id: \.channel.id) { item in
+                ForEach(showAllOnAir ? liveOnAir : Array(liveOnAir.prefix(10)), id: \.channel.id) { item in
                     LiveOnAirRow(channel: item.channel, programme: item.programme) {
                         onSelectChannel(item.channel)
                     }
                 }
+            }
+            if liveOnAir.count > 10 {
+                Button(showAllOnAir ? "Show less" : "Show all \(liveOnAir.count)") {
+                    withAnimation(.easeInOut(duration: 0.2)) { showAllOnAir.toggle() }
+                }
+                .font(NS.Font.captionMed)
+                .foregroundStyle(NS.accent2)
+                .buttonStyle(.plain)
             }
         }
     }

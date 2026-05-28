@@ -10,21 +10,23 @@ struct Channel: Identifiable, Codable, Sendable, Hashable {
     let groupTitle: String
     let logoURL: URL?
     let streamURL: URL
+    let streamHeaders: [String: String]
 
     init(
-        id: String = UUID().uuidString,
         tvgId: String,
         name: String,
         groupTitle: String = "Uncategorised",
         logoURL: URL? = nil,
-        streamURL: URL
+        streamURL: URL,
+        streamHeaders: [String: String] = [:]
     ) {
-        self.id = id
+        self.id = tvgId.isEmpty ? streamURL.absoluteString : tvgId
         self.tvgId = tvgId
         self.name = name
         self.groupTitle = groupTitle
         self.logoURL = logoURL
         self.streamURL = streamURL
+        self.streamHeaders = streamHeaders
     }
 
     // MARK: - Hashable

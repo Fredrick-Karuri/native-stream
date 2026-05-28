@@ -38,12 +38,12 @@ enum SportCategory: String, CaseIterable, Hashable {
 
     var epgKeywords: [String] {
         switch self {
-        case .football:   return ["football","soccer","premier","liga","serie","bundesliga","ligue","champions","europa","nwsl","mls"]
-        case .rugby:      return ["rugby","premiership rugby","six nations","pro14"]
-        case .tennis:     return ["tennis","atp","wta","wimbledon"]
-        case .basketball: return ["basketball","nba","wnba","euroleague"]
-        case .cricket:    return ["cricket","ipl","test","odi"]
-        case .golf:       return ["golf","pga","lpga","masters","open championship","ryder"]
+        case .football:   return ["football", "soccer", "premier league", "bundesliga", "ligue 1", "champions league", "europa league", "nwsl", "mls"]
+        case .rugby:      return ["rugby", "six nations", "pro14"]
+        case .tennis:     return ["tennis", "atp tour", "wta tour", "wimbledon"]
+        case .basketball: return ["nba", "wnba", "euroleague"]
+        case .cricket:    return ["cricket", "ipl cricket", "test match", "odi"]
+        case .golf:       return ["golf", "pga tour live", "lpga", "ryder cup", "open championship"]
         }
     }
 }
@@ -57,6 +57,7 @@ struct SportNavRail: View {
     @Environment(PlaylistViewModel.self) private var playlistVM
 
     private var visibleSports: [SportCategory] {
+        if epgVM.isLoading { return SportCategory.allCases }
         let active = epgVM.activeSports(in: playlistVM.channels)
         return active.isEmpty ? SportCategory.allCases : active
     }
@@ -68,12 +69,19 @@ struct SportNavRail: View {
             }
 
             railDivider
-
+            
+            // FX-013: dim sport icons while EPG is loading
             ForEach(visibleSports, id: \.self) { sport in
-                RailIcon(icon: sport.icon, label: sport.label, isActive: destination == .sport(sport)) {
+                RailIcon(
+                    icon: sport.icon,
+                    label: sport.label,
+                    isActive: destination == .sport(sport)
+                ) {
                     destination = .sport(sport)
                 }
+                .opacity(epgVM.isLoading ? 0.4 : 1.0)
             }
+            .animation(.easeOut(duration: 0.3), value: epgVM.isLoading)
 
             Spacer()
 
@@ -125,29 +133,40 @@ struct RailIcon: View {
 
     var body: some View {
         Button(action: action) {
-            RailIconLabel(icon: icon, isActive: isActive, isHovered: isHovered)
+            RailIconLabel(icon: icon, label: label, isActive: isActive, isHovered: isHovered)
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
-        .help(label)
     }
 }
 
 struct RailIconLabel: View {
     let icon: String
+    let label: String
     let isActive: Bool
     var isHovered: Bool = false
 
     var body: some View {
-        Image(systemName: icon)
-            .font(.system(size: 15 * NS.scale, weight: .medium))
-            .foregroundStyle(isActive ? NS.accent2 : isHovered ? NS.text2 : NS.text3)
-            .frame(width: NS.Rail.iconSize, height: NS.Rail.iconSize)
-            .background(isActive ? NS.accentGlow : isHovered ? NS.surface2 : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
-            .overlay(
-                RoundedRectangle(cornerRadius: NS.Radius.lg)
-                    .stroke(isActive ? NS.accentBorder : Color.clear, lineWidth: 0.5)
-            )
+        VStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 15 * NS.scale, weight: .medium))
+                .foregroundStyle(isActive ? NS.accent2 : isHovered ? NS.text2 : NS.text3)
+                .frame(width: NS.Rail.iconSize, height: NS.Rail.iconSize)
+                .background(isActive ? NS.accentGlow : isHovered ? NS.surface2 : Color.clear)
+                .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
+                .overlay(
+                    RoundedRectangle(cornerRadius: NS.Radius.lg)
+                        .stroke(isActive ? NS.accentBorder : Color.clear, lineWidth: 0.5)
+                )
+
+            if isHovered {
+                Text(label)
+                    .font(NS.Font.monoSm)
+                    .foregroundStyle(isActive ? NS.accent2 : NS.text3)
+                    .lineLimit(1)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+        }
+        .animation(.easeOut(duration: 0.1), value: isHovered)
     }
 }

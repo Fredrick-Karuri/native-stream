@@ -4,6 +4,7 @@
 
 import SwiftUI
 
+
 // MARK: - Sources section
 
 struct SourcesSection: View {
@@ -52,6 +53,8 @@ struct SourceRow: View {
     let source: PlaylistSource
     let onDelete: () -> Void
 
+    @State private var copied = false
+
     private var isStale: Bool {
         guard let last = source.lastFetched else { return true }
         return source.refreshInterval.seconds > 0 &&
@@ -68,6 +71,17 @@ struct SourceRow: View {
             Spacer()
             Text(isStale ? "Manual · stale" : "↻ \(source.refreshInterval.displayName)")
                 .font(NS.Font.monoSm).foregroundStyle(isStale ? NS.amber : NS.text3)
+            Button(action: {
+                copyToClipboard(source.url.absoluteString)
+                copied = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+            }) {
+                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                    .font(.system(size: 11))
+                    .foregroundStyle(copied ? NS.amber : NS.text3)
+            }
+            .buttonStyle(.plain)
+            .animation(.easeInOut(duration: 0.2), value: copied)
             Button(action: onDelete) {
                 Image(systemName: "trash").font(.system(size: 11)).foregroundStyle(NS.text3)
             }
@@ -114,6 +128,8 @@ struct AddSourceForm: View {
 struct EPGSourceRow: View {
     @Environment(SettingsStore.self) private var settings
 
+    @State private var copied = false
+
     var body: some View {
         HStack(spacing: NS.Spacing.md) {
             NSHealthDot(score: settings.epgURLString.isEmpty ? 0.3 : 1.0)
@@ -124,6 +140,19 @@ struct EPGSourceRow: View {
             }
             Spacer()
             Text("↻ \(settings.epgRefreshInterval.displayName)").font(NS.Font.monoSm).foregroundStyle(NS.text3)
+            if !settings.epgURLString.isEmpty {
+                Button(action: {
+                    copyToClipboard(settings.epgURLString)
+                    copied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+                }) {
+                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 11))
+                        .foregroundStyle(copied ? NS.amber : NS.text3)
+                }
+                .buttonStyle(.plain)
+                .animation(.easeInOut(duration: 0.2), value: copied)
+            }
         }
         .padding(NS.Spacing.md)
         .background(NS.surface2)

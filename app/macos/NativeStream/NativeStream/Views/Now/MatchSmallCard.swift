@@ -38,19 +38,18 @@ struct MatchSmallCard: View {
                 // Art area
                 ZStack {
                     NS.surface2
-                    HStack(spacing: NS.Spacing.md) {
-                        teamBadge(initials: leftTeam)
-                        VStack(spacing: 2) {
-                            Text("LIVE")
-                                .font(NS.Font.monoSm)
-                                .foregroundStyle(NS.live)
-                                .fontWeight(.bold)
+                    if programme.title.contains(" vs ") {
+                        HStack(spacing: NS.Spacing.md) {
+                            teamBadge(initials: leftTeam)
+                            Text("LIVE").font(NS.Font.monoSm).foregroundStyle(NS.live).fontWeight(.bold)
+                            teamBadge(initials: rightTeam)
                         }
-                        teamBadge(initials: rightTeam)
+                    } else {
+                        Text("LIVE").font(NS.Font.monoSm).foregroundStyle(NS.live).fontWeight(.bold)
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 72)
+                .frame(height: NS.Match.smallArtHeight)
 
                 // Footer
                 VStack(alignment: .leading, spacing: 2) {
@@ -85,7 +84,8 @@ struct MatchSmallCard: View {
                 .font(NS.Font.monoSm)
                 .foregroundStyle(NS.text2)
         }
-        .frame(width: 28, height: 28)
+        .frame(width: NS.Match.smallBadgeSize, height: NS.Match.smallBadgeSize)
+
     }
 
     private var leftTeam: String  { teamInitials(side: 0) }

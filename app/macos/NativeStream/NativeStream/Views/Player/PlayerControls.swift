@@ -1,3 +1,5 @@
+// PlayerControls.swift
+
 import SwiftUI
 import AVFoundation
 import AVKit
@@ -8,18 +10,25 @@ import Combine
 struct PlayerControls: View {
     @Environment(PlayerViewModel.self) private var playerVM
     var pipController: AVPictureInPictureController?
+    var currentProgramme: Programme?
+    
     @Binding var showSidebar: Bool
 
     var body: some View {
         VStack(spacing: NS.Spacing.md) {
-            PlayerProgressBar()
+            NSProgressBar(value: currentProgramme?.progress ?? 0, height: 3, glow: true)
             HStack(spacing: NS.Spacing.md) {
-                CtrlButton(icon: "backward.end.fill", size: NS.Player.ctrlIconSm) { }
+                CtrlButton(icon: "backward.end.fill", size: NS.Player.ctrlIconSm) {
+                    playerVM.playPrevious(in: playerVM.channelList)
+                }
                 CtrlButton(
                     icon: playerVM.isPlaying ? "pause.fill" : "play.fill",
                     size: NS.Player.ctrlIconLg, isPrimary: true
                 ) { playerVM.togglePlayback() }
-                CtrlButton(icon: "forward.end.fill", size: NS.Player.ctrlIconSm) { }
+                CtrlButton(icon: "forward.end.fill", size: NS.Player.ctrlIconSm) {
+                    playerVM.playNext(in: playerVM.channelList)
+                }
+
 
                 Spacer()
 
@@ -79,4 +88,29 @@ struct AVRoutePickerViewRepresentable: NSViewRepresentable {
         return picker
     }
     func updateNSView(_ nsView: AVRoutePickerView, context: Context) {}
+}
+
+struct CtrlButton: View {
+    let icon: String
+    let size: CGFloat
+    var isPrimary = false
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: size, weight: .medium))
+                .foregroundStyle(isPrimary ? NS.bg : (isHovered ? .white : Color.white.opacity(0.7)))
+                .frame(width: isPrimary ? NS.Player.ctrlPrimary : NS.Player.ctrlSecondary,
+                        height: isPrimary ? NS.Player.ctrlPrimary : NS.Player.ctrlSecondary)
+                .background(isPrimary ? NS.accent : isHovered ? Color.white.opacity(0.12) : Color.white.opacity(0.07))
+                .clipShape(RoundedRectangle(cornerRadius: isPrimary ? NS.Player.ctrlRadiusPrimary : NS.Player.ctrlRadiusSecondary))
+                .overlay(RoundedRectangle(cornerRadius: isPrimary ? NS.Player.ctrlRadiusPrimary : NS.Player.ctrlRadiusSecondary)
+                    .stroke(Color.white.opacity(isPrimary ? 0 : 0.08)))
+                .shadow(color: isPrimary ? NS.accent.opacity(0.5) : .clear, radius: 10)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
 }

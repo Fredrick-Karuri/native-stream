@@ -214,6 +214,23 @@ enum NS {
         static var ctrlIconLg:   CGFloat { 16 * NS.scale }
     }
 
+    enum Match {
+        static var heroArtHeight: CGFloat  { 120 * NS.scale }
+        static var smallArtHeight: CGFloat { 72  * NS.scale }
+        static var heroBadgeSize: CGFloat  { 40  * NS.scale }
+        static var smallBadgeSize: CGFloat { 28  * NS.scale }
+    }
+
+    enum Channel {
+        static var logoSquareSm: CGFloat { 32 * NS.scale }  // player sidebar
+        static var logoSquareMd: CGFloat { 36 * NS.scale }  // rows and lists
+        static var progressHeight: CGFloat { 2 }            // intentionally not scaled
+    }
+
+    enum Upcoming {
+        static var badgeSize: CGFloat { 20 * NS.scale }
+    }
+
     // ── Health score → colour ─────────────────────────────────────────────────
     static func healthColour(score: Double) -> Color {
         if score >= 0.7 { return green }

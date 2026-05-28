@@ -1,5 +1,7 @@
-// SettingsStore
-// Persists user preferences via UserDefaults / @AppStorage.
+// SettingsStore.swift — FX-015
+// FX-015: Properties are now stored @Observable fields, not computed UserDefaults
+// accessors. @Observable tracks mutations correctly so AppShell.onChange(of:)
+// fires when values change from the Settings UI.
 
 import Foundation
 import Observation
@@ -8,50 +10,44 @@ import SwiftUI
 @Observable
 final class SettingsStore {
 
-    // MARK: - Stored properties (backed by UserDefaults)
+    // MARK: - Stored properties (loaded from UserDefaults in init)
 
     var bufferPreset: BufferPreset {
-        get { BufferPreset(rawValue: UserDefaults.standard.string(forKey: Keys.bufferPreset) ?? "") ?? .balanced }
-        set { UserDefaults.standard.set(newValue.rawValue, forKey: Keys.bufferPreset) }
+        didSet { UserDefaults.standard.set(bufferPreset.rawValue, forKey: Keys.bufferPreset) }
     }
 
     var epgURLString: String {
-        get { UserDefaults.standard.string(forKey: Keys.epgURL) ?? "http://localhost:8888/epg.xml" }
-        set { UserDefaults.standard.set(newValue, forKey: Keys.epgURL) }
-    }
-
-    var epgURL: URL? {
-        URL(string: epgURLString)
+        didSet { UserDefaults.standard.set(epgURLString, forKey: Keys.epgURL) }
     }
 
     var epgRefreshInterval: RefreshInterval {
-        get { RefreshInterval(rawValue: UserDefaults.standard.string(forKey: Keys.epgRefreshInterval) ?? "") ?? .sixHours }
-        set { UserDefaults.standard.set(newValue.rawValue, forKey: Keys.epgRefreshInterval) }
+        didSet { UserDefaults.standard.set(epgRefreshInterval.rawValue, forKey: Keys.epgRefreshInterval) }
     }
 
     var serverURLString: String {
-        get { UserDefaults.standard.string(forKey: Keys.serverURL) ?? "http://localhost:8888" }
-        set { UserDefaults.standard.set(newValue, forKey: Keys.serverURL) }
-    }
-
-    var serverURL: URL? {
-        URL(string: serverURLString)
+        didSet { UserDefaults.standard.set(serverURLString, forKey: Keys.serverURL) }
     }
 
     var onboardingComplete: Bool {
-        get { UserDefaults.standard.bool(forKey: Keys.onboardingComplete) }
-        set { UserDefaults.standard.set(newValue, forKey: Keys.onboardingComplete) }
+        didSet { UserDefaults.standard.set(onboardingComplete, forKey: Keys.onboardingComplete) }
     }
 
-    var favouriteChannelIDs: Set<String> {
-        get {
-            let strings = UserDefaults.standard.stringArray(forKey: Keys.favourites) ?? []
-            return Set(strings)
-        }
-        set {
-            UserDefaults.standard.set(Array(newValue), forKey: Keys.favourites)
-        }
+    // MARK: - Init
+
+    init() {
+        let ud = UserDefaults.standard
+        bufferPreset       = BufferPreset(rawValue: ud.string(forKey: Keys.bufferPreset) ?? "") ?? .balanced
+        epgURLString       = ud.string(forKey: Keys.epgURL) ?? ""
+        epgRefreshInterval = RefreshInterval(rawValue: ud.string(forKey: Keys.epgRefreshInterval) ?? "") ?? .sixHours
+        serverURLString    = ud.string(forKey: Keys.serverURL) ?? "http://localhost:8888"
+        onboardingComplete = ud.bool(forKey: Keys.onboardingComplete)
     }
+
+    // MARK: - Computed
+
+    var epgURL: URL? { URL(string: epgURLString) }
+    var serverURL: URL? { URL(string: serverURLString) }
+
     // MARK: - Keys
 
     private enum Keys {
@@ -60,22 +56,5 @@ final class SettingsStore {
         static let epgRefreshInterval = "epgRefreshInterval"
         static let serverURL          = "serverURL"
         static let onboardingComplete = "onboardingComplete"
-        static let favourites         = "favouriteChannelIDs"
-    }
-
-    // MARK: - Helpers
-
-    func toggleFavourite(_ channel: Channel) {
-        var favs = favouriteChannelIDs
-        if favs.contains(channel.id) {
-            favs.remove(channel.id)
-        } else {
-            favs.insert(channel.id)
-        }
-        favouriteChannelIDs = favs
-    }
-
-    func isFavourite(_ channel: Channel) -> Bool {
-        favouriteChannelIDs.contains(channel.id)
     }
 }

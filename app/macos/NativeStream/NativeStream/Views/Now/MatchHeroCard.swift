@@ -18,7 +18,7 @@ struct MatchHeroCard: View {
                     teamRow
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 120)
+                .frame(height: NS.Match.heroArtHeight)
                 .clipped()
 
                 // Footer
@@ -54,14 +54,13 @@ struct MatchHeroCard: View {
     // Two team badge circles + vs
     private var teamRow: some View {
         HStack(spacing: NS.Spacing.lg) {
-            teamBadge(initials: leftTeam, size: 40)
-            VStack(spacing: 2) {
-                Text("LIVE")
-                    .font(NS.Font.monoSm)
-                    .foregroundStyle(NS.live)
-                    .fontWeight(.bold)
+            if programme.title.contains(" vs ") {
+                teamBadge(initials: leftTeam,  size: NS.Match.heroBadgeSize)
+                Text("LIVE").font(NS.Font.monoSm).foregroundStyle(NS.live).fontWeight(.bold)
+                teamBadge(initials: rightTeam, size: NS.Match.heroBadgeSize)
+            } else {
+                Text("LIVE").font(NS.Font.monoSm).foregroundStyle(NS.live).fontWeight(.bold)
             }
-            teamBadge(initials: rightTeam, size: 40)
         }
     }
 

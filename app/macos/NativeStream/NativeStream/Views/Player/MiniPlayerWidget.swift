@@ -1,4 +1,4 @@
-// MiniPlayerWidget.swift — UX-040
+// MiniPlayerWidget.swift
 import SwiftUI
 
 struct MiniPlayerWidget: View {
@@ -19,15 +19,15 @@ struct MiniPlayerWidget: View {
                 NS.bg
 
                 if let prog {
-                    Text(extractScore(prog.title) ?? "● Live")
-                        .font(NS.Font.scoreXL.leading(.tight))
+                    Text(extractScore(prog.title) ?? (prog.isSportMatch ? "● Live" : prog.title))
+                        .font(prog.isSportMatch ? NS.Font.scoreXL.leading(.tight) : NS.Font.captionMed)
                         .foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.5), radius: 8)
                 }
 
                 VStack {
                     HStack {
-                        NSLiveBadge(isLive: prog?.isNow ?? false)
+                        NSLiveBadge(isLive: prog?.isSportMatch ?? false)
                         Spacer()
                         NSIconButton(icon: "arrow.up.left.and.arrow.down.right", size: 9, isDark: true) { onExpand() }
                         NSIconButton(icon: "xmark", size: 9, isDark: true) { onClose() }

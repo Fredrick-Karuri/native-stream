@@ -12,7 +12,7 @@ struct LiveOnAirRow: View {
         Button(action: onTap) {
             HStack(spacing: NS.Spacing.md) {
 
-                ChannelLogoSquare(channel: channel, size: 36)
+                ChannelLogoSquare(channel: channel, size: NS.Channel.logoSquareMd)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(programme.title)
@@ -22,11 +22,15 @@ struct LiveOnAirRow: View {
                     Text(channel.name)
                         .font(NS.Font.monoSm)
                         .foregroundStyle(NS.text3)
-                    NSProgressBar(value: programme.progress, height: 2, glow: false)
+                    NSProgressBar(value: programme.progress, height: NS.Channel.progressHeight, glow: false)
+
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                NSLiveBadge(isLive: true)
+                Text(programme.timeRemainingString)
+                    .font(NS.Font.monoSm)
+                    .foregroundStyle(NS.text3)
+
             }
             .padding(NS.Spacing.md)
         }

@@ -1,4 +1,4 @@
-// AVPlayerRepresentable.swift — NS-043
+// AVPlayerRepresentable.swift
 import SwiftUI
 import AVFoundation
 import AVKit
