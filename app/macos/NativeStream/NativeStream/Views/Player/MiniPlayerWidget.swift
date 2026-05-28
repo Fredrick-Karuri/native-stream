@@ -1,4 +1,4 @@
-// MiniPlayerWidget.swift — UX-040
+// MiniPlayerWidget.swift
 import SwiftUI
 
 struct MiniPlayerWidget: View {

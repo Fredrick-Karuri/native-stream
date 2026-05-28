@@ -1,4 +1,4 @@
-// PlayerSidebarRow.swift — UX-021
+// PlayerSidebarRow.swift
 // Single row in the player's On Now sidebar tab.
 
 import SwiftUI

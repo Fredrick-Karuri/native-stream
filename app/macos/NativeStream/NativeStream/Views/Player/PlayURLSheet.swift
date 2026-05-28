@@ -1,4 +1,4 @@
-// PlayURLSheet.swift — FX-018
+// PlayURLSheet.swift
 // Direct URL playback. Paste any HLS/IPTV URL and optional headers, play immediately.
 // Triggered by ⌘U from AppShell. Creates a temporary channel, not persisted.
 

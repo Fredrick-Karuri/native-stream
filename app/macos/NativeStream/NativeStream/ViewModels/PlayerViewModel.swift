@@ -1,4 +1,4 @@
-// NS-041 + NS-042: PlayerViewModel
+// PlayerViewModel
 // Owns AVPlayer lifecycle, retry logic, quality selection, and platform integrations.
 
 import Foundation
@@ -21,6 +21,7 @@ final class PlayerViewModel:NSObject {
     var error: PlayerError? = nil
     private(set) var retryCount: Int = 0
     var isMuted: Bool = false
+    var channelList: [Channel] = []
 
 
     var pipController: AVPictureInPictureController?
@@ -273,6 +274,20 @@ final class PlayerViewModel:NSObject {
     func toggleMute() {
         isMuted.toggle()
         player?.isMuted = isMuted
+    }
+
+    func playNext(in channels: [Channel]) {
+        guard let current = currentChannel,
+              let idx = channels.firstIndex(where: { $0.id == current.id }) else { return }
+        let next = channels[(idx + 1) % channels.count]
+        Task { try? await play(channel: next) }
+    }
+
+    func playPrevious(in channels: [Channel]) {
+        guard let current = currentChannel,
+              let idx = channels.firstIndex(where: { $0.id == current.id }) else { return }
+        let prev = channels[(idx - 1 + channels.count) % channels.count]
+        Task { try? await play(channel: prev) }
     }
 }
 
