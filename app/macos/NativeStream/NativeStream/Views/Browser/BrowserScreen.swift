@@ -15,10 +15,13 @@ struct BrowserScreen: View {
     @State private var searchText  = ""
     @State private var gridWidth: CGFloat = 700
     @State private var showAddChannel = false
+    @State private var selectedGroup: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
             topBar
+            Divider().overlay(NS.border)
+            groupChips
             Divider().overlay(NS.border)
             channelContent
         }
@@ -50,6 +53,7 @@ private var topBar: some View {
                 .foregroundStyle(NS.text)
                 .textFieldStyle(.plain)
                 .frame(width: NS.Browser.searchWidth)
+                .onChange(of: searchText) { selectedGroup = nil }
         }
         .padding(.horizontal, NS.Spacing.md)
         .frame(height: NS.Help.searchHeight)
@@ -86,6 +90,24 @@ private var topBar: some View {
     .padding(.vertical, NS.Spacing.md)
     .background(NS.surface)
 }
+    
+    private var groupChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: NS.Spacing.xs) {
+                NSChip(label: "All", isActive: selectedGroup == nil) {
+                    selectedGroup = nil
+                }
+                ForEach(groupedSections.map(\.name), id: \.self) { group in
+                    NSChip(label: group, isActive: selectedGroup == group) {
+                        selectedGroup = group
+                    }
+                }
+            }
+            .padding(.horizontal, NS.Spacing.xl)
+            .padding(.vertical, NS.Spacing.sm)
+        }
+        .background(NS.surface)
+    }
 
     // MARK: - Content
 
@@ -168,6 +190,8 @@ private var topBar: some View {
 
     private var groupedSections: [ChannelSection] {
         let groups = Dictionary(grouping: filtered, by: \.groupTitle)
-        return groups.keys.sorted().map { ChannelSection(name: $0, channels: groups[$0]!) }
+        let sorted = groups.keys.sorted().map { ChannelSection(name: $0, channels: groups[$0]!) }
+        guard let selected = selectedGroup else { return sorted }
+        return sorted.filter { $0.name == selected }
     }
 }
