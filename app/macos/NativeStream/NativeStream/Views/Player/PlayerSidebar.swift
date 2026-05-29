@@ -124,7 +124,8 @@ struct PlayerScheduleTab: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 2) {
-                ForEach(programmes, id: \.start) { prog in
+                ForEach(programmes, id: \.id) { prog in
+                    
                     scheduleRow(prog)
                 }
             }

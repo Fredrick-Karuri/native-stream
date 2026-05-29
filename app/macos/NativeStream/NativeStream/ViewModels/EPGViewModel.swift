@@ -1,4 +1,4 @@
-// EPGViewModel.swift — FX-001, FX-002, FX-004, FX-005
+// EPGViewModel.swift
 import Foundation
 import Observation
 import Compression
@@ -7,117 +7,165 @@ import Compression
 @MainActor
 final class EPGViewModel {
 
-    var store: EPGStore? = nil
+    var stores: [UUID: EPGStore] = [:]
     var isLoading: Bool = false
     var isAvailable: Bool = true
-    var epgURL: URL? = nil           // FX-005: set by AppShell from SettingsStore
+    var epgURL: URL? = nil
 
     private let parser = EPGParser()
+    private let settingsKey = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 
     // MARK: - Load
-func load() async {
-    isLoading = true
-    defer { isLoading = false }
 
-    do {
-        let data: Data
-        if let directURL = epgURL.map(normalizeEPGURL) {
-            if directURL.isFileURL {
-                data = try Data(contentsOf: directURL)
-            } else {
-                let (fetched, response) = try await URLSession.shared.data(from: directURL)
-                guard let http = response as? HTTPURLResponse,
-                      (200...299).contains(http.statusCode) else {
-                    throw AppError.epgFetchFailed(underlying: URLError(.badServerResponse))
-                }
-                data = fetched
-            }
-        } else {
-            data = try await APIClient.shared.epgData()
+    func load(sources: [PlaylistSource] = []) async {
+        isLoading = true
+        defer { isLoading = false }
+
+        // Deduplicate: don't fetch a source URL that matches the settings URL
+        let settingsURL = epgURL.map { Self.normalizeEPGURL($0) }
+        let uniqueSources = sources.filter { source in
+            guard let url = source.epgURL else { return false }
+            return Self.normalizeEPGURL(url) != settingsURL
         }
 
+        await withTaskGroup(of: (id: UUID, store: EPGStore?).self) { group in
+            for source in uniqueSources {
+                guard let url = source.epgURL else { continue }
+                group.addTask { [parser] in
+                    do {
+                        let store = try await Self.fetchAndParse(url: url, parser: parser)
+                        return (source.id, store)
+                    } catch {
+                        print("⚠️ [EPG] Failed for \(url): \(error)")
+                        return (source.id, nil)
+                    }
+                }
+            }
+
+            if let url = epgURL {
+                group.addTask { [parser] in
+                    let store = try? await Self.fetchAndParse(url: url, parser: parser)
+                    return (self.settingsKey, store)
+                }
+            }
+
+            for await result in group {
+                if let store = result.store {
+                    stores[result.id] = store
+                }
+            }
+        }
+
+        isAvailable = !stores.isEmpty
+        let total    = stores.values.reduce(0) { $0 + $1.programmeCount }
+        let channels = stores.values.reduce(0) { $0 + $1.channelCount }
+        print("✅ [EPG] \(total) programmes, \(channels) channels across \(stores.count) store(s)")
+    }
+
+    // MARK: - Fetch + parse
+
+    private static func fetchAndParse(url: URL, parser: EPGParser) async throws -> EPGStore {
+        let normalized = normalizeEPGURL(url)
+        let (data, response) = try await URLSession.shared.data(from: normalized)
+        guard let http = response as? HTTPURLResponse,
+              (200...299).contains(http.statusCode) else {
+            throw AppError.epgFetchFailed(underlying: URLError(.badServerResponse))
+        }
+        print("📦 [EPG] data size: \(data.count), first 4 bytes: \(data.prefix(4).map { String(format: "%02x", $0) }.joined())")
+
         let decompressed: Data
-        if let url = epgURL, url.pathExtension == "gz" {
+        if normalized.pathExtension == "gz" {
             guard data.count > 18 else { throw AppError.epgParseError(reason: "GZ data too short") }
-            let payload = data.subdata(in: 10..<data.count - 8)
+            guard let payload = stripGzipHeader(data) else {
+                throw AppError.epgParseError(reason: "GZ decompression failed")
+            }
             let bufferSize = 10_000_000
-            var decompressedData = Data(count: bufferSize)
-            let written = decompressedData.withUnsafeMutableBytes { outPtr in
+            var out = Data(count: bufferSize)
+            let written = out.withUnsafeMutableBytes { outPtr in
                 payload.withUnsafeBytes { inPtr in
                     compression_decode_buffer(
                         outPtr.bindMemory(to: UInt8.self).baseAddress!,
                         bufferSize,
                         inPtr.bindMemory(to: UInt8.self).baseAddress!,
-                        payload.count,
-                        nil,
-                        COMPRESSION_ZLIB
+                        payload.count, nil, COMPRESSION_ZLIB
                     )
                 }
             }
             guard written > 0 else { throw AppError.epgParseError(reason: "GZ decompression failed") }
-            decompressed = decompressedData.prefix(written)
+            decompressed = out.prefix(written) as Data
         } else {
             decompressed = data
         }
 
-        let loaded = try await Task.detached(priority: .userInitiated) { [parser] in
+        return try await Task.detached(priority: .userInitiated) {
             try parser.parse(data: decompressed)
         }.value
-
-        store = loaded
-        print("✅ [EPG] Loaded \(loaded.programmeCount) programmes for \(loaded.channelCount) channels")
-        isAvailable = true
-
-    } catch {
-        isAvailable = false
-        print("⚠️ [EPG] Failed to load: \(error.localizedDescription)")
     }
-}
 
-private func normalizeEPGURL(_ url: URL) -> URL {
-    guard url.host == "github.com" else { return url }
-    let fixed = url.absoluteString
-        .replacingOccurrences(of: "https://github.com/", with: "https://raw.githubusercontent.com/")
-        .replacingOccurrences(of: "/raw/", with: "/")
-    return URL(string: fixed) ?? url
-}
-
-    // MARK: - Diagnostic (FX-002)
-
-    func logMatchDiagnostic(for channels: [Channel]) {
-        guard let store else {
-            print("⚠️ [EPG] No store loaded — cannot compute match rate")
-            return
+    static func normalizeEPGURL(_ url: URL) -> URL {
+        guard url.host == "github.com" else { return url }
+        let fixed = url.absoluteString
+            .replacingOccurrences(of: "https://github.com/", with: "https://raw.githubusercontent.com/")
+            .replacingOccurrences(of: "/raw/", with: "/")
+        return URL(string: fixed) ?? url
+    }
+    
+    private static func stripGzipHeader(_ data: Data) -> Data? {
+        guard data.count > 18 else { return nil }
+        var offset = 10
+        let flags = data[3]
+        if flags & 0x04 != 0 { // FEXTRA
+            guard offset + 2 <= data.count else { return nil }
+            let xlen = Int(data[offset]) | Int(data[offset + 1]) << 8
+            offset += 2 + xlen
         }
-        let rate = store.matchRate(for: channels)
-        let unmatched = channels.filter { !store.knownChannelIds.contains($0.tvgId) }
-        print("📺 [EPG] Match rate: \(Int(rate * 100))% (\(channels.count - unmatched.count)/\(channels.count))")
-        if !unmatched.isEmpty {
-            print("⚠️ [EPG] Unmatched channels:")
-            unmatched.prefix(20).forEach { print("   - \($0.name) | tvgId: '\($0.tvgId)'") }
+        if flags & 0x08 != 0 { // FNAME — skip null-terminated string
+            while offset < data.count && data[offset] != 0 { offset += 1 }
+            offset += 1
         }
+        if flags & 0x10 != 0 { // FCOMMENT
+            while offset < data.count && data[offset] != 0 { offset += 1 }
+            offset += 1
+        }
+        if flags & 0x02 != 0 { offset += 2 } // FHCRC
+        guard offset < data.count - 8 else { return nil }
+        return data.subdata(in: offset..<data.count - 8)
     }
 
     // MARK: - Queries
 
     func currentProgramme(for channel: Channel) -> Programme? {
-        store?.currentProgramme(for: channel.tvgId)
+        stores.values.lazy.compactMap { $0.currentProgramme(for: channel.tvgId) }.first
     }
 
     func nextProgramme(for channel: Channel) -> Programme? {
-        store?.nextProgramme(for: channel.tvgId)
+        stores.values.lazy.compactMap { $0.nextProgramme(for: channel.tvgId) }.first
     }
 
-    /// Programmes for a channel within the next N hours from now.
     func schedule(for channel: Channel, hours: Int = 6) -> [Programme] {
-        guard let all = store?.schedule(for: channel.tvgId) else { return [] }
         let cutoff = Date().addingTimeInterval(TimeInterval(hours * 3600))
-        return all.filter { $0.stop > Date() && $0.start < cutoff }
+        var seen = Set<String>()
+        return stores.values
+            .flatMap { $0.schedule(for: channel.tvgId) }
+            .filter { $0.stop > Date() && $0.start < cutoff }
+            .filter { seen.insert($0.id).inserted }
+            .sorted { $0.start < $1.start }
     }
 
-    /// FX-004: Programmes for a channel within an explicit date range.
     func schedule(for channel: Channel, from: Date, to: Date) -> [Programme] {
-        store?.schedule(for: channel.tvgId, from: from, to: to) ?? []
+        stores.values
+            .flatMap { $0.schedule(for: channel.tvgId, from: from, to: to) }
+            .sorted { $0.start < $1.start }
+    }
+
+    // MARK: - Diagnostic
+
+    func logMatchDiagnostic(for channels: [Channel]) {
+        guard !channels.isEmpty else { return }
+        let matched = channels.filter { ch in
+            stores.values.contains { $0.currentProgramme(for: ch.tvgId) != nil }
+        }.count
+        print("📺 [EPG] Match rate: \(Int(Double(matched) / Double(channels.count) * 100))% (\(matched)/\(channels.count))")
     }
 
     // MARK: - Sport helpers
@@ -127,16 +175,16 @@ private func normalizeEPGURL(_ url: URL) -> URL {
     }
 
     func liveCount(for sport: SportCategory, in channels: [Channel]) -> Int {
-        channels.filter { channel in
-            guard let prog = currentProgramme(for: channel) else { return false }
-            return matchesSport(sport, programme: prog, channel: channel)
+        channels.filter { ch in
+            guard let prog = currentProgramme(for: ch) else { return false }
+            return matchesSport(sport, programme: prog, channel: ch)
         }.count
     }
 
     func upcomingCount(for sport: SportCategory, in channels: [Channel]) -> Int {
-        channels.filter { channel in
-            guard let prog = nextProgramme(for: channel) else { return false }
-            return matchesSport(sport, programme: prog, channel: channel)
+        channels.filter { ch in
+            guard let prog = nextProgramme(for: ch) else { return false }
+            return matchesSport(sport, programme: prog, channel: ch)
         }.count
     }
 
@@ -146,7 +194,6 @@ private func normalizeEPGURL(_ url: URL) -> URL {
             .sorted { liveCount(for: $0, in: channels) > liveCount(for: $1, in: channels) }
     }
 
-    // FX-009: check title against keywords
     func matchesSport(_ sport: SportCategory, programme: Programme, channel: Channel) -> Bool {
         let title = programme.title.lowercased()
         return sport.epgKeywords.contains { title.contains($0) }

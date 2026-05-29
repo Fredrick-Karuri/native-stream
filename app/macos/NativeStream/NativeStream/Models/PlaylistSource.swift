@@ -10,19 +10,24 @@ struct PlaylistSource: Identifiable, Codable, Sendable {
     var url: URL
     var refreshInterval: RefreshInterval
     var lastFetched: Date?
+    var epgURLString: String = ""
+    
+    var epgURL: URL? { URL(string: epgURLString) }
 
     init(
         id: UUID = UUID(),
         label: String,
         url: URL,
         refreshInterval: RefreshInterval = .sixHours,
-        lastFetched: Date? = nil
+        lastFetched: Date? = nil,
+        epgURLString: String = ""
     ) {
         self.id = id
         self.label = label
         self.url = url
         self.refreshInterval = refreshInterval
         self.lastFetched = lastFetched
+        self.epgURLString = epgURLString
     }
 
     /// Whether this source is due for a refresh.
