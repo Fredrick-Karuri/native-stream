@@ -2,7 +2,7 @@
 //
 // NS-012: Programme
 // Represents a single EPG programme entry linked to a channel.
-// Mirrors Programme.swift exactly — including computed properties for
+// including computed properties for
 // progress, display strings, isNow, and sport matching.
 
 package com.nativestream.android.domain.model
@@ -19,6 +19,9 @@ data class Programme(
     val startEpochMs: Long,     // stored as epoch millis; Date at use-site
     val stopEpochMs: Long,
 ) {
+    // ── Identity — mirrors Programme.id in updated Swift spec ────────────────
+    val id: String get() = "${channelId}_$startEpochMs"
+
     // ── Convenience accessors ─────────────────────────────────────────────────
 
     val startDate: Date get() = Date(startEpochMs)
@@ -59,7 +62,7 @@ data class Programme(
 
     /**
      * Whether this programme title matches any known sport EPG keyword.
-     * Case-insensitive, mirrors Programme.swift isSportMatch.
+     * Case-insensitive
      */
     val isSportMatch: Boolean get() {
         val lowercaseTitle = title.lowercase()
