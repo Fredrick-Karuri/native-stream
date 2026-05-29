@@ -8,6 +8,8 @@
 // Inject via Hilt (see AppModule.kt). Do not instantiate directly.
 
 package com.nativestream.android.data.remote
+import io.ktor.client.engine.android.Android
+
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -49,7 +51,7 @@ class ApiClient @Inject constructor() {
 
     // ── Ktor HTTP client ──────────────────────────────────────────────────────
 
-    private val httpClient = HttpClient {
+    private val httpClient = HttpClient(Android) {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
@@ -63,8 +65,8 @@ class ApiClient @Inject constructor() {
             level = LogLevel.INFO
         }
         engine {
-            connectTimeoutMillis = REQUEST_TIMEOUT_MS
-            socketTimeoutMillis  = RESOURCE_TIMEOUT_MS
+            connectTimeout = REQUEST_TIMEOUT_MS.toInt()
+            socketTimeout  = RESOURCE_TIMEOUT_MS.toInt()
         }
     }
 

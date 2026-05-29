@@ -10,6 +10,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.nativestream.android.ui.theme.NSTheme
 import dagger.hilt.android.AndroidEntryPoint
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -33,7 +40,9 @@ class MainActivity : ComponentActivity() {
  */
 @Composable
 private fun AppShellPlaceholder() {
-    // TODO AND-008: replace with AppNavHost()
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("NativeStream", color = Color.White)
+    }
 }
 
 @Preview(showBackground = true)
