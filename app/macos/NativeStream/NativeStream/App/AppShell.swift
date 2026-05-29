@@ -1,4 +1,4 @@
-// AppShell.swift — FX-003, FX-006, FX-007, FX-018
+// AppShell.swift
 import SwiftUI
 import AVKit
 
@@ -14,7 +14,7 @@ struct AppShell: View {
     @State private var destination: AppDestination = .now
     @State private var selectedChannel: Channel?   = nil
     @State private var showPlayer                  = false
-    @State private var showPlayURL                 = false   // FX-018
+    @State private var showPlayURL                 = false
     @State private var keyMonitor: Any?            = nil
 
     var body: some View {
