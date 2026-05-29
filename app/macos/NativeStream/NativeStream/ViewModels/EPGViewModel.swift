@@ -21,9 +21,15 @@ final class EPGViewModel {
         isLoading = true
         defer { isLoading = false }
 
+        // Deduplicate: don't fetch a source URL that matches the settings URL
+        let settingsURL = epgURL.map { Self.normalizeEPGURL($0) }
+        let uniqueSources = sources.filter { source in
+            guard let url = source.epgURL else { return false }
+            return Self.normalizeEPGURL(url) != settingsURL
+        }
+
         await withTaskGroup(of: (id: UUID, store: EPGStore?).self) { group in
-            // Per-source EPG URLs
-            for source in sources {
+            for source in uniqueSources {
                 guard let url = source.epgURL else { continue }
                 group.addTask { [parser] in
                     do {
@@ -33,9 +39,9 @@ final class EPGViewModel {
                         print("⚠️ [EPG] Failed for \(url): \(error)")
                         return (source.id, nil)
                     }
-                }            }
+                }
+            }
 
-            // Settings/fallback EPG URL
             if let url = epgURL {
                 group.addTask { [parser] in
                     let store = try? await Self.fetchAndParse(url: url, parser: parser)
@@ -51,7 +57,7 @@ final class EPGViewModel {
         }
 
         isAvailable = !stores.isEmpty
-        let total = stores.values.reduce(0) { $0 + $1.programmeCount }
+        let total    = stores.values.reduce(0) { $0 + $1.programmeCount }
         let channels = stores.values.reduce(0) { $0 + $1.channelCount }
         print("✅ [EPG] \(total) programmes, \(channels) channels across \(stores.count) store(s)")
     }
@@ -96,7 +102,7 @@ final class EPGViewModel {
         }.value
     }
 
-    private static func normalizeEPGURL(_ url: URL) -> URL {
+    static func normalizeEPGURL(_ url: URL) -> URL {
         guard url.host == "github.com" else { return url }
         let fixed = url.absoluteString
             .replacingOccurrences(of: "https://github.com/", with: "https://raw.githubusercontent.com/")
