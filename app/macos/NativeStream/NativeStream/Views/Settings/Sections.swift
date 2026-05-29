@@ -39,10 +39,6 @@ struct SourcesSection: View {
             } else {
                 AddButton(label: "+ Add Source") { showAddForm = true }
             }
-
-            NSSectionDivider()
-            SectionTitle("EPG / TV Guide")
-            EPGSourceRow()
         }
     }
 
@@ -50,10 +46,13 @@ struct SourcesSection: View {
 }
 
 struct SourceRow: View {
+    @Environment(PlaylistViewModel.self) private var playlistVM
     let source: PlaylistSource
     let onDelete: () -> Void
 
     @State private var copied = false
+    @State private var showEPG = false
+    @State private var epgInput: String = ""
 
     private var isStale: Bool {
         guard let last = source.lastFetched else { return true }
@@ -61,39 +60,77 @@ struct SourceRow: View {
                Date().timeIntervalSince(last) > source.refreshInterval.seconds * 2
     }
 
+    private var hasEPG: Bool { !source.epgURLString.isEmpty }
+
     var body: some View {
-        HStack(spacing: NS.Spacing.md) {
-            NSHealthDot(score: isStale ? 0.3 : 1.0)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(source.label).font(NS.Font.captionMed).foregroundStyle(NS.text)
-                Text(source.url.absoluteString).font(NS.Font.monoSm).foregroundStyle(NS.text3).lineLimit(1)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: NS.Spacing.md) {
+                NSHealthDot(score: isStale ? 0.3 : 1.0)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(source.label).font(NS.Font.captionMed).foregroundStyle(NS.text)
+                    Text(source.url.absoluteString).font(NS.Font.monoSm).foregroundStyle(NS.text3).lineLimit(1)
+                }
+                Spacer()
+                Text(isStale ? "Manual · stale" : "↻ \(source.refreshInterval.displayName)")
+                    .font(NS.Font.monoSm).foregroundStyle(isStale ? NS.amber : NS.text3)
+                // EPG link toggle
+                Button(action: {
+                    epgInput = source.epgURLString
+                    withAnimation(.easeInOut(duration: 0.2)) { showEPG.toggle() }
+                }) {
+                    Image(systemName: "link")
+                        .font(.system(size: 11))
+                        .foregroundStyle(hasEPG ? NS.accent : NS.text3)
+                }
+                .buttonStyle(.plain)
+                .help(hasEPG ? "EPG configured" : "Add EPG source")
+                Button(action: {
+                    copyToClipboard(source.url.absoluteString)
+                    copied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+                }) {
+                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 11))
+                        .foregroundStyle(copied ? NS.amber : NS.text3)
+                }
+                .buttonStyle(.plain)
+                .animation(.easeInOut(duration: 0.2), value: copied)
+                Button(action: onDelete) {
+                    Image(systemName: "trash").font(.system(size: 11)).foregroundStyle(NS.text3)
+                }
+                .buttonStyle(.plain)
             }
-            Spacer()
-            Text(isStale ? "Manual · stale" : "↻ \(source.refreshInterval.displayName)")
-                .font(NS.Font.monoSm).foregroundStyle(isStale ? NS.amber : NS.text3)
-            Button(action: {
-                copyToClipboard(source.url.absoluteString)
-                copied = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
-            }) {
-                Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                    .font(.system(size: 11))
-                    .foregroundStyle(copied ? NS.amber : NS.text3)
+            .padding(NS.Spacing.md)
+
+            if showEPG {
+                Divider().overlay(NS.border)
+                HStack(spacing: NS.Spacing.sm) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 10))
+                        .foregroundStyle(NS.accent)
+                    Text("TV Guide")
+                        .font(NS.Font.monoSm)
+                        .foregroundStyle(NS.accent)
+                    NSTextField(placeholder: "EPG URL (https:// or .xml.gz)", text: $epgInput)
+                    Button("Save") {
+                        var updated = source
+                        updated.epgURLString = epgInput
+                        playlistVM.updateSource(updated)
+                        withAnimation { showEPG = false }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(epgInput == source.epgURLString)
+                }
+                .padding(NS.Spacing.md)
             }
-            .buttonStyle(.plain)
-            .animation(.easeInOut(duration: 0.2), value: copied)
-            Button(action: onDelete) {
-                Image(systemName: "trash").font(.system(size: 11)).foregroundStyle(NS.text3)
-            }
-            .buttonStyle(.plain)
         }
-        .padding(NS.Spacing.md)
         .background(isStale ? Color(hex: "f59e0b").opacity(0.03) : NS.surface2)
         .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
         .overlay(
             RoundedRectangle(cornerRadius: NS.Radius.lg)
                 .stroke(isStale ? Color(hex: "f59e0b").opacity(0.19) : NS.border, lineWidth: 0.5)
         )
+        .onAppear { epgInput = source.epgURLString }
     }
 }
 
@@ -178,35 +215,6 @@ struct PlaybackSection: View {
             }
             SettingsRow(title: "Hardware Decoding", subtitle: "Apple Silicon VideoToolbox — always on for M-series") {
                 NSToggle(isOn: $hwDecoding).disabled(true).opacity(0.6)
-            }
-        }
-    }
-}
-
-// MARK: - TV Guide section
-
-struct TVGuideSection: View {
-    @Environment(SettingsStore.self) private var settings
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: NS.Spacing.xl) {
-            SectionTitle("TV Guide")
-            VStack(alignment: .leading, spacing: NS.Spacing.sm) {
-                Text("EPG URL").font(NS.Font.caption).foregroundStyle(NS.text3)
-                NSTextField(
-                    placeholder: "https://localhost:8888/epg.xml",
-                    text: Binding(get: { settings.epgURLString }, set: { settings.epgURLString = $0 })
-                )
-                Text("Recommended: your server's /epg.xml or https://iptv-org.github.io/epg/")
-                    .font(NS.Font.monoSm).foregroundStyle(NS.text3)
-            }
-            SettingsRow(title: "Refresh Interval", subtitle: "") {
-                Picker("", selection: Binding(
-                    get: { settings.epgRefreshInterval },
-                    set: { settings.epgRefreshInterval = $0 }
-                )) {
-                    ForEach(RefreshInterval.allCases, id: \.self) { Text($0.displayName).tag($0) }
-                }.labelsHidden().frame(width: 160)
             }
         }
     }
