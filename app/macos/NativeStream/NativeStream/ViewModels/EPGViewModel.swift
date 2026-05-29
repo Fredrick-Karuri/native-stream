@@ -138,9 +138,11 @@ final class EPGViewModel {
 
     func schedule(for channel: Channel, hours: Int = 6) -> [Programme] {
         let cutoff = Date().addingTimeInterval(TimeInterval(hours * 3600))
+        var seen = Set<String>()
         return stores.values
             .flatMap { $0.schedule(for: channel.tvgId) }
             .filter { $0.stop > Date() && $0.start < cutoff }
+            .filter { seen.insert($0.id).inserted }
             .sorted { $0.start < $1.start }
     }
 

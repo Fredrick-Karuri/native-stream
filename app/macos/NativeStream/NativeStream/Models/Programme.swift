@@ -8,6 +8,8 @@ struct Programme: Codable, Sendable {
     let title: String
     let start: Date
     let stop: Date
+    
+    var id: String { "\(channelId)_\(start.timeIntervalSince1970)" }
 
     /// Elapsed fraction of the programme duration, clamped 0–1.
     var progress: Double {
