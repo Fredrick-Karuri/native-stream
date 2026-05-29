@@ -34,5 +34,4 @@ app/android/build/
 app/android/.gradle/
 app/android/local.properties
 app/android/**/*.hprof
-app/android/.gradle/
 app/android/.idea/

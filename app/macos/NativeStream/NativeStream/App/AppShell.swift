@@ -76,17 +76,18 @@ struct AppShell: View {
     // MARK: - Load
 
     private func loadAll() async {
-        async let playlist: () = playlistVM.loadAll()
-        async let epg: ()      = loadEPG()
-        _ = await (playlist, epg)
+        await playlistVM.loadAll()  // wait for sources to have epgURLString populated
+        await loadEPG()             // then load EPG with populated sources
         if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
         playlistVM.scheduleAutoRefresh()
         epgVM.logMatchDiagnostic(for: playlistVM.channels)
     }
 
     private func loadEPG() async {
+        print("🔍 [EPG] settings URL: \(settings.epgURLString)")
+        print("🔍 [EPG] source EPG URLs: \(playlistVM.sources.map { $0.epgURLString })")
         epgVM.epgURL = settings.epgURL
-        await epgVM.load()
+        await epgVM.load(sources: playlistVM.sources)
     }
 
     // MARK: - Routing
