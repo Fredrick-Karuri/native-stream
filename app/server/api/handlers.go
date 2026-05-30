@@ -54,6 +54,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Proxy
 	mux.HandleFunc("GET /stream/{id}/proxy/", h.proxy.ServeHTTP)
+	mux.HandleFunc("GET /stream/{id}/proxy", h.proxy.ServeHTTP)
 
 	// Channel management
 	mux.HandleFunc("GET /api/channels", h.handleListChannels)

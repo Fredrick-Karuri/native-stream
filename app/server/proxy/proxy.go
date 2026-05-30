@@ -142,6 +142,9 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func copyResponseHeaders(w http.ResponseWriter, resp *http.Response) {
 	for k, vals := range resp.Header {
+		if strings.EqualFold(k, "content-length") {
+			continue
+		}
 		for _, v := range vals {
 			w.Header().Add(k, v)
 		}
