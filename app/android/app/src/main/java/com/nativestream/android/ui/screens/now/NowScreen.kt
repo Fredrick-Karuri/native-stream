@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -182,15 +183,8 @@ private fun NowScrollContent(
                             color    = NSColors.accent2,
                             modifier = Modifier
                                 .padding(top = dimens.spacing.xs)
-                                .let { mod ->
-                                    mod.then(
-                                        Modifier.run {
-                                            androidx.compose.foundation.clickable {
-                                                showAllOnAir = !showAllOnAir
-                                            }
-                                        }
-                                    )
-                                },
+                                .clickable { showAllOnAir = !showAllOnAir }
+
                         )
                     }
                 }

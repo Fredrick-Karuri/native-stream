@@ -1,6 +1,5 @@
 // app/src/main/java/com/nativestream/android/ui/viewmodel/PlayerViewModel.kt
 //
-// NS-017: Player ViewModel (stub — updated AND-009)
 // Exposes player visibility, active channel, isPlaying, isMuted for the shell
 // (AND-008) and mini player (AND-009). Full ExoPlayer implementation in AND-017.
 
@@ -56,5 +55,22 @@ class PlayerViewModel @Inject constructor() : ViewModel() {
         _isPlaying.value       = false
         _activeChannel.value   = null
         // TODO AND-017: release ExoPlayer here
+    }
+
+
+    /**
+     * Plays an arbitrary URL as a temporary channel (not persisted).
+     * Mirrors playerVM.playURL(_:headers:) from PlayURLSheet.swift.
+     * Headers injected via ExoPlayer in AND-018.
+     */
+    fun playUrl(url: String, headers: Map<String, String> = emptyMap()) {
+        val temporaryChannel = com.nativestream.android.domain.model.Channel.create(
+            tvgId         = "",
+            name          = url.substringAfterLast("/").ifEmpty { url },
+            streamUrl     = url,
+            streamHeaders = headers,
+        )
+        play(temporaryChannel)
+        // TODO AND-018: pass headers to ExoPlayer DefaultHttpDataSource.Factory
     }
 }

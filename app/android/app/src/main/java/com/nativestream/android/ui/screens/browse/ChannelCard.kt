@@ -24,7 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -186,7 +186,7 @@ private fun NowBadge() {
 @Composable
 private fun StarButton(isFavourite: Boolean, onClick: () -> Unit) {
     Icon(
-        imageVector        = if (isFavourite) Icons.Filled.Star else Icons.Outlined.StarOutline,
+        imageVector        = if (isFavourite) Icons.Filled.Star else Icons.Outlined.Star,
         contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
         tint               = if (isFavourite) NSColors.amber else Color.White,
         modifier           = Modifier

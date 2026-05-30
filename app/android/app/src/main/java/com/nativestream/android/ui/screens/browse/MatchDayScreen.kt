@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -322,7 +323,7 @@ private fun matchCardBackground(variant: MatchCardVariant): Brush = when (varian
     MatchCardVariant.LIVE     -> NSGradients.liveCard
     MatchCardVariant.FEATURED -> NSGradients.activeCard
     MatchCardVariant.UCL      -> NSGradients.uclCard
-    MatchCardVariant.PLAIN    -> Brush.solidColor(NSColors.surface2)
+    MatchCardVariant.PLAIN    -> SolidColor(NSColors.surface2)
 }
 
 private fun matchCardBorderColor(variant: MatchCardVariant): Color = when (variant) {
