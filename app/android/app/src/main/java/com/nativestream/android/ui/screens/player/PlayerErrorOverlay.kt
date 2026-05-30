@@ -11,7 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,7 +42,7 @@ fun PlayerErrorOverlay(
         modifier = modifier.padding(dimens.player.errorPadding),
     ) {
         Icon(
-            imageVector        = Icons.Default.ErrorOutline,
+            imageVector        = Icons.Default.Warning,
             contentDescription = "Playback error",
             tint               = NSColors.live,
             modifier           = Modifier.size(dimens.player.errorIconSize),

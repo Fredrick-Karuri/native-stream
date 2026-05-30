@@ -59,9 +59,11 @@ class PlayerViewModel @Inject constructor(
                     retryCount = 0
                 }
             }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
             }
+
             override fun onPlayerError(error: PlaybackException) {
                 Log.e(TAG, "Playback error: ${error.message}")
                 scheduleRetry()
@@ -103,26 +105,31 @@ class PlayerViewModel @Inject constructor(
     // ── Playback controls ─────────────────────────────────────────────────────
 
     fun play(channel: Channel) {
-        _activeChannel.value   = channel
+        _activeChannel.value = channel
         _isPlayerVisible.value = true
-        _playerError.value     = null
-        retryCount             = 0
+        _playerError.value = null
+        retryCount = 0
         loadStream(channel)
         scheduleControlsHide()
     }
 
     fun playUrl(url: String, headers: Map<String, String> = emptyMap()) {
         val temporaryChannel = Channel.create(
-            tvgId         = "",
-            name          = url.substringAfterLast("/").ifEmpty { url },
-            streamUrl     = url,
+            tvgId = "",
+            name = url.substringAfterLast("/").ifEmpty { url },
+            streamUrl = url,
             streamHeaders = headers,
         )
         play(temporaryChannel)
     }
 
-    fun showPlayer()  { _isPlayerVisible.value = true }
-    fun hidePlayer()  { _isPlayerVisible.value = false }
+    fun showPlayer() {
+        _isPlayerVisible.value = true
+    }
+
+    fun hidePlayer() {
+        _isPlayerVisible.value = false
+    }
 
     fun togglePlayback() {
         if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
@@ -132,15 +139,15 @@ class PlayerViewModel @Inject constructor(
     fun toggleMute() {
         val muted = !_isMuted.value
         exoPlayer.volume = if (muted) 0f else 1f
-        _isMuted.value   = muted
+        _isMuted.value = muted
     }
 
     fun stop() {
         exoPlayer.stop()
         _isPlayerVisible.value = false
-        _isPlaying.value       = false
-        _activeChannel.value   = null
-        _playerError.value     = null
+        _isPlaying.value = false
+        _activeChannel.value = null
+        _playerError.value = null
         retryJob?.cancel()
     }
 
@@ -217,8 +224,13 @@ class PlayerViewModel @Inject constructor(
             .setAspectRatio(Rational(PIP_ASPECT_RATIO_NUM, PIP_ASPECT_RATIO_DEN))
             .build()
 
-    fun onEnteredPip()  { _isInPip.value = true }
-    fun onExitedPip()   { _isInPip.value = false }
+    fun onEnteredPip() {
+        _isInPip.value = true
+    }
+
+    fun onExitedPip() {
+        _isInPip.value = false
+    }
 
     // ── Score overlay helper ──────────────────────────────────────────────────
 
@@ -233,13 +245,15 @@ class PlayerViewModel @Inject constructor(
         controlsHideJob?.cancel()
         exoPlayer.release()
     }
-}
+
 
     // ── Sidebar channel list (AND-019) ────────────────────────────────────────
     // Populated from PlaylistViewModel when sidebar opens.
 
-    private val _channelList = MutableStateFlow<List<com.nativestream.android.domain.model.Channel>>(emptyList())
-    val channelList: StateFlow<List<com.nativestream.android.domain.model.Channel>> = _channelList.asStateFlow()
+    private val _channelList =
+        MutableStateFlow<List<com.nativestream.android.domain.model.Channel>>(emptyList())
+    val channelList: StateFlow<List<com.nativestream.android.domain.model.Channel>> =
+        _channelList.asStateFlow()
 
     fun setChannelList(channels: List<com.nativestream.android.domain.model.Channel>) {
         _channelList.value = channels
@@ -250,4 +264,8 @@ class PlayerViewModel @Inject constructor(
     private val _sidebarVisible = MutableStateFlow(false)
     val sidebarVisible: StateFlow<Boolean> = _sidebarVisible.asStateFlow()
 
-    fun toggleSidebar() { _sidebarVisible.value = !_sidebarVisible.value }
+    fun toggleSidebar() {
+        _sidebarVisible.value = !_sidebarVisible.value
+    }
+
+}

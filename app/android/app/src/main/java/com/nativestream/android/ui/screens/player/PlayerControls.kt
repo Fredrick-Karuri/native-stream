@@ -22,8 +22,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Cast
-import androidx.compose.material.icons.filled.PictureInPicture
+import com.adamglin.phosphoricons.regular.Screencast
+import com.adamglin.phosphoricons.regular.PictureInPicture
+import com.adamglin.PhosphorIcons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +38,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.fillMaxSize
+import com.adamglin.phosphoricons.Regular
 import com.nativestream.android.R
 import com.nativestream.android.ui.components.NSLiveBadge
 import com.nativestream.android.ui.components.NSProgressBar
@@ -74,7 +77,7 @@ fun PlayerControlsOverlay(
         exit     = fadeOut(),
         modifier = modifier,
     ) {
-        Box(modifier = Modifier.matchParentSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
 
             // ── Top gradient + info bar ───────────────────────────────────────
             Column(
@@ -159,13 +162,13 @@ fun PlayerControlsOverlay(
                         size               = CTRL_SECONDARY_SIZE,
                     )
                     ControlButton(
-                        icon               = Icons.Default.Cast,
+                        icon               = PhosphorIcons.Regular.Screencast,
                         contentDescription = "Cast",
                         onClick            = { /* AND-021 */ },
                         size               = CTRL_SECONDARY_SIZE,
                     )
                     ControlButton(
-                        icon               = Icons.Default.PictureInPicture,
+                        icon               = PhosphorIcons.Regular.PictureInPicture,
                         contentDescription = "Picture in picture",
                         onClick            = onPip,
                         size               = CTRL_SECONDARY_SIZE,
