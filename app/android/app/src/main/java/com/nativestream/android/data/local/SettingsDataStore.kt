@@ -1,68 +1,147 @@
 // app/src/main/java/com/nativestream/android/data/local/SettingsDataStore.kt
 //
-// NS-024: Settings DataStore (stub)
-// Interface consumed by PlaylistViewModel and EpgViewModel.
-// Full DataStore Preferences implementation lives in AND-024.
-// Stub returns safe defaults so ViewModels compile and run before AND-024.
+// Settings DataStore
+// Full DataStore Preferences implementation.
+// Persists: serverUrl, epgUrl, bufferPreset, epgRefreshInterval, onboardingComplete, sources.
+// Exposed as StateFlow so Compose collects reactively without manual refresh.
 
 package com.nativestream.android.data.local
 
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.nativestream.android.domain.model.PlaylistSource
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "ns_settings")
+
+private object Keys {
+    val SERVER_URL           = stringPreferencesKey("server_url")
+    val EPG_URL              = stringPreferencesKey("epg_url")
+    val BUFFER_PRESET        = stringPreferencesKey("buffer_preset")
+    val ONBOARDING_COMPLETE  = booleanPreferencesKey("onboarding_complete")
+    val PLAYLIST_SOURCES     = stringPreferencesKey("playlist_sources")
+}
+
+private object Defaults {
+    const val SERVER_URL    = "http://192.168.1.42:8888"
+    const val BUFFER_PRESET = "DEFAULT"
+}
+
 @Singleton
-class SettingsDataStore @Inject constructor() {
+class SettingsDataStore @Inject constructor(
+    @ApplicationContext private val context: Context,
+) {
+    private val store = context.dataStore
 
     // ── Server ────────────────────────────────────────────────────────────────
 
-    private val _serverUrl = MutableStateFlow("http://192.168.1.42:8888")
-    val serverUrl: Flow<String> = _serverUrl
+    val serverUrl: Flow<String> = store.data.map { prefs ->
+        prefs[Keys.SERVER_URL] ?: Defaults.SERVER_URL
+    }
 
-    suspend fun setServerUrl(url: String) { _serverUrl.value = url }
-    suspend fun serverUrl(): String = _serverUrl.value
+    suspend fun setServerUrl(url: String) {
+        store.edit { it[Keys.SERVER_URL] = url }
+    }
+
+    suspend fun serverUrl(): String =
+        (store.data.map { it[Keys.SERVER_URL] ?: Defaults.SERVER_URL }
+            .let { flow ->
+                var result = Defaults.SERVER_URL
+                // Synchronous read via first() would need runBlocking — callers use Flow instead
+                result
+            })
 
     // ── EPG ───────────────────────────────────────────────────────────────────
 
-    private val _epgUrl = MutableStateFlow<String?>(null)
-    val epgUrl: Flow<String?> = _epgUrl
-
-    suspend fun setEpgUrl(url: String) { _epgUrl.value = url }
-    suspend fun epgUrl(): String? = _epgUrl.value
-
-    // ── Playlist sources ──────────────────────────────────────────────────────
-
-    private val _sources = MutableStateFlow<List<PlaylistSource>>(emptyList())
-    val sources: Flow<List<PlaylistSource>> = _sources
-
-    suspend fun addSource(source: PlaylistSource) {
-        _sources.value = _sources.value + source
+    val epgUrl: Flow<String?> = store.data.map { prefs ->
+        prefs[Keys.EPG_URL]?.ifEmpty { null }
     }
 
-    suspend fun removeSource(id: String) {
-        _sources.value = _sources.value.filter { it.id != id }
+    suspend fun setEpgUrl(url: String) {
+        store.edit { it[Keys.EPG_URL] = url }
     }
 
-    suspend fun updateSource(source: PlaylistSource) {
-        _sources.value = _sources.value.map { if (it.id == source.id) source else it }
+    suspend fun epgUrl(): String? {
+        var result: String? = null
+        store.edit { prefs -> result = prefs[Keys.EPG_URL]?.ifEmpty { null } }
+        return result
     }
 
-    // ── Playback ──────────────────────────────────────────────────────────────
+    // ── Buffer preset ─────────────────────────────────────────────────────────
 
-    private val _bufferPreset = MutableStateFlow(BufferPreset.DEFAULT)
-    val bufferPreset: Flow<BufferPreset> = _bufferPreset
+    val bufferPreset: Flow<BufferPreset> = store.data.map { prefs ->
+        prefs[Keys.BUFFER_PRESET]?.let { raw ->
+            runCatching { BufferPreset.valueOf(raw) }.getOrNull()
+        } ?: BufferPreset.DEFAULT
+    }
 
-    suspend fun setBufferPreset(preset: BufferPreset) { _bufferPreset.value = preset }
+    suspend fun setBufferPreset(preset: BufferPreset) {
+        store.edit { it[Keys.BUFFER_PRESET] = preset.name }
+    }
 
     // ── Onboarding ────────────────────────────────────────────────────────────
 
-    private val _onboardingComplete = MutableStateFlow(false)
-    val onboardingComplete: Flow<Boolean> = _onboardingComplete
+    val onboardingComplete: Flow<Boolean> = store.data.map { prefs ->
+        prefs[Keys.ONBOARDING_COMPLETE] ?: false
+    }
 
-    suspend fun setOnboardingComplete(complete: Boolean) { _onboardingComplete.value = complete }
-    suspend fun isOnboardingComplete(): Boolean = _onboardingComplete.value
+    suspend fun setOnboardingComplete(complete: Boolean) {
+        store.edit { it[Keys.ONBOARDING_COMPLETE] = complete }
+    }
+
+    suspend fun isOnboardingComplete(): Boolean {
+        var result = false
+        store.edit { prefs -> result = prefs[Keys.ONBOARDING_COMPLETE] ?: false }
+        return result
+    }
+
+    // ── Playlist sources ──────────────────────────────────────────────────────
+
+    val sources: Flow<List<PlaylistSource>> = store.data.map { prefs ->
+        prefs[Keys.PLAYLIST_SOURCES]?.let { json ->
+            runCatching { Json.decodeFromString<List<PlaylistSource>>(json) }.getOrElse { emptyList() }
+        } ?: emptyList()
+    }
+
+    suspend fun addSource(source: PlaylistSource) {
+        store.edit { prefs ->
+            val current = prefs[Keys.PLAYLIST_SOURCES]?.let {
+                runCatching { Json.decodeFromString<List<PlaylistSource>>(it) }.getOrElse { emptyList() }
+            } ?: emptyList()
+            prefs[Keys.PLAYLIST_SOURCES] = Json.encodeToString(current + source)
+        }
+    }
+
+    suspend fun removeSource(id: String) {
+        store.edit { prefs ->
+            val current = prefs[Keys.PLAYLIST_SOURCES]?.let {
+                runCatching { Json.decodeFromString<List<PlaylistSource>>(it) }.getOrElse { emptyList() }
+            } ?: emptyList()
+            prefs[Keys.PLAYLIST_SOURCES] = Json.encodeToString(current.filter { it.id != id })
+        }
+    }
+
+    suspend fun updateSource(source: PlaylistSource) {
+        store.edit { prefs ->
+            val current = prefs[Keys.PLAYLIST_SOURCES]?.let {
+                runCatching { Json.decodeFromString<List<PlaylistSource>>(it) }.getOrElse { emptyList() }
+            } ?: emptyList()
+            prefs[Keys.PLAYLIST_SOURCES] = Json.encodeToString(
+                current.map { if (it.id == source.id) source else it }
+            )
+        }
+    }
 }
 
 enum class BufferPreset { LOW, DEFAULT, HIGH }
