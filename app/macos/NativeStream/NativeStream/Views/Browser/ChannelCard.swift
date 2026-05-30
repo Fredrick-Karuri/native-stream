@@ -1,6 +1,5 @@
 import SwiftUI
 
-// MARK: - Channel Card (UX-003)
 
 struct ChannelCard: View {
 
