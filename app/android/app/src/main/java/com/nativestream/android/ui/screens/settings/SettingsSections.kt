@@ -1,5 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/screens/settings/SettingsSections.kt
 //
+// Settings Section Panels
 // Sources, Playback, Server, Proxy, Discovery.
 
 package com.nativestream.android.ui.screens.settings

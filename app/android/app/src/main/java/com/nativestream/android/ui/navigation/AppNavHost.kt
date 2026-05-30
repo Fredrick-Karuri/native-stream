@@ -1,9 +1,8 @@
 // app/src/main/java/com/nativestream/android/ui/navigation/AppNavHost.kt
 //
-// NS-008: App Navigation Host (updated AND-009 — MiniPlayer wired in)
-// NavHost wiring Now · Browse · Settings tabs.
-// Player launches as a full-screen composable overlay — not a separate Activity.
-// MiniPlayer sits above the bottom nav bar, shown when playing outside full player.
+// App Navigation Host
+// Shows OnboardingScreen on first launch (onboardingComplete = false).
+// After completion → main tab shell with player overlay + mini player.
 
 package com.nativestream.android.ui.navigation
 
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -28,21 +26,32 @@ import androidx.navigation.compose.rememberNavController
 import com.nativestream.android.ui.components.MiniPlayer
 import com.nativestream.android.ui.screens.browse.BrowseScreen
 import com.nativestream.android.ui.screens.now.NowScreen
+import com.nativestream.android.ui.screens.onboarding.OnboardingScreen
 import com.nativestream.android.ui.screens.player.PlayerScreen
 import com.nativestream.android.ui.screens.settings.SettingsScreen
 import com.nativestream.android.ui.viewmodel.EpgViewModel
+import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
+import com.nativestream.android.ui.viewmodel.SettingsViewModel
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
-    val navController   = rememberNavController()
-    val playerViewModel: PlayerViewModel = hiltViewModel()
-    val epgViewModel: EpgViewModel       = hiltViewModel()
-    val isPlayerVisible by playerViewModel.isPlayerVisible.collectAsState()
+    val navController       = rememberNavController()
+    val playerViewModel: PlayerViewModel   = hiltViewModel()
+    val epgViewModel: EpgViewModel         = hiltViewModel()
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val playlistViewModel: PlaylistViewModel = hiltViewModel()
+
+    val isPlayerVisible     by playerViewModel.isPlayerVisible.collectAsState()
+    val onboardingComplete  by settingsViewModel.onboardingComplete.collectAsState()
+
+    // Show onboarding until complete
+    if (!onboardingComplete) {
+        OnboardingScreen(onComplete = { settingsViewModel.setOnboardingComplete(true) })
+        return
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
-
-        // ── Tab scaffold ──────────────────────────────────────────────────────
         Column(modifier = Modifier.fillMaxSize()) {
             NavHost(
                 navController    = navController,
@@ -60,7 +69,6 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 }
             }
 
-            // Mini player — visible when playing, hidden inside full player
             AnimatedVisibility(
                 visible = playerViewModel.hasActiveChannel && !isPlayerVisible,
                 enter   = slideInVertically { it },
@@ -89,7 +97,6 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             )
         }
 
-        // ── Full-screen player overlay ─────────────────────────────────────
         AnimatedVisibility(
             visible  = isPlayerVisible,
             modifier = Modifier.fillMaxSize(),
@@ -97,8 +104,10 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             exit     = slideOutVertically { it } + fadeOut(),
         ) {
             PlayerScreen(
-                playerViewModel = playerViewModel,
-                onDismiss       = { playerViewModel.hidePlayer() },
+                playerViewModel   = playerViewModel,
+                epgViewModel      = epgViewModel,
+                playlistViewModel = playlistViewModel,
+                onDismiss         = { playerViewModel.hidePlayer() },
             )
         }
     }

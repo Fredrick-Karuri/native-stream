@@ -1,8 +1,8 @@
 // app/src/main/java/com/nativestream/android/ui/viewmodel/PlaylistViewModel.kt
 //
-// NS-031 + NS-032: Playlist ViewModel
+// Playlist ViewModel
 // Owns the channel list, loading state, and auto-refresh scheduling.
-// Mirrors PlaylistViewModel.swift exactly — parallel source loading,
+// Has parallel source loading,
 // auto-refresh via coroutine, source CRUD backed by SettingsDataStore.
 
 package com.nativestream.android.ui.viewmodel
@@ -40,16 +40,16 @@ class PlaylistViewModel @Inject constructor(
 
     // ── Public state ──────────────────────────────────────────────────────────
 
-    private val _channels  = MutableStateFlow<List<Channel>>(emptyList())
+    private val _channels = MutableStateFlow<List<Channel>>(emptyList())
     val channels: StateFlow<List<Channel>> = _channels.asStateFlow()
 
-    private val _sources   = MutableStateFlow<List<PlaylistSource>>(emptyList())
+    private val _sources = MutableStateFlow<List<PlaylistSource>>(emptyList())
     val sources: StateFlow<List<PlaylistSource>> = _sources.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _error     = MutableStateFlow<String?>(null)
+    private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
     // ── Computed ──────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ class PlaylistViewModel @Inject constructor(
         if (_isLoading.value) return
         viewModelScope.launch {
             _isLoading.value = true
-            _error.value     = null
+            _error.value = null
 
             try {
                 val allChannels = fetchAllSourcesInParallel()
@@ -97,7 +97,7 @@ class PlaylistViewModel @Inject constructor(
         _sources.value.map { source ->
             async {
                 try {
-                    val bytes  = fetchSourceBytes(source)
+                    val bytes = fetchSourceBytes(source)
                     val result = m3uParser.parse(bytes)
                     result.warnings.forEach { w ->
                         Log.w(TAG, "M3U line ${w.lineNumber}: ${w.reason}")
@@ -164,5 +164,15 @@ class PlaylistViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopAutoRefresh()
+    }
+
+
+    /**
+     * AND-026: EPG TVG-ID match diagnostic.
+     * Logs match rate + unmatched channels to Logcat on every cold start.
+     * Called by the caller after both playlist + EPG have loaded.
+     */
+    fun logMatchDiagnostic(epgViewModel: EpgViewModel) {
+        epgViewModel.logMatchDiagnostic(_channels.value)
     }
 }
