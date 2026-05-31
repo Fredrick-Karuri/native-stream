@@ -56,10 +56,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsDataStore.setOnboardingComplete(complete) }
     }
 
-    fun triggerProbe() {
+    fun triggerProbe(onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
-            runCatching { apiClient.triggerProbe() }
-                .onFailure { Log.e("SettingsViewModel", "Probe failed: ${it.message}") }
+            val success = runCatching { apiClient.triggerProbe() }.isSuccess
+            onResult(success)
         }
     }
 }

@@ -45,13 +45,19 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.rememberCoroutineScope
 import com.nativestream.android.R
 import com.nativestream.android.data.local.BufferPreset
+import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
+import kotlinx.coroutines.launch
 
 private val ROW_ICON_SIZE        = 32.dp
 private val ROW_ICON_RADIUS      = 8.dp
@@ -75,150 +81,250 @@ fun SettingsScreen(
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
 ) {
-    val dimens       = NSDimens.current
-    val serverUrl    by settingsViewModel.serverUrl.collectAsState()
+    val dimens = NSDimens.current
+    val serverUrl by settingsViewModel.serverUrl.collectAsState()
     val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
-    val sources      by playlistViewModel.sources.collectAsState()
+    val sources by playlistViewModel.sources.collectAsState()
 
     var proxyEnabled by remember { mutableStateOf(false) }
-    var hwDecode     by remember { mutableStateOf(true) }
+    var hwDecode by remember { mutableStateOf(true) }
 
-    Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
+    var showServerUrlDialog by remember { mutableStateOf(false) }
+    var urlInput by remember(serverUrl) { mutableStateOf(serverUrl) }
 
-        // Top bar
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(NSColors.surface)
-                .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
-        ) {
-            Text(text = "Settings", style = NSType.heading(), color = NSColors.text)
-        }
-        Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var showAddSource by remember { mutableStateOf(false) }
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
-        ) {
-            // ── Server health card ────────────────────────────────────────────
-            item {
-                ServerHealthCard(serverUrl = serverUrl)
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = NSColors.bg,
+    ) { paddingValues ->
+        Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
+
+            // Top bar
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(NSColors.surface)
+                    .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
+            ) {
+                Text(text = "Settings", style = NSType.heading(), color = NSColors.text)
             }
+            Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
-            // ── SERVER section ────────────────────────────────────────────────
-            item {
-                SettingsSection(label = "Server") {
-                    SettingsIconRow(
-                        iconBackground = COLOR_BLUE,
-                        iconTint       = TINT_BLUE,
-                        iconRes        = R.drawable.ic_nav_settings,
-                        title          = "Server URL",
-                        subtitle       = serverUrl.removePrefix("http://"),
-                        onClick        = { /* open URL edit dialog */ },
-                    )
-                    SettingsDivider()
-                    SettingsIconRow(
-                        iconBackground = COLOR_GREEN,
-                        iconTint       = TINT_GREEN,
-                        iconRes        = R.drawable.ic_play,
-                        title          = "Trigger probe",
-                        subtitle       = "Re-validate all stream links",
-                        onClick        = { settingsViewModel.triggerProbe() },
-                    )
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
+            ) {
+                // ── Server health card ────────────────────────────────────────────
+                item {
+                    ServerHealthCard(serverUrl = serverUrl)
                 }
-            }
 
-            // ── PLAYLIST SOURCES section ──────────────────────────────────────
-            item {
-                SettingsSection(label = "Playlist Sources") {
-                    sources.forEachIndexed { index, source ->
-                        if (index > 0) SettingsDivider()
+                // ── SERVER section ────────────────────────────────────────────────
+                item {
+                    SettingsSection(label = "Server") {
+                        SettingsIconRow(
+                            iconBackground = COLOR_BLUE,
+                            iconTint = TINT_BLUE,
+                            iconRes = R.drawable.ic_nav_settings,
+                            title = "Server URL",
+                            subtitle = serverUrl.removePrefix("http://"),
+                            onClick = { showServerUrlDialog = true }
+                        )
+                        SettingsDivider()
+                        SettingsIconRow(
+                            iconBackground = COLOR_GREEN,
+                            iconTint = TINT_GREEN,
+                            iconRes = R.drawable.ic_play,
+                            title = "Trigger probe",
+                            subtitle = "Re-validate all stream links",
+                            onClick = {
+                                settingsViewModel.triggerProbe { success ->
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            if (success) "Probe started successfully" else "Probe failed — check server"
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+
+                // ── PLAYLIST SOURCES section ──────────────────────────────────────
+                item {
+                    SettingsSection(label = "Playlist Sources") {
+                        sources.forEachIndexed { index, source ->
+                            if (index > 0) SettingsDivider()
+                            SourceRow(
+                                name = source.name,
+                                url = source.url,
+                                refreshHours = source.refreshIntervalHours,
+                                isHealthy = true,
+                            )
+                        }
+                        SettingsDivider()
+                        AddSourceRow(onClick = { showAddSource = true })
+                    }
+                }
+
+                // ── EPG / TV GUIDE section ────────────────────────────────────────
+                item {
+                    SettingsSection(label = "EPG / TV Guide") {
+                        val epgUrl by settingsViewModel.epgUrl.collectAsState()
                         SourceRow(
-                            name              = source.name,
-                            url               = source.url,
-                            refreshHours      = source.refreshIntervalHours,
-                            isHealthy         = true,
+                            name = "TV Guide (XMLTV)",
+                            url = epgUrl ?: "Not configured",
+                            refreshHours = 6,
+                            isHealthy = !epgUrl.isNullOrBlank(),
                         )
                     }
-                    SettingsDivider()
-                    AddSourceRow(onClick = { /* open add source sheet */ })
                 }
-            }
 
-            // ── EPG / TV GUIDE section ────────────────────────────────────────
-            item {
-                SettingsSection(label = "EPG / TV Guide") {
-                    val epgUrl by settingsViewModel.epgUrl.collectAsState()
-                    SourceRow(
-                        name         = "TV Guide (XMLTV)",
-                        url          = epgUrl ?: "Not configured",
-                        refreshHours = 6,
-                        isHealthy    = !epgUrl.isNullOrBlank(),
-                    )
+                // ── PLAYBACK section ──────────────────────────────────────────────
+                item {
+                    SettingsSection(label = "Playback") {
+                        // Buffer preset row
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = dimens.spacing.md,
+                                    vertical = dimens.spacing.sm
+                                ),
+                        ) {
+                            RowIcon(
+                                background = COLOR_BLUE,
+                                tint = TINT_BLUE,
+                                iconRes = R.drawable.ic_nav_settings
+                            )
+                            Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                            Text(
+                                text = "Buffer preset",
+                                style = NSType.bodyMedium(),
+                                color = NSColors.text,
+                                modifier = Modifier.weight(1f)
+                            )
+                            BufferSegmentedPicker(
+                                selected = bufferPreset,
+                                onSelect = { settingsViewModel.setBufferPreset(it) },
+                            )
+                        }
+                        SettingsDivider()
+                        // Hardware decode row
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = dimens.spacing.md,
+                                    vertical = dimens.spacing.sm
+                                ),
+                        ) {
+                            RowIcon(
+                                background = COLOR_AMBER,
+                                tint = TINT_AMBER,
+                                iconRes = R.drawable.ic_play
+                            )
+                            Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Hardware decode",
+                                    style = NSType.bodyMedium(),
+                                    color = NSColors.text
+                                )
+                                Text(
+                                    text = "Always on (ExoPlayer)",
+                                    style = NSType.caption(),
+                                    color = NSColors.text3
+                                )
+                            }
+                            NSToggle(checked = hwDecode, onCheckedChange = {}, enabled = false)
+                        }
+                    }
                 }
-            }
 
-            // ── PLAYBACK section ──────────────────────────────────────────────
-            item {
-                SettingsSection(label = "Playback") {
-                    // Buffer preset row
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
-                    ) {
-                        RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, iconRes = R.drawable.ic_nav_settings)
-                        Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                        Text(text = "Buffer preset", style = NSType.bodyMedium(), color = NSColors.text, modifier = Modifier.weight(1f))
-                        BufferSegmentedPicker(
-                            selected  = bufferPreset,
-                            onSelect  = { settingsViewModel.setBufferPreset(it) },
+                // ── PROXY section ─────────────────────────────────────────────────
+                item {
+                    SettingsSection(label = "Proxy") {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = dimens.spacing.md,
+                                    vertical = dimens.spacing.sm
+                                ),
+                        ) {
+                            RowIcon(
+                                background = COLOR_RED,
+                                tint = TINT_RED,
+                                iconRes = R.drawable.ic_volume_off
+                            )
+                            Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Enable proxy",
+                                    style = NSType.bodyMedium(),
+                                    color = NSColors.text
+                                )
+                                Text(
+                                    text = "Inject Referer / User-Agent",
+                                    style = NSType.caption(),
+                                    color = NSColors.text3
+                                )
+                            }
+                            NSToggle(
+                                checked = proxyEnabled,
+                                onCheckedChange = { proxyEnabled = it })
+                        }
+                    }
+                }
+
+                item { Spacer(modifier = Modifier.height(80.dp)) }
+            }
+            if (showAddSource) {
+                AddSourceSheet(
+                    onDone = { showAddSource = false },
+                    playlistViewModel = playlistViewModel
+                )
+            }
+            if (showServerUrlDialog) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { showServerUrlDialog = false },
+                    containerColor = NSColors.surface2,
+                    title = { Text("Server URL", style = NSType.heading(), color = NSColors.text) },
+                    text = {
+                        NSTextField(
+                            value = urlInput,
+                            onValueChange = { urlInput = it },
+                            placeholder = "http://192.168.1.x:8888",
                         )
-                    }
-                    SettingsDivider()
-                    // Hardware decode row
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
-                    ) {
-                        RowIcon(background = COLOR_AMBER, tint = TINT_AMBER, iconRes = R.drawable.ic_play)
-                        Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = "Hardware decode", style = NSType.bodyMedium(), color = NSColors.text)
-                            Text(text = "Always on (ExoPlayer)", style = NSType.caption(), color = NSColors.text3)
-                        }
-                        NSToggle(checked = hwDecode, onCheckedChange = {}, enabled = false)
-                    }
-                }
+                    },
+                    confirmButton = {
+                        Text(
+                            "Save", style = NSType.captionMedium(), color = NSColors.accent,
+                            modifier = Modifier.clickable {
+                                settingsViewModel.setServerUrl(urlInput)
+                                showServerUrlDialog = false
+                            }.padding(8.dp)
+                        )
+                    },
+                    dismissButton = {
+                        Text(
+                            "Cancel", style = NSType.captionMedium(), color = NSColors.text3,
+                            modifier = Modifier.clickable { showServerUrlDialog = false }
+                                .padding(8.dp)
+                        )
+                    },
+                )
             }
-
-            // ── PROXY section ─────────────────────────────────────────────────
-            item {
-                SettingsSection(label = "Proxy") {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
-                    ) {
-                        RowIcon(background = COLOR_RED, tint = TINT_RED, iconRes = R.drawable.ic_volume_off)
-                        Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = "Enable proxy", style = NSType.bodyMedium(), color = NSColors.text)
-                            Text(text = "Inject Referer / User-Agent", style = NSType.caption(), color = NSColors.text3)
-                        }
-                        NSToggle(checked = proxyEnabled, onCheckedChange = { proxyEnabled = it })
-                    }
-                }
-            }
-
-            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
 }

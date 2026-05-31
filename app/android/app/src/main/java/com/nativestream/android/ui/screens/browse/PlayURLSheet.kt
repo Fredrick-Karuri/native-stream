@@ -210,7 +210,7 @@ private fun HeaderField(
 
 // Reuse the same SheetButton shape from AddChannelSheet
 @Composable
-private fun SheetButton(label: String, isPrimary: Boolean, enabled: Boolean, onClick: () -> Unit) {
+fun SheetButton(label: String, isPrimary: Boolean, enabled: Boolean, onClick: () -> Unit) {
     val dimens      = NSDimens.current
     val background  = if (isPrimary && enabled) NSColors.accentGlow else NSColors.surface3
     val borderColor = if (isPrimary && enabled) NSColors.accentBorder else NSColors.border2

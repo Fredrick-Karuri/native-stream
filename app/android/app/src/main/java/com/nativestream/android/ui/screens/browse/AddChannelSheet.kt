@@ -10,7 +10,6 @@ package com.nativestream.android.ui.screens.browse
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -186,39 +185,4 @@ private fun LabelledField(
         Text(text = label, style = NSType.monoSmall(), color = NSColors.text3)
         NSTextField(value = value, onValueChange = onChange, placeholder = placeholder)
     }
-}
-
-@Composable
-private fun SheetButton(
-    label: String,
-    enabled: Boolean,
-    isPrimary: Boolean,
-    onClick: () -> Unit,
-) {
-    val dimens      = NSDimens.current
-    val background  = when {
-        isPrimary && enabled  -> NSColors.accentGlow
-        else                  -> NSColors.surface3
-    }
-    val borderColor = when {
-        isPrimary && enabled  -> NSColors.accentBorder
-        else                  -> NSColors.border2
-    }
-    val textColor   = when {
-        isPrimary && enabled  -> NSColors.accent
-        isPrimary && !enabled -> NSColors.text3
-        else                  -> NSColors.text2
-    }
-
-    Text(
-        text     = label,
-        style    = NSType.captionMedium(),
-        color    = textColor,
-        modifier = Modifier
-            .clip(RoundedCornerShape(dimens.radius.md))
-            .background(background)
-            .border(0.5.dp, borderColor, RoundedCornerShape(dimens.radius.md))
-            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = dimens.spacing.md, vertical = 6.dp),
-    )
 }
