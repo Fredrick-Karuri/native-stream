@@ -189,4 +189,11 @@ class ApiClient  constructor() {
     }
 
     private fun resolve(path: String): String = "$baseUrl/$path"
+
+    suspend fun fetchRawUrl(url: String): ByteArray =
+        wrapNetworkErrors(url) {
+            val response = httpClient.get(url)
+            guardSuccess(response)
+            response.body()
+        }
 }

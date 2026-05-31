@@ -57,6 +57,7 @@ import com.adamglin.phosphoricons.regular.Database
 import com.adamglin.phosphoricons.regular.FileLock
 import com.adamglin.phosphoricons.regular.GearSix
 import com.adamglin.phosphoricons.regular.Play
+import com.adamglin.phosphoricons.regular.Trash
 import com.nativestream.android.R
 import com.nativestream.android.data.local.BufferPreset
 import com.nativestream.android.ui.components.NSTextField
@@ -174,6 +175,10 @@ fun SettingsScreen(
                                 url = source.url,
                                 refreshHours = source.refreshIntervalHours,
                                 isHealthy = true,
+                                onDelete     = {
+                                    playlistViewModel.removeSource(source.id)
+                                    playlistViewModel.loadAll()
+                                },
                             )
                         }
                         SettingsDivider()
@@ -190,6 +195,9 @@ fun SettingsScreen(
                             url = epgUrl ?: "Not configured",
                             refreshHours = 6,
                             isHealthy = !epgUrl.isNullOrBlank(),
+                            onDelete     = {
+                                playlistViewModel.loadAll()
+                            },
                         )
                     }
                 }
@@ -461,7 +469,13 @@ private fun RowIcon(background: Color, tint: Color, icon: ImageVector) {
 // ── Source row (health dot + refresh interval) ────────────────────────────────
 
 @Composable
-private fun SourceRow(name: String, url: String, refreshHours: Int, isHealthy: Boolean) {
+private fun SourceRow(
+    name: String,
+    url: String,
+    refreshHours: Int,
+    isHealthy: Boolean,
+    onDelete: () -> Unit,
+) {
     val dimens = NSDimens.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -486,6 +500,22 @@ private fun SourceRow(name: String, url: String, refreshHours: Int, isHealthy: B
             style = NSType.monoSmall(),
             color = NSColors.text3,
         )
+        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .clip(RoundedCornerShape(dimens.radius.sm))
+                .background(NSColors.live.copy(alpha = 0.08f))
+                .clickable(onClick = onDelete)
+                .padding(horizontal = dimens.spacing.sm, vertical = dimens.spacing.xs),
+        ) {
+            Icon(
+                imageVector        = PhosphorIcons.Regular.Trash,
+                contentDescription = "Remove source",
+                tint               = NSColors.live,
+                modifier           = Modifier.size(14.dp),
+            )
+        }
     }
 }
 

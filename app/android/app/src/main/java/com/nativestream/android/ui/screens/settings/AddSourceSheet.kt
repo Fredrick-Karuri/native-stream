@@ -78,6 +78,7 @@ fun AddSourceSheet(
                                 refreshIntervalHours = refresh.toIntOrNull() ?: 6,
                             )
                         )
+                        playlistViewModel.loadAll()
                         onDone()
                     },
                 )

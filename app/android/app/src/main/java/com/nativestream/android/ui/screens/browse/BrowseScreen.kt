@@ -90,17 +90,6 @@ fun BrowseScreen(
     var selectedSport by remember { mutableStateOf<SportCategory?>(null) }
     var showAddChannel by remember { mutableStateOf(false) }
 
-    // Sport chip selected → delegate to MatchDayScreen
-//    if (selectedSport != null) {
-//        MatchDayScreen(
-//            sport             = selectedSport!!,
-//            playlistViewModel = playlistViewModel,
-//            epgViewModel      = epgViewModel,
-//            onSelectChannel   = { playerViewModel.play(it) },
-//            modifier          = modifier,
-//        )
-//        return
-//    }
 
     val filtered = remember(channels, searchText) {
         if (searchText.isEmpty()) channels

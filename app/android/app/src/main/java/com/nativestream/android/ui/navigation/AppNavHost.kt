@@ -66,10 +66,16 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 modifier         = Modifier.weight(1f),
             ) {
                 composable(AppDestination.Now.route) {
-                    NowScreen(playerViewModel = playerViewModel)
+                    NowScreen(
+                        playerViewModel = playerViewModel,
+                        playlistViewModel = playlistViewModel,
+                    )
                 }
                 composable(AppDestination.Browse.route) {
-                    BrowseScreen(playerViewModel = playerViewModel)
+                    BrowseScreen(
+                        playerViewModel = playerViewModel,
+                        playlistViewModel = playlistViewModel,
+                    )
                 }
                 composable(AppDestination.Settings.route) {
                     SettingsScreen()

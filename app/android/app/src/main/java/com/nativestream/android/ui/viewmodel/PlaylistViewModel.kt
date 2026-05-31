@@ -84,6 +84,9 @@ class PlaylistViewModel @Inject constructor(
             try {
                 val allChannels = fetchAllSourcesInParallel()
                 _channels.value = allChannels
+                Log.d(TAG, "Channels loaded: ${allChannels.size} — first: ${allChannels.firstOrNull()?.name}")
+                Log.d(TAG, "First channel group: '${allChannels.firstOrNull()?.groupTitle}'")
+
             } catch (e: Exception) {
                 _error.value = e.message
                 Log.e(TAG, "loadAll failed", e)
@@ -116,8 +119,13 @@ class PlaylistViewModel @Inject constructor(
         }.awaitAll().flatten()
     }
 
-    private suspend fun fetchSourceBytes(source: PlaylistSource): ByteArray =
-        apiClient.playlistData()
+    private suspend fun fetchSourceBytes(source: PlaylistSource): ByteArray {
+        return if (source.url.startsWith("http")) {
+            apiClient.fetchRawUrl(source.url)
+        } else {
+            apiClient.playlistData()
+        }
+    }
 
     // ── Auto-refresh scheduling (NS-032) ──────────────────────────────────────
 
