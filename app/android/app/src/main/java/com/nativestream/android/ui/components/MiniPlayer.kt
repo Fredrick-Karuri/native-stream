@@ -1,8 +1,8 @@
 // app/src/main/java/com/nativestream/android/ui/components/MiniPlayer.kt
 //
-// NS-009: Mini Player
+// Mini Player
 // 64dp persistent strip above the bottom nav. Shown when a channel is playing,
-// hidden inside the full player. Mirrors MiniPlayerWidget.swift exactly:
+// hidden inside the full player:
 //   - Mini video area with score overlay for sport matches
 //   - Channel name + programme title + elapsed minutes
 //   - Skip back / play-pause (primary) / skip forward / progress / mute controls

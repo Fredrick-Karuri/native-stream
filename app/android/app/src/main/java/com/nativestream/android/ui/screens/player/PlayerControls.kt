@@ -40,6 +40,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.filled.Close
 import androidx.media3.ui.AspectRatioFrameLayout
 import com.adamglin.phosphoricons.Regular
 import com.nativestream.android.R
@@ -119,6 +120,12 @@ fun PlayerControlsOverlay(
                     }
                     NSLiveBadge(isLive = true)
                     QualityBadge(label = "HD")
+                    ControlButton(
+                        icon               = Icons.Default.Close,
+                        contentDescription = "Stop",
+                        onClick            = { playerViewModel.stop(); onBack() },
+                        size               = CTRL_SECONDARY_SIZE,
+                    )
                 }
             }
 

@@ -46,6 +46,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val playlistViewModel: PlaylistViewModel = hiltViewModel()
     val castViewModel: CastViewModel = hiltViewModel()
+    val hasActiveChannel by playerViewModel.hasActiveChannel.collectAsState()
 
     val isPlayerVisible     by playerViewModel.isPlayerVisible.collectAsState()
     val onboardingComplete  by settingsViewModel.onboardingComplete.collectAsState()
@@ -75,7 +76,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             }
 
             AnimatedVisibility(
-                visible = playerViewModel.hasActiveChannel && !isPlayerVisible,
+                visible = hasActiveChannel && !isPlayerVisible,
                 enter   = slideInVertically { it },
                 exit    = slideOutVertically { it },
             ) {

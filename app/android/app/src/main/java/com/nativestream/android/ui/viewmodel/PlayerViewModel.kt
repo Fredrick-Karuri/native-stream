@@ -1,14 +1,13 @@
 // app/src/main/java/com/nativestream/android/ui/viewmodel/PlayerViewModel.kt
 //
-// NS-017: Player ViewModel (full implementation)
-// ExoPlayer-backed. Manages playback state, HLS stream loading, retry logic (AND-022),
+// Player ViewModel
+// ExoPlayer-backed. Manages playback state, HLS stream loading, retry logic ,
 // header injection (AND-018), PiP state (AND-020), and player visibility.
 
 package com.nativestream.android.ui.viewmodel
 
 import android.app.Application
 import android.app.PictureInPictureParams
-import android.os.Build
 import android.util.Log
 import android.util.Rational
 import androidx.annotation.OptIn
@@ -31,6 +30,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 private const val TAG = "PlayerViewModel"
@@ -96,7 +98,9 @@ class PlayerViewModel @Inject constructor(
     private val _isInPip = MutableStateFlow(false)
     val isInPip: StateFlow<Boolean> = _isInPip.asStateFlow()
 
-    val hasActiveChannel: Boolean get() = _activeChannel.value != null
+    val hasActiveChannel: StateFlow<Boolean> = _activeChannel
+        .map { it != null }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val _resizeMode = MutableStateFlow(AspectRatioFrameLayout.RESIZE_MODE_FIT)
 
