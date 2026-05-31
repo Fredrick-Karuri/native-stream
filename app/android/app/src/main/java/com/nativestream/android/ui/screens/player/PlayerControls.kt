@@ -66,6 +66,8 @@ fun PlayerControlsOverlay(
     onToggleSidebar: () -> Unit,
     onPip: () -> Unit,
     modifier: Modifier = Modifier,
+    isCastAvailable: Boolean = false,
+    onCast: () -> Unit = {},
 ) {
     val controlsVisible by playerViewModel.controlsVisible.collectAsState()
     val isPlaying       by playerViewModel.isPlaying.collectAsState()
@@ -161,12 +163,14 @@ fun PlayerControlsOverlay(
                         onClick            = { playerViewModel.toggleMute() },
                         size               = CTRL_SECONDARY_SIZE,
                     )
-                    ControlButton(
-                        icon               = PhosphorIcons.Regular.Screencast,
-                        contentDescription = "Cast",
-                        onClick            = { /* AND-021 */ },
-                        size               = CTRL_SECONDARY_SIZE,
-                    )
+                    if (isCastAvailable){
+                        ControlButton(
+                            icon               = PhosphorIcons.Regular.Screencast,
+                            contentDescription = "Cast",
+                            onClick            = onCast,
+                            size               = CTRL_SECONDARY_SIZE,
+                        )
+                    }
                     ControlButton(
                         icon               = PhosphorIcons.Regular.PictureInPicture,
                         contentDescription = "Picture in picture",

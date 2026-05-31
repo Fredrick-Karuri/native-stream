@@ -30,10 +30,12 @@ import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
+import com.nativestream.android.ui.viewmodel.CastViewModel
 
 @Composable
 fun PlayerScreen(
     playerViewModel: PlayerViewModel,
+    castViewModel: CastViewModel,
     onDismiss: () -> Unit,
     epgViewModel: EpgViewModel?       = null,
     playlistViewModel: PlaylistViewModel? = null,
@@ -45,6 +47,7 @@ fun PlayerScreen(
     val playerError   by playerViewModel.playerError.collectAsState()
     val isInPip       by playerViewModel.isInPip.collectAsState()
     val sidebarVisible by playerViewModel.sidebarVisible.collectAsState()
+    val isCastAvailable by castViewModel.isCastAvailable.collectAsState()
 
     val programme: Programme? = activeChannel?.let { epgViewModel?.currentProgramme(it) }
     val hasScoreOverlay = programme?.title?.contains(" vs ", ignoreCase = true) == true
@@ -126,6 +129,12 @@ fun PlayerScreen(
                         }
                     },
                     modifier = Modifier.fillMaxSize(),
+                    isCastAvailable = isCastAvailable,
+                    onCast = {
+                        activeChannel?.let {
+                            castViewModel.castStream(it.streamUrl, it.name)
+                        }
+                    },
                 )
             }
         }

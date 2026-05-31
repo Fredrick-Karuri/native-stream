@@ -33,6 +33,7 @@ import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
+import com.nativestream.android.ui.viewmodel.CastViewModel
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
@@ -41,6 +42,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val epgViewModel: EpgViewModel         = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val playlistViewModel: PlaylistViewModel = hiltViewModel()
+    val castViewModel: CastViewModel = hiltViewModel()
 
     val isPlayerVisible     by playerViewModel.isPlayerVisible.collectAsState()
     val onboardingComplete  by settingsViewModel.onboardingComplete.collectAsState()
@@ -105,6 +107,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         ) {
             PlayerScreen(
                 playerViewModel   = playerViewModel,
+                castViewModel     = castViewModel,
                 epgViewModel      = epgViewModel,
                 playlistViewModel = playlistViewModel,
                 onDismiss         = { playerViewModel.hidePlayer() },
