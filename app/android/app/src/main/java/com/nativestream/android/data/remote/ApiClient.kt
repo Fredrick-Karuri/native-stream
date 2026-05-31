@@ -1,6 +1,6 @@
 // app/src/main/java/com/nativestream/android/data/remote/ApiClient.kt
 //
-// NS-004: API Client (Ktor)
+// API Client (Ktor)
 // Mirrors APIClient.swift actor exactly — same endpoints, same error mapping,
 // same timeout values. Server URL is configurable (not hardcoded) because
 // Android connects over LAN, not localhost.
@@ -30,7 +30,6 @@ import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import android.util.Log
-import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val TAG = "ApiClient"
@@ -39,7 +38,7 @@ private const val RESOURCE_TIMEOUT_MS = 30_000L
 private const val UNMATCHED_DEFAULT_LIMIT = 50
 
 @Singleton
-class ApiClient @Inject constructor() {
+class ApiClient  constructor() {
 
     // ── Base URL — set during onboarding / settings change ───────────────────
 

@@ -6,12 +6,15 @@ package com.nativestream.android.di
 
 import android.content.Context
 import com.nativestream.android.data.cast.CastManager
+import com.nativestream.android.data.local.SettingsDataStore
 import com.nativestream.android.data.remote.ApiClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import javax.inject.Singleton
 
 @Module
@@ -19,8 +22,12 @@ import javax.inject.Singleton
 object AppModule {
 
     @Provides @Singleton
-    fun provideApiClient(): ApiClient = ApiClient()
-
+    fun provideApiClient(settingsDataStore: SettingsDataStore): ApiClient {
+        val client = ApiClient()
+        val url = runBlocking { settingsDataStore.serverUrl.first() }
+        client.setBaseUrl(url)
+        return client
+    }
     @Provides @Singleton
     fun provideCastManager(@ApplicationContext context: Context): CastManager =
         CastManager(context)

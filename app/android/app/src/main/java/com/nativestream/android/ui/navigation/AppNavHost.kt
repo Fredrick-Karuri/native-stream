@@ -23,8 +23,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.runtime.LaunchedEffect
 import com.nativestream.android.ui.components.MiniPlayer
 import com.nativestream.android.ui.screens.browse.BrowseScreen
 import com.nativestream.android.ui.screens.now.NowScreen
@@ -54,6 +53,9 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     if (!onboardingComplete) {
         OnboardingScreen(onComplete = { settingsViewModel.setOnboardingComplete(true) })
         return
+    }
+    LaunchedEffect(Unit) {
+        playlistViewModel.loadAll()
     }
 
     Box(modifier = modifier.fillMaxSize()) {
