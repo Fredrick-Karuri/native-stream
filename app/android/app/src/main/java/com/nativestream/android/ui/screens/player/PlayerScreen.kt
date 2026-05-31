@@ -26,6 +26,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.PlayerView
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
@@ -51,6 +56,17 @@ fun PlayerScreen(
 
     val programme: Programme? = activeChannel?.let { epgViewModel?.currentProgramme(it) }
     val hasScoreOverlay = programme?.title?.contains(" vs ", ignoreCase = true) == true
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && isInPip) {
+                playerViewModel.onExitedPip()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // Populate sidebar channel list when playlist is available
     LaunchedEffect(playlistViewModel) {

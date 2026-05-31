@@ -56,8 +56,8 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         return
     }
 
-    Box(modifier = modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-        Column(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             NavHost(
                 navController    = navController,
                 startDestination = AppDestination.Now.route,
@@ -108,13 +108,15 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             enter    = slideInVertically { it } + fadeIn(),
             exit     = slideOutVertically { it } + fadeOut(),
         ) {
-            PlayerScreen(
-                playerViewModel   = playerViewModel,
-                castViewModel     = castViewModel,
-                epgViewModel      = epgViewModel,
-                playlistViewModel = playlistViewModel,
-                onDismiss         = { playerViewModel.hidePlayer() },
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                PlayerScreen(
+                    playerViewModel = playerViewModel,
+                    castViewModel = castViewModel,
+                    epgViewModel = epgViewModel,
+                    playlistViewModel = playlistViewModel,
+                    onDismiss = { playerViewModel.hidePlayer() },
+                )
+            }
         }
     }
 }

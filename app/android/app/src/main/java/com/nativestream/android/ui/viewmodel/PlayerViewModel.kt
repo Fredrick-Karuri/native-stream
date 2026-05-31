@@ -230,6 +230,7 @@ class PlayerViewModel @Inject constructor(
 
     fun onExitedPip() {
         _isInPip.value = false
+        _controlsVisible.value = true
     }
 
     // ── Score overlay helper ──────────────────────────────────────────────────
