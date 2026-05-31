@@ -53,6 +53,7 @@ fun PlayerScreen(
     val isInPip       by playerViewModel.isInPip.collectAsState()
     val sidebarVisible by playerViewModel.sidebarVisible.collectAsState()
     val isCastAvailable by castViewModel.isCastAvailable.collectAsState()
+    val resizeMode by playerViewModel.resizeMode.collectAsState()
 
     val programme: Programme? = activeChannel?.let { epgViewModel?.currentProgramme(it) }
     val hasScoreOverlay = programme?.title?.contains(" vs ", ignoreCase = true) == true
@@ -106,7 +107,10 @@ fun PlayerScreen(
                         useController = false
                     }
                 },
-                update   = { view -> view.player = playerViewModel.exoPlayer },
+                update   = { view ->
+                    view.player = playerViewModel.exoPlayer
+                    view.resizeMode = resizeMode
+               },
                 modifier = Modifier.fillMaxSize(),
             )
 
@@ -151,6 +155,8 @@ fun PlayerScreen(
                             castViewModel.castStream(it.streamUrl, it.name)
                         }
                     },
+                    resizeMode      = resizeMode,
+                    onToggleResize  = { playerViewModel.toggleResizeMode() },
                 )
             }
         }

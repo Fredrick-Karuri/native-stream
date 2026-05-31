@@ -21,6 +21,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.ui.AspectRatioFrameLayout
 import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,6 +41,7 @@ private const val MAX_RETRY_ATTEMPTS       = 3
 private const val PIP_ASPECT_RATIO_NUM     = 16
 private const val PIP_ASPECT_RATIO_DEN     = 9
 private val SCORE_REGEX                    = Regex("""(\d+)\s*[–\-]\s*(\d+)""")
+
 
 @OptIn(UnstableApi::class)
 @HiltViewModel
@@ -96,6 +98,10 @@ class PlayerViewModel @Inject constructor(
 
     val hasActiveChannel: Boolean get() = _activeChannel.value != null
 
+    private val _resizeMode = MutableStateFlow(AspectRatioFrameLayout.RESIZE_MODE_FIT)
+
+    val resizeMode: StateFlow<Int> = _resizeMode.asStateFlow()
+
     // ── Retry state ───────────────────────────────────────────────────────────
 
     private var retryCount = 0
@@ -140,6 +146,13 @@ class PlayerViewModel @Inject constructor(
         val muted = !_isMuted.value
         exoPlayer.volume = if (muted) 0f else 1f
         _isMuted.value = muted
+    }
+
+    fun toggleResizeMode() {
+        _resizeMode.value = if (_resizeMode.value == AspectRatioFrameLayout.RESIZE_MODE_FIT)
+            AspectRatioFrameLayout.RESIZE_MODE_FILL
+        else
+            AspectRatioFrameLayout.RESIZE_MODE_FIT
     }
 
     fun stop() {

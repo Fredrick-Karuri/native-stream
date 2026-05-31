@@ -23,6 +23,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import com.adamglin.phosphoricons.regular.Screencast
 import com.adamglin.phosphoricons.regular.PictureInPicture
+import com.adamglin.phosphoricons.regular.ArrowsOut
+import com.adamglin.phosphoricons.regular.ArrowsIn
 import com.adamglin.PhosphorIcons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -38,6 +40,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.media3.ui.AspectRatioFrameLayout
 import com.adamglin.phosphoricons.Regular
 import com.nativestream.android.R
 import com.nativestream.android.ui.components.NSLiveBadge
@@ -67,6 +70,8 @@ fun PlayerControlsOverlay(
     modifier: Modifier = Modifier,
     isCastAvailable: Boolean = false,
     onCast: () -> Unit = {},
+    resizeMode: Int,
+    onToggleResize: () -> Unit,
 ) {
     val controlsVisible by playerViewModel.controlsVisible.collectAsState()
     val isPlaying       by playerViewModel.isPlaying.collectAsState()
@@ -180,6 +185,14 @@ fun PlayerControlsOverlay(
                         icon               = ImageVector.vectorResource(R.drawable.ic_sidebar),
                         contentDescription = "Toggle channel list",
                         onClick            = onToggleSidebar,
+                        size               = CTRL_SECONDARY_SIZE,
+                    )
+                    ControlButton(
+                        icon               = if (resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FILL)
+                            PhosphorIcons.Regular.ArrowsIn
+                        else PhosphorIcons.Regular.ArrowsOut,
+                        contentDescription = "Toggle fill",
+                        onClick            = onToggleResize,
                         size               = CTRL_SECONDARY_SIZE,
                     )
                 }
