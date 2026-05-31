@@ -1,15 +1,16 @@
 // app/src/main/java/com/nativestream/android/di/AppModule.kt
 //
-// Hilt dependency injection module.
-// Provides app-scoped singletons shared across the feature graph.
-// ApiClient is @Singleton so a single Ktor HttpClient is reused everywhere.
+// Hilt DI module — app-scoped singletons.
 
 package com.nativestream.android.di
 
+import android.content.Context
+import com.nativestream.android.data.cast.CastManager
 import com.nativestream.android.data.remote.ApiClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -17,7 +18,10 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    @Provides
-    @Singleton
+    @Provides @Singleton
     fun provideApiClient(): ApiClient = ApiClient()
+
+    @Provides @Singleton
+    fun provideCastManager(@ApplicationContext context: Context): CastManager =
+        CastManager(context)
 }

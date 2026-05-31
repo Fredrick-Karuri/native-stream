@@ -1,7 +1,12 @@
 // app/src/main/java/com/nativestream/android/ui/screens/settings/SettingsScreen.kt
 //
-// Single LazyColumn with section tabs: Sources · Playback · Server · Proxy · Discovery.
-// Health dot + server URL shown at bottom of nav.
+// Settings Screen — mobile design (single scrollable column)
+// Matches the Android design exactly:
+//   - Server health card at top
+//   - Section labels (SERVER, PLAYLIST SOURCES, EPG/TV GUIDE, PLAYBACK, PROXY)
+//   - Icon rows with chevron or toggle on the right
+//   - Source rows with health dot + refresh interval
+//   - Buffer preset segmented picker inline
 
 package com.nativestream.android.ui.screens.settings
 
@@ -13,15 +18,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,33 +39,49 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nativestream.android.R
+import com.nativestream.android.data.local.BufferPreset
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
 
-private val SIDEBAR_WIDTH = 200.dp
+private val ROW_ICON_SIZE        = 32.dp
+private val ROW_ICON_RADIUS      = 8.dp
+private val ROW_ICON_INNER_SIZE  = 16.dp
+private val CHEVRON_SIZE         = 16.dp
+private val SECTION_LABEL_BOTTOM = 6.dp
 
-private enum class SettingsSection(val label: String) {
-    SOURCES("Sources"),
-    PLAYBACK("Playback"),
-    SERVER("Server"),
-    PROXY("Proxy"),
-    DISCOVERY("Discovery"),
-}
+// Icon background colours matching design
+private val COLOR_BLUE   = Color(0xFF0EA5E9).copy(alpha = 0.12f)
+private val COLOR_GREEN  = Color(0xFF10B981).copy(alpha = 0.12f)
+private val COLOR_AMBER  = Color(0xFFF59E0B).copy(alpha = 0.12f)
+private val COLOR_RED    = Color(0xFFEF4444).copy(alpha = 0.12f)
+private val TINT_BLUE    = Color(0xFF38BDF8)
+private val TINT_GREEN   = Color(0xFF10B981)
+private val TINT_AMBER   = Color(0xFFF59E0B)
+private val TINT_RED     = Color(0xFFEF4444)
 
 @Composable
 fun SettingsScreen(
-    modifier: Modifier = Modifier,
-    settingsViewModel: SettingsViewModel  = hiltViewModel(),
-    playlistViewModel: PlaylistViewModel  = hiltViewModel(),
+    modifier: Modifier            = Modifier,
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
+    playlistViewModel: PlaylistViewModel = hiltViewModel(),
 ) {
-    val serverUrl by settingsViewModel.serverUrl.collectAsState()
-    var selected  by remember { mutableStateOf(SettingsSection.SOURCES) }
+    val dimens       = NSDimens.current
+    val serverUrl    by settingsViewModel.serverUrl.collectAsState()
+    val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
+    val sources      by playlistViewModel.sources.collectAsState()
+
+    var proxyEnabled by remember { mutableStateOf(false) }
+    var hwDecode     by remember { mutableStateOf(true) }
 
     Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
 
@@ -68,84 +91,135 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(NSColors.surface)
-                .padding(horizontal = NSDimens.current.spacing.xl, vertical = NSDimens.current.spacing.md),
+                .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
         ) {
             Text(text = "Settings", style = NSType.heading(), color = NSColors.text)
         }
         Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
-        Row(modifier = Modifier.fillMaxSize()) {
-
-            // ── Sidebar ───────────────────────────────────────────────────────
-            Column(
-                modifier = Modifier
-                    .width(SIDEBAR_WIDTH)
-                    .fillMaxHeight()
-                    .background(NSColors.surface)
-                    .padding(NSDimens.current.spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(1.dp),
-            ) {
-                SettingsSection.entries.forEach { section ->
-                    SettingsNavItem(
-                        label    = section.label,
-                        isActive = selected == section,
-                        onClick  = { selected = section },
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
+        ) {
+            // ── Server health card ────────────────────────────────────────────
+            item {
                 ServerHealthCard(serverUrl = serverUrl)
             }
 
-            Box(modifier = Modifier.width(0.5.dp).fillMaxHeight().background(NSColors.border))
-
-            // ── Panel ─────────────────────────────────────────────────────────
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .background(NSColors.bg)
-                    .verticalScroll(rememberScrollState())
-                    .padding(NSDimens.current.spacing.xxl),
-                verticalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.xl),
-            ) {
-                when (selected) {
-                    SettingsSection.SOURCES   -> SourcesSection(playlistViewModel, settingsViewModel)
-                    SettingsSection.PLAYBACK  -> PlaybackSection(settingsViewModel)
-                    SettingsSection.SERVER    -> ServerSection(settingsViewModel)
-                    SettingsSection.PROXY     -> ProxySection()
-                    SettingsSection.DISCOVERY -> DiscoverySection()
+            // ── SERVER section ────────────────────────────────────────────────
+            item {
+                SettingsSection(label = "Server") {
+                    SettingsIconRow(
+                        iconBackground = COLOR_BLUE,
+                        iconTint       = TINT_BLUE,
+                        iconRes        = R.drawable.ic_nav_settings,
+                        title          = "Server URL",
+                        subtitle       = serverUrl.removePrefix("http://"),
+                        onClick        = { /* open URL edit dialog */ },
+                    )
+                    SettingsDivider()
+                    SettingsIconRow(
+                        iconBackground = COLOR_GREEN,
+                        iconTint       = TINT_GREEN,
+                        iconRes        = R.drawable.ic_play,
+                        title          = "Trigger probe",
+                        subtitle       = "Re-validate all stream links",
+                        onClick        = { settingsViewModel.triggerProbe() },
+                    )
                 }
             }
+
+            // ── PLAYLIST SOURCES section ──────────────────────────────────────
+            item {
+                SettingsSection(label = "Playlist Sources") {
+                    sources.forEachIndexed { index, source ->
+                        if (index > 0) SettingsDivider()
+                        SourceRow(
+                            name              = source.name,
+                            url               = source.url,
+                            refreshHours      = source.refreshIntervalHours,
+                            isHealthy         = true,
+                        )
+                    }
+                    SettingsDivider()
+                    AddSourceRow(onClick = { /* open add source sheet */ })
+                }
+            }
+
+            // ── EPG / TV GUIDE section ────────────────────────────────────────
+            item {
+                SettingsSection(label = "EPG / TV Guide") {
+                    val epgUrl by settingsViewModel.epgUrl.collectAsState()
+                    SourceRow(
+                        name         = "TV Guide (XMLTV)",
+                        url          = epgUrl ?: "Not configured",
+                        refreshHours = 6,
+                        isHealthy    = !epgUrl.isNullOrBlank(),
+                    )
+                }
+            }
+
+            // ── PLAYBACK section ──────────────────────────────────────────────
+            item {
+                SettingsSection(label = "Playback") {
+                    // Buffer preset row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+                    ) {
+                        RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, iconRes = R.drawable.ic_nav_settings)
+                        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                        Text(text = "Buffer preset", style = NSType.bodyMedium(), color = NSColors.text, modifier = Modifier.weight(1f))
+                        BufferSegmentedPicker(
+                            selected  = bufferPreset,
+                            onSelect  = { settingsViewModel.setBufferPreset(it) },
+                        )
+                    }
+                    SettingsDivider()
+                    // Hardware decode row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+                    ) {
+                        RowIcon(background = COLOR_AMBER, tint = TINT_AMBER, iconRes = R.drawable.ic_play)
+                        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Hardware decode", style = NSType.bodyMedium(), color = NSColors.text)
+                            Text(text = "Always on (ExoPlayer)", style = NSType.caption(), color = NSColors.text3)
+                        }
+                        NSToggle(checked = hwDecode, onCheckedChange = {}, enabled = false)
+                    }
+                }
+            }
+
+            // ── PROXY section ─────────────────────────────────────────────────
+            item {
+                SettingsSection(label = "Proxy") {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+                    ) {
+                        RowIcon(background = COLOR_RED, tint = TINT_RED, iconRes = R.drawable.ic_volume_off)
+                        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Enable proxy", style = NSType.bodyMedium(), color = NSColors.text)
+                            Text(text = "Inject Referer / User-Agent", style = NSType.caption(), color = NSColors.text3)
+                        }
+                        NSToggle(checked = proxyEnabled, onCheckedChange = { proxyEnabled = it })
+                    }
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
-    }
-}
-
-// ── Nav item ──────────────────────────────────────────────────────────────────
-
-@Composable
-private fun SettingsNavItem(label: String, isActive: Boolean, onClick: () -> Unit) {
-    val dimens = NSDimens.current
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(dimens.settings.navItemHeight)
-            .clip(RoundedCornerShape(dimens.radius.md))
-            .background(if (isActive) NSColors.accentGlow else NSColors.bg.copy(alpha = 0f))
-            .border(
-                0.5.dp,
-                if (isActive) NSColors.accentBorder else NSColors.bg.copy(alpha = 0f),
-                RoundedCornerShape(dimens.radius.md),
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = dimens.spacing.sm),
-    ) {
-        Text(
-            text  = label,
-            style = NSType.captionMedium(),
-            color = if (isActive) NSColors.accent2 else NSColors.text2,
-        )
     }
 }
 
@@ -153,33 +227,215 @@ private fun SettingsNavItem(label: String, isActive: Boolean, onClick: () -> Uni
 
 @Composable
 private fun ServerHealthCard(serverUrl: String) {
-    val dimens = NSDimens.current
-    Column(
-        verticalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+    val dimens    = NSDimens.current
+    val connected = serverUrl.isNotBlank()
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(dimens.radius.md))
+            .clip(RoundedCornerShape(dimens.radius.xl))
             .background(NSColors.surface2)
-            .border(0.5.dp, NSColors.border2, RoundedCornerShape(dimens.radius.md))
+            .border(0.5.dp, NSColors.border, RoundedCornerShape(dimens.radius.xl))
             .padding(dimens.spacing.md),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
-        ) {
-            NSHealthDot(score = if (serverUrl.isNotBlank()) 1.0 else 0.0)
+        NSHealthDot(score = if (connected) 1.0 else 0.0)
+        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text  = if (serverUrl.isNotBlank()) "Server configured" else "Not configured",
-                style = NSType.caption(),
-                color = NSColors.text2,
+                text  = if (connected) "Server connected" else "Server unreachable",
+                style = NSType.bodyMedium(),
+                color = NSColors.text,
+            )
+            Text(
+                text     = serverUrl.removePrefix("http://"),
+                style    = NSType.monoSmall(),
+                color    = NSColors.text3,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+// ── Settings section card ─────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsSection(label: String, content: @Composable () -> Unit) {
+    val dimens = NSDimens.current
+    Column {
+        Text(
+            text     = label.uppercase(),
+            style    = NSType.label(),
+            color    = NSColors.text3,
+            modifier = Modifier.padding(
+                horizontal = dimens.spacing.xs,
+                vertical   = SECTION_LABEL_BOTTOM,
+            ),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(dimens.radius.xl))
+                .background(NSColors.surface2)
+                .border(0.5.dp, NSColors.border, RoundedCornerShape(dimens.radius.xl)),
+        ) {
+            content()
+        }
+    }
+}
+
+// ── Standard icon row with chevron ────────────────────────────────────────────
+
+@Composable
+private fun SettingsIconRow(
+    iconBackground: Color,
+    iconTint: Color,
+    iconRes: Int,
+    title: String,
+    subtitle: String = "",
+    onClick: () -> Unit,
+) {
+    val dimens = NSDimens.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+    ) {
+        RowIcon(background = iconBackground, tint = iconTint, iconRes = iconRes)
+        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = NSType.bodyMedium(), color = NSColors.text)
+            if (subtitle.isNotEmpty()) {
+                Text(
+                    text     = subtitle,
+                    style    = NSType.caption(),
+                    color    = NSColors.text3,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Icon(
+            imageVector        = Icons.Default.KeyboardArrowRight,
+            contentDescription = null,
+            tint               = NSColors.text3,
+            modifier           = Modifier.size(CHEVRON_SIZE),
+        )
+    }
+}
+
+@Composable
+private fun RowIcon(background: Color, tint: Color, iconRes: Int) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(ROW_ICON_SIZE)
+            .clip(RoundedCornerShape(ROW_ICON_RADIUS))
+            .background(background),
+    ) {
+        Icon(
+            imageVector        = ImageVector.vectorResource(iconRes),
+            contentDescription = null,
+            tint               = tint,
+            modifier           = Modifier.size(ROW_ICON_INNER_SIZE),
+        )
+    }
+}
+
+// ── Source row (health dot + refresh interval) ────────────────────────────────
+
+@Composable
+private fun SourceRow(name: String, url: String, refreshHours: Int, isHealthy: Boolean) {
+    val dimens = NSDimens.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+    ) {
+        NSHealthDot(score = if (isHealthy) 1.0 else 0.3)
+        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = name, style = NSType.bodyMedium(), color = NSColors.text)
+            Text(
+                text     = url,
+                style    = NSType.monoSmall(),
+                color    = NSColors.text3,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         Text(
-            text     = serverUrl.ifEmpty { "No server URL set" },
-            style    = NSType.monoSmall(),
-            color    = NSColors.text3,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            text  = "↻ ${refreshHours}h",
+            style = NSType.monoSmall(),
+            color = NSColors.text3,
         )
+    }
+}
+
+@Composable
+private fun AddSourceRow(onClick: () -> Unit) {
+    val dimens = NSDimens.current
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(dimens.spacing.sm)
+            .clip(RoundedCornerShape(dimens.radius.md))
+            .border(
+                0.5.dp,
+                NSColors.border2,
+                RoundedCornerShape(dimens.radius.md),
+            )
+            .padding(vertical = dimens.spacing.sm),
+    ) {
+        Text(text = "+ Add source", style = NSType.caption(), color = NSColors.text3)
+    }
+}
+
+@Composable
+private fun SettingsDivider() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(0.5.dp)
+            .background(NSColors.border),
+    )
+}
+
+// ── Buffer segmented picker ───────────────────────────────────────────────────
+
+@Composable
+private fun BufferSegmentedPicker(selected: BufferPreset, onSelect: (BufferPreset) -> Unit) {
+    val dimens = NSDimens.current
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(dimens.radius.sm))
+            .background(NSColors.bg)
+            .border(0.5.dp, NSColors.border, RoundedCornerShape(dimens.radius.sm))
+            .padding(2.dp),
+    ) {
+        BufferPreset.entries.forEach { preset ->
+            val isActive = selected == preset
+            Text(
+                text  = preset.name.lowercase().replaceFirstChar { it.uppercase() },
+                style = NSType.caption(),
+                color = if (isActive) NSColors.accent2 else NSColors.text3,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(dimens.radius.sm - 2.dp))
+                    .background(if (isActive) NSColors.accentGlow else Color.Transparent)
+                    .border(
+                        0.5.dp,
+                        if (isActive) NSColors.accentBorder else Color.Transparent,
+                        RoundedCornerShape(dimens.radius.sm - 2.dp),
+                    )
+                    .clickable { onSelect(preset) }
+                    .padding(horizontal = dimens.spacing.sm, vertical = 4.dp),
+            )
+        }
     }
 }

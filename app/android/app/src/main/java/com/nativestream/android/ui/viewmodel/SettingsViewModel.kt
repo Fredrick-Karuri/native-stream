@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.util.Log
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -53,5 +54,12 @@ class SettingsViewModel @Inject constructor(
 
     fun setOnboardingComplete(complete: Boolean) {
         viewModelScope.launch { settingsDataStore.setOnboardingComplete(complete) }
+    }
+
+    fun triggerProbe() {
+        viewModelScope.launch {
+            runCatching { apiClient.triggerProbe() }
+                .onFailure { Log.e("SettingsViewModel", "Probe failed: ${it.message}") }
+        }
     }
 }
