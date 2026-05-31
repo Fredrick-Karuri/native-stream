@@ -1,8 +1,8 @@
 // app/src/main/java/com/nativestream/android/ui/screens/now/LiveOnAirAndSoonCards.kt
 //
-// NS-012: Live On Air Row + Starting Soon Card (AND-012)
-// LiveOnAirRow  — 48dp logo, programme, channel, progress, LIVE badge.
-// StartingSoonCard — 160dp wide horizontal scroll card, kick-off time, teams, channel.
+// Live On Air Row + Starting Soon Card
+// LiveOnAirRow: Coil logo square (48dp), programme title, channel, progress bar, LIVE badge.
+// StartingSoonCard: 160dp, kick-off time bold accent, team badges inline, title, channel.
 
 package com.nativestream.android.ui.screens.now
 
@@ -15,20 +15,22 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.SubcomposeAsyncImage
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.ui.components.NSLiveBadge
@@ -37,11 +39,10 @@ import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 
-private val LOGO_SIZE          = 48.dp
-private val LOGO_RADIUS        = 8.dp
-private val SOON_CARD_WIDTH    = 160.dp
-private val TEAM_BADGE_SIZE    = 18.dp
-private const val TEAM_BADGE_RADIUS = 50 // percent
+private val LOGO_SIZE        = 48.dp
+private val LOGO_RADIUS      = 8.dp
+private val SOON_CARD_WIDTH  = 160.dp
+private val TEAM_BADGE_SIZE  = 20.dp
 
 // ── Live On Air Row ───────────────────────────────────────────────────────────
 
@@ -53,57 +54,85 @@ fun LiveOnAirRow(
     modifier: Modifier = Modifier,
 ) {
     val dimens = NSDimens.current
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(dimens.radius.lg))
             .background(NSColors.surface2)
             .border(0.5.dp, NSColors.border, RoundedCornerShape(dimens.radius.lg))
-            .clickable(onClick = onClick)
-            .padding(dimens.spacing.md),
+            .clickable(onClick = onClick),
     ) {
-        // Channel logo placeholder
-        Box(
-            contentAlignment = Alignment.Center,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .size(LOGO_SIZE)
-                .clip(RoundedCornerShape(LOGO_RADIUS))
-                .background(NSColors.surface3)
-                .border(0.5.dp, NSColors.border2, RoundedCornerShape(LOGO_RADIUS)),
+                .fillMaxWidth()
+                .padding(dimens.spacing.md),
         ) {
-            Text(
-                text  = channel.name.take(3).uppercase(),
-                style = NSType.label(),
-                color = NSColors.text3,
-            )
+            // Channel logo — Coil with initials fallback
+            ChannelLogoSquare(channel = channel, size = LOGO_SIZE, cornerRadius = LOGO_RADIUS)
+
+            Spacer(modifier = Modifier.width(dimens.spacing.md))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text     = programme.title,
+                    style    = NSType.bodyMedium(),
+                    color    = NSColors.text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text  = channel.name,
+                    style = NSType.caption(),
+                    color = NSColors.text3,
+                )
+            }
+
+            Spacer(modifier = Modifier.width(dimens.spacing.md))
+            NSLiveBadge(isLive = true)
         }
 
-        Spacer(modifier = Modifier.width(dimens.spacing.md))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text     = programme.title,
-                style    = NSType.bodyMedium(),
-                color    = NSColors.text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text  = channel.name,
-                style = NSType.caption(),
-                color = NSColors.text3,
-            )
-            Spacer(modifier = Modifier.height(dimens.spacing.xs))
-            NSProgressBar(value = programme.progress.toFloat())
-        }
-
-        Spacer(modifier = Modifier.width(dimens.spacing.md))
-        NSLiveBadge(isLive = true)
+        // Progress bar flush at bottom, full width, no horizontal padding
+        NSProgressBar(
+            value    = programme.progress.toFloat(),
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
-// ── Starting Soon Card ────────────────────────────────────────────────────────
+// ── Inline logo square used inside LiveOnAirRow ───────────────────────────────
+
+@Composable
+private fun ChannelLogoSquare(channel: Channel, size: androidx.compose.ui.unit.Dp, cornerRadius: androidx.compose.ui.unit.Dp) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(NSColors.surface3)
+            .border(0.5.dp, NSColors.border2, RoundedCornerShape(cornerRadius)),
+    ) {
+        if (!channel.logoUrl.isNullOrBlank()) {
+            SubcomposeAsyncImage(
+                model              = channel.logoUrl,
+                contentDescription = channel.name,
+                contentScale       = ContentScale.Fit,
+                modifier           = Modifier.padding(4.dp),
+                error              = { ChannelInitials(channel.name) },
+                loading            = { ChannelInitials(channel.name) },
+            )
+        } else {
+            ChannelInitials(channel.name)
+        }
+    }
+}
+
+@Composable
+private fun ChannelInitials(name: String) {
+    Text(text = name.take(3).uppercase(), style = NSType.label(), color = NSColors.text3)
+}
+
+// ── Starting Soon grid + card ─────────────────────────────────────────────────
 
 @Composable
 fun StartingSoonGrid(
@@ -134,6 +163,7 @@ fun StartingSoonCard(
 ) {
     val dimens = NSDimens.current
     Column(
+        verticalArrangement = Arrangement.spacedBy(dimens.spacing.xs),
         modifier = modifier
             .width(SOON_CARD_WIDTH)
             .clip(RoundedCornerShape(dimens.radius.lg))
@@ -142,25 +172,24 @@ fun StartingSoonCard(
             .clickable(onClick = onClick)
             .padding(dimens.spacing.md),
     ) {
+        // Kick-off time in accent colour
         Text(
             text  = programme.startTimeString,
             style = NSType.captionMedium(),
             color = NSColors.accent,
         )
-        Spacer(modifier = Modifier.height(dimens.spacing.xs))
 
-        // Team badges for matches, plain icon otherwise
+        // Team badges — tight row matching design
         val teams = programme.title.split(" vs ", ignoreCase = true)
         if (teams.size == 2) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(dimens.spacing.xs),
             ) {
-                SoonTeamBadge(teams[0].take(3).uppercase())
+                TeamBadge(initials = teams[0].trim().take(3).uppercase())
                 Text(text = "vs", style = NSType.caption(), color = NSColors.text3)
-                SoonTeamBadge(teams[1].take(3).uppercase())
+                TeamBadge(initials = teams[1].trim().take(3).uppercase())
             }
-            Spacer(modifier = Modifier.height(dimens.spacing.xs))
         }
 
         Text(
@@ -179,19 +208,15 @@ fun StartingSoonCard(
 }
 
 @Composable
-private fun SoonTeamBadge(initials: String) {
+private fun TeamBadge(initials: String) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(TEAM_BADGE_SIZE)
-            .clip(RoundedCornerShape(percent = TEAM_BADGE_RADIUS))
+            .clip(CircleShape)
             .background(NSColors.surface3)
-            .border(0.5.dp, NSColors.border2, RoundedCornerShape(percent = TEAM_BADGE_RADIUS)),
+            .border(0.5.dp, NSColors.border2, CircleShape),
     ) {
-        Text(
-            text  = initials,
-            style = NSType.caption(),
-            color = NSColors.text2,
-        )
+        Text(text = initials, style = NSType.caption(), color = NSColors.text2)
     }
 }

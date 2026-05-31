@@ -1,15 +1,13 @@
 // app/src/main/java/com/nativestream/android/ui/screens/now/NowScreen.kt
 //
-// NS-010: Now Screen (UX-009)
-// EPG-first home screen. Three sections — Matches live, Live on air, Starting soon.
-// Sections hidden when empty. Bucketing mirrors NowScreen.swift exactly.
+// NS-010: Now Screen — polished
+// Section headers match design: pulse dot for matches, TV icon for on air, clock for soon.
+// "Show all / Show less" toggle for Live on Air.
 
 package com.nativestream.android.ui.screens.now
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,9 +17,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.regular.Television
+import com.adamglin.phosphoricons.regular.Clock
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -34,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.adamglin.phosphoricons.Regular
 import com.nativestream.android.ui.components.NSGroupHeader
 import com.nativestream.android.ui.components.NSPulseDot
 import com.nativestream.android.ui.theme.NSColors
@@ -44,6 +48,7 @@ import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 
 private const val LIVE_ON_AIR_INITIAL_VISIBLE = 10
+private val SECTION_ICON_SIZE = 13.dp
 
 @Composable
 fun NowScreen(
@@ -63,7 +68,7 @@ fun NowScreen(
     }
     val startingSoon = remember(channels) {
         NowBuckets.startingSoon(
-            channels           = channels,
+            channels            = channels,
             currentProgrammeFor = { epgViewModel.currentProgramme(it) },
             nextProgrammeFor    = { epgViewModel.nextProgramme(it) },
         )
@@ -77,13 +82,13 @@ fun NowScreen(
         Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
         when {
-            isLoading                              -> LoadingView()
-            liveCount == 0 && soonCount == 0       -> EmptyView()
-            else                                   -> NowScrollContent(
-                liveMatches    = liveMatches,
-                liveOnAir      = liveOnAir,
-                startingSoon   = startingSoon,
-                onSelectChannel = { playerViewModel.play(it) },
+            isLoading                        -> LoadingView()
+            liveCount == 0 && soonCount == 0 -> EmptyView()
+            else                             -> NowContent(
+                liveMatches  = liveMatches,
+                liveOnAir    = liveOnAir,
+                startingSoon = startingSoon,
+                onSelect     = { playerViewModel.play(it) },
             )
         }
     }
@@ -99,26 +104,30 @@ private fun NowTopBar(liveCount: Int, soonCount: Int) {
         modifier = Modifier
             .fillMaxWidth()
             .background(NSColors.surface)
-            .padding(horizontal = dimens.spacing.xl, vertical = dimens.spacing.md),
+            .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
     ) {
         Text(text = "What's on", style = NSType.heading(), color = NSColors.text)
         Spacer(modifier = Modifier.weight(1f))
+        // Pill chip — "11 live · 5 soon"
         Text(
             text  = "$liveCount live · $soonCount soon",
             style = NSType.caption(),
-            color = NSColors.text3,
+            color = NSColors.accent2,
+            modifier = Modifier
+                .background(NSColors.accentGlow, androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                .padding(horizontal = 10.dp, vertical = 3.dp),
         )
     }
 }
 
-// ── Scroll content ────────────────────────────────────────────────────────────
+// ── Scrollable content ────────────────────────────────────────────────────────
 
 @Composable
-private fun NowScrollContent(
+private fun NowContent(
     liveMatches: List<ChannelWithProgramme>,
     liveOnAir: List<ChannelWithProgramme>,
     startingSoon: List<ChannelWithProgramme>,
-    onSelectChannel: (com.nativestream.android.domain.model.Channel) -> Unit,
+    onSelect: (com.nativestream.android.domain.model.Channel) -> Unit,
 ) {
     val dimens = NSDimens.current
     var showAllOnAir by remember { mutableStateOf(false) }
@@ -127,12 +136,13 @@ private fun NowScrollContent(
         verticalArrangement = Arrangement.spacedBy(dimens.spacing.xxl),
         modifier = Modifier
             .fillMaxSize()
-            .padding(dimens.spacing.xl),
+            .padding(dimens.spacing.lg),
     ) {
         // ── Matches live ──────────────────────────────────────────────────────
         if (liveMatches.isNotEmpty()) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
+                    // Pulse dot + header — matches design
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
@@ -143,13 +153,10 @@ private fun NowScrollContent(
                     MatchHeroCard(
                         channel   = liveMatches.first().channel,
                         programme = liveMatches.first().programme,
-                        onClick   = { onSelectChannel(liveMatches.first().channel) },
+                        onClick   = { onSelect(liveMatches.first().channel) },
                     )
                     if (liveMatches.size > 1) {
-                        MatchSmallGrid(
-                            items           = liveMatches.drop(1),
-                            onSelectChannel = onSelectChannel,
-                        )
+                        MatchSmallGrid(items = liveMatches.drop(1), onSelectChannel = onSelect)
                     }
                 }
             }
@@ -159,32 +166,42 @@ private fun NowScrollContent(
         if (liveOnAir.isNotEmpty()) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
-                    NSGroupHeader(title = "Live on air", count = liveOnAir.size)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+                    ) {
+                        Icon(
+                            imageVector        = PhosphorIcons.Regular.Television,
+                            contentDescription = null,
+                            tint               = NSColors.text3,
+                            modifier           = Modifier.size(SECTION_ICON_SIZE),
+                        )
+                        NSGroupHeader(title = "Live on air", count = liveOnAir.size)
+                    }
 
-                    val visibleItems = if (showAllOnAir) liveOnAir
-                                       else liveOnAir.take(LIVE_ON_AIR_INITIAL_VISIBLE)
+                    val visible = if (showAllOnAir) liveOnAir
+                    else liveOnAir.take(LIVE_ON_AIR_INITIAL_VISIBLE)
 
                     Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.sm)) {
-                        visibleItems.forEach { item ->
+                        visible.forEach { item ->
                             LiveOnAirRow(
                                 channel   = item.channel,
                                 programme = item.programme,
-                                onClick   = { onSelectChannel(item.channel) },
+                                onClick   = { onSelect(item.channel) },
                             )
                         }
                     }
 
                     if (liveOnAir.size > LIVE_ON_AIR_INITIAL_VISIBLE) {
                         val label = if (showAllOnAir) "Show less"
-                                    else "Show all ${liveOnAir.size}"
+                        else "Show all ${liveOnAir.size}"
                         Text(
                             text     = label,
                             style    = NSType.captionMedium(),
                             color    = NSColors.accent2,
                             modifier = Modifier
-                                .padding(top = dimens.spacing.xs)
                                 .clickable { showAllOnAir = !showAllOnAir }
-
+                                .padding(vertical = dimens.spacing.xs),
                         )
                     }
                 }
@@ -195,21 +212,28 @@ private fun NowScrollContent(
         if (startingSoon.isNotEmpty()) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
-                    NSGroupHeader(title = "Starting soon", count = startingSoon.size)
-                    StartingSoonGrid(
-                        items           = startingSoon,
-                        onSelectChannel = onSelectChannel,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+                    ) {
+                        Icon(
+                            imageVector        = PhosphorIcons.Regular.Clock,
+                            contentDescription = null,
+                            tint               = NSColors.text3,
+                            modifier           = Modifier.size(SECTION_ICON_SIZE),
+                        )
+                        NSGroupHeader(title = "Starting soon", count = startingSoon.size)
+                    }
+                    StartingSoonGrid(items = startingSoon, onSelectChannel = onSelect)
                 }
             }
         }
 
-        // Bottom padding for mini player
         item { Spacer(modifier = Modifier.height(80.dp)) }
     }
 }
 
-// ── Loading / empty states ────────────────────────────────────────────────────
+// ── States ────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun LoadingView() {

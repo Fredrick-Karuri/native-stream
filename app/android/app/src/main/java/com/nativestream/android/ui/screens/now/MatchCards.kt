@@ -1,6 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/screens/now/MatchCards.kt
 //
-// NS-011: Match Cards (AND-011)
+// Match Cards
 // MatchHeroCard — full width, matches hero art height from design tokens.
 // MatchSmallCard — 180dp wide for horizontal LazyRow scroll.
 // Both handle missing score data gracefully.
@@ -83,6 +83,13 @@ fun MatchHeroCard(
                     .align(Alignment.TopStart)
                     .padding(dimens.spacing.sm),
             )
+            // Progress bar flush at bottom of art area
+            NSProgressBar(
+                value    = programme.progress.toFloat(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+            )
         }
 
         // Footer
@@ -106,8 +113,6 @@ fun MatchHeroCard(
                 style = NSType.caption(),
                 color = NSColors.text3,
             )
-            Spacer(modifier = Modifier.height(dimens.spacing.sm))
-            NSProgressBar(value = programme.progress.toFloat())
         }
     }
 }
