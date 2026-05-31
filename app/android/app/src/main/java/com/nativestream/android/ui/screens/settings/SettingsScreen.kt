@@ -49,6 +49,14 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.rememberCoroutineScope
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.RegularGroup
+import com.adamglin.phosphoricons.regular.Cpu
+import com.adamglin.phosphoricons.regular.Database
+import com.adamglin.phosphoricons.regular.FileLock
+import com.adamglin.phosphoricons.regular.GearSix
+import com.adamglin.phosphoricons.regular.Play
 import com.nativestream.android.R
 import com.nativestream.android.data.local.BufferPreset
 import com.nativestream.android.ui.components.NSTextField
@@ -131,7 +139,7 @@ fun SettingsScreen(
                         SettingsIconRow(
                             iconBackground = COLOR_BLUE,
                             iconTint = TINT_BLUE,
-                            iconRes = R.drawable.ic_nav_settings,
+                            icon = PhosphorIcons.Regular.Database,
                             title = "Server URL",
                             subtitle = serverUrl.removePrefix("http://"),
                             onClick = { showServerUrlDialog = true }
@@ -140,7 +148,7 @@ fun SettingsScreen(
                         SettingsIconRow(
                             iconBackground = COLOR_GREEN,
                             iconTint = TINT_GREEN,
-                            iconRes = R.drawable.ic_play,
+                            icon = PhosphorIcons.Regular.Cpu,
                             title = "Trigger probe",
                             subtitle = "Re-validate all stream links",
                             onClick = {
@@ -202,7 +210,7 @@ fun SettingsScreen(
                             RowIcon(
                                 background = COLOR_BLUE,
                                 tint = TINT_BLUE,
-                                iconRes = R.drawable.ic_nav_settings
+                                icon = PhosphorIcons.Regular.GearSix
                             )
                             Spacer(modifier = Modifier.width(dimens.spacing.sm))
                             Text(
@@ -230,7 +238,7 @@ fun SettingsScreen(
                             RowIcon(
                                 background = COLOR_AMBER,
                                 tint = TINT_AMBER,
-                                iconRes = R.drawable.ic_play
+                                icon = PhosphorIcons.Regular.Play
                             )
                             Spacer(modifier = Modifier.width(dimens.spacing.sm))
                             Column(modifier = Modifier.weight(1f)) {
@@ -265,7 +273,7 @@ fun SettingsScreen(
                             RowIcon(
                                 background = COLOR_RED,
                                 tint = TINT_RED,
-                                iconRes = R.drawable.ic_volume_off
+                                icon = PhosphorIcons.Regular.FileLock
                             )
                             Spacer(modifier = Modifier.width(dimens.spacing.sm))
                             Column(modifier = Modifier.weight(1f)) {
@@ -396,7 +404,7 @@ private fun SettingsSection(label: String, content: @Composable () -> Unit) {
 private fun SettingsIconRow(
     iconBackground: Color,
     iconTint: Color,
-    iconRes: Int,
+    icon: ImageVector,
     title: String,
     subtitle: String = "",
     onClick: () -> Unit,
@@ -409,7 +417,7 @@ private fun SettingsIconRow(
             .clickable(onClick = onClick)
             .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
     ) {
-        RowIcon(background = iconBackground, tint = iconTint, iconRes = iconRes)
+        RowIcon(background = iconBackground, tint = iconTint, icon = icon)
         Spacer(modifier = Modifier.width(dimens.spacing.sm))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = NSType.bodyMedium(), color = NSColors.text)
@@ -433,7 +441,7 @@ private fun SettingsIconRow(
 }
 
 @Composable
-private fun RowIcon(background: Color, tint: Color, iconRes: Int) {
+private fun RowIcon(background: Color, tint: Color, icon: ImageVector) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -442,7 +450,7 @@ private fun RowIcon(background: Color, tint: Color, iconRes: Int) {
             .background(background),
     ) {
         Icon(
-            imageVector        = ImageVector.vectorResource(iconRes),
+            imageVector        = icon,
             contentDescription = null,
             tint               = tint,
             modifier           = Modifier.size(ROW_ICON_INNER_SIZE),
