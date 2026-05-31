@@ -1,6 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/theme/NSTheme.kt
 //
-// NS Design System — Theme composition root (AND-002)
+// NS Design System — Theme composition root
 // Provides all design tokens (colours, typography, spacing) to the
 // composition tree via CompositionLocals.
 //

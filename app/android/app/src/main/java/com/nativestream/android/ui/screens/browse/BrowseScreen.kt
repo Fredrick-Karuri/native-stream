@@ -91,16 +91,16 @@ fun BrowseScreen(
     var showAddChannel by remember { mutableStateOf(false) }
 
     // Sport chip selected → delegate to MatchDayScreen
-    if (selectedSport != null) {
-        MatchDayScreen(
-            sport             = selectedSport!!,
-            playlistViewModel = playlistViewModel,
-            epgViewModel      = epgViewModel,
-            onSelectChannel   = { playerViewModel.play(it) },
-            modifier          = modifier,
-        )
-        return
-    }
+//    if (selectedSport != null) {
+//        MatchDayScreen(
+//            sport             = selectedSport!!,
+//            playlistViewModel = playlistViewModel,
+//            epgViewModel      = epgViewModel,
+//            onSelectChannel   = { playerViewModel.play(it) },
+//            modifier          = modifier,
+//        )
+//        return
+//    }
 
     val filtered = remember(channels, searchText) {
         if (searchText.isEmpty()) channels
@@ -132,18 +132,28 @@ fun BrowseScreen(
                 onSelectGroup = { selectedGroup = it },
             )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
-
-            when {
-                isLoading -> BrowseLoadingView()
-                filtered.isEmpty() -> BrowseEmptyView(searchText)
-                else -> BrowseGrid(
-                    sections = groupedSections,
-                    playerViewModel = playerViewModel,
+            if (selectedSport != null) {
+                MatchDayScreen(
+                    sport = selectedSport!!,
+                    playlistViewModel = playlistViewModel,
                     epgViewModel = epgViewModel,
-                    favouritesViewModel = favouritesViewModel,
+                    onSelectChannel = { playerViewModel.play(it) },
+                    modifier = Modifier.weight(1f),
                 )
+            }else {
+                when {
+                    isLoading -> BrowseLoadingView()
+                    filtered.isEmpty() -> BrowseEmptyView(searchText)
+                    else -> BrowseGrid(
+                        sections = groupedSections,
+                        playerViewModel = playerViewModel,
+                        epgViewModel = epgViewModel,
+                        favouritesViewModel = favouritesViewModel,
+                    )
+                }
             }
         }
+
 
         var showPlayUrl by remember { mutableStateOf(false) }
 

@@ -12,7 +12,7 @@ package com.nativestream.android.ui.theme
 
 import androidx.compose.runtime.compositionLocalOf
 
-const val NS_SCALE_DEFAULT = 1.0f
+const val NS_SCALE_DEFAULT = 1.4f
 const val NS_SCALE_MIN     = 0.8f
 const val NS_SCALE_MAX     = 1.5f
 

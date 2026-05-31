@@ -1,7 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/theme/NSType.kt
 //
-// NS Design System — Typography tokens (AND-002)
-// Mirrors DesignSystem.swift NS.Font exactly.
+// NS Design System — Typography tokens
 //
 // Fonts: Syne (display/headings), Instrument Sans (body), DM Mono (mono)
 // loaded at runtime via androidx.compose.ui:ui-text-google-fonts.
