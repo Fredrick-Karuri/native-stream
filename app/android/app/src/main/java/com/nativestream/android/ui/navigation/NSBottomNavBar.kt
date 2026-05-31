@@ -1,6 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/navigation/NSBottomNavBar.kt
 //
-// NS-008: Bottom Navigation Bar
+// Bottom Navigation Bar
 // 3-tab bar: Now · Browse · Settings.
 // Active tab shown with accent colour + pill indicator, matching designs.
 
@@ -27,16 +27,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.nativestream.android.R
 import com.nativestream.android.ui.theme.NSColors
-import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.graphics.Color
+import com.adamglin.PhosphorIcons
+import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.Television
+import com.adamglin.phosphoricons.regular.GridFour
+import com.adamglin.phosphoricons.regular.GearSix
 
 private val NAV_BAR_HEIGHT     = 56.dp
 private val NAV_PILL_WIDTH     = 24.dp
@@ -147,7 +148,7 @@ private fun AppDestination.label(): String = when (this) {
 
 @Composable
 private fun AppDestination.icon(): ImageVector = when (this) {
-    AppDestination.Now      -> ImageVector.vectorResource(R.drawable.ic_nav_now)
-    AppDestination.Browse   -> ImageVector.vectorResource(R.drawable.ic_nav_browse)
-    AppDestination.Settings -> ImageVector.vectorResource(R.drawable.ic_nav_settings)
+    AppDestination.Now      -> PhosphorIcons.Regular.Television
+    AppDestination.Browse   -> PhosphorIcons.Regular.GridFour
+    AppDestination.Settings -> PhosphorIcons.Regular.GearSix
 }
