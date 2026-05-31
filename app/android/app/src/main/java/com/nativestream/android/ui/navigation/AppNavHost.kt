@@ -25,7 +25,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.windowInsetsPadding
 import com.nativestream.android.ui.components.MiniPlayer
 import com.nativestream.android.ui.screens.browse.BrowseScreen
 import com.nativestream.android.ui.screens.now.NowScreen
@@ -58,7 +57,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+        Column(modifier = Modifier.fillMaxSize()) {
             NavHost(
                 navController    = navController,
                 startDestination = AppDestination.Now.route,
