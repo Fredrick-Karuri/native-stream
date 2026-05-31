@@ -45,7 +45,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.nativestream.android.R
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.foundation.layout.Box
+import com.adamglin.phosphoricons.RegularGroup
+import com.adamglin.phosphoricons.regular.Basketball
+import com.adamglin.phosphoricons.regular.Football
+import com.adamglin.phosphoricons.regular.Cricket
+import com.adamglin.phosphoricons.regular.Golf
+import com.adamglin.phosphoricons.regular.SoccerBall
+import com.adamglin.phosphoricons.regular.TennisBall
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.SportCategory
 import com.nativestream.android.ui.components.NSGroupHeader
@@ -60,6 +69,8 @@ import com.nativestream.android.ui.viewmodel.PlayerViewModel
 private val CHIP_SIZE        = 52.dp   // square chip from design
 private val CHIP_ICON_SIZE   = 16.dp
 private val CARD_COLUMNS     = 2       // fixed 2-col grid on mobile
+
+private val Regular = RegularGroup
 
 private data class ChannelSection(val name: String, val channels: List<Channel>)
 
@@ -104,32 +115,53 @@ fun BrowseScreen(
         val sorted = groups.keys.sorted().map { ChannelSection(it, groups[it]!!) }
         if (selectedGroup != null) sorted.filter { it.name == selectedGroup } else sorted
     }
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
 
-    Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
+            // ── Top bar — mobile style: title + search icon ───────────────────────
+            BrowseTopBar(onSearchClick = { /* expand search — future */ })
+            Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
-        // ── Top bar — mobile style: title + search icon ───────────────────────
-        BrowseTopBar(onSearchClick = { /* expand search — future */ })
-        Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+            // ── Sport + group chips ───────────────────────────────────────────────
+            BrowseChipsRow(
+                groups = groupedSections.map { it.name },
+                selectedGroup = selectedGroup,
+                selectedSport = selectedSport,
+                onSelectAll = { selectedGroup = null; selectedSport = null },
+                onSelectSport = { selectedSport = it },
+                onSelectGroup = { selectedGroup = it },
+            )
+            Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
-        // ── Sport + group chips ───────────────────────────────────────────────
-        BrowseChipsRow(
-            groups        = groupedSections.map { it.name },
-            selectedGroup = selectedGroup,
-            selectedSport = selectedSport,
-            onSelectAll   = { selectedGroup = null; selectedSport = null },
-            onSelectSport = { selectedSport = it },
-            onSelectGroup = { selectedGroup = it },
-        )
-        Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+            when {
+                isLoading -> BrowseLoadingView()
+                filtered.isEmpty() -> BrowseEmptyView(searchText)
+                else -> BrowseGrid(
+                    sections = groupedSections,
+                    playerViewModel = playerViewModel,
+                    epgViewModel = epgViewModel,
+                    favouritesViewModel = favouritesViewModel,
+                )
+            }
+        }
 
-        when {
-            isLoading          -> BrowseLoadingView()
-            filtered.isEmpty() -> BrowseEmptyView(searchText)
-            else               -> BrowseGrid(
-                sections            = groupedSections,
-                playerViewModel     = playerViewModel,
-                epgViewModel        = epgViewModel,
-                favouritesViewModel = favouritesViewModel,
+        var showPlayUrl by remember { mutableStateOf(false) }
+
+        FloatingActionButton(
+            onClick = { showPlayUrl = true },
+            containerColor = NSColors.accent,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 80.dp, end = 16.dp), // above bottom nav
+        ) {
+            Icon(Icons.Default.PlayArrow, contentDescription = "Play URL", tint = NSColors.bg)
+        }
+
+        if (showPlayUrl) {
+            PlayURLSheet(
+                playerViewModel = playerViewModel,
+                onDismiss = { showPlayUrl = false },
+                onPlay    = { playerViewModel.showPlayer() },
             )
         }
     }
@@ -205,7 +237,7 @@ private fun BrowseChipsRow(
         SportCategory.entries.forEach { sport ->
             SportChip(
                 label     = sport.label,
-                iconRes   = sport.chipIconRes(),
+                icon   = sport.chipIcon(),
                 isActive  = selectedSport == sport,
                 onClick   = { onSelectSport(sport) },
             )
@@ -359,11 +391,11 @@ fun NSChip(label: String, isActive: Boolean, onClick: () -> Unit) {
 
 // ── Sport icon mapping ────────────────────────────────────────────────────────
 
-private fun SportCategory.chipIconRes(): Int = when (this) {
-    SportCategory.FOOTBALL   -> R.drawable.ic_sport_football
-    SportCategory.RUGBY      -> R.drawable.ic_sport_rugby
-    SportCategory.TENNIS     -> R.drawable.ic_sport_tennis
-    SportCategory.BASKETBALL -> R.drawable.ic_sport_basketball
-    SportCategory.CRICKET    -> R.drawable.ic_sport_cricket
-    SportCategory.GOLF       -> R.drawable.ic_sport_golf
+private fun SportCategory.chipIcon() = when (this) {
+    SportCategory.FOOTBALL   -> Regular.SoccerBall
+    SportCategory.RUGBY      -> Regular.Football
+    SportCategory.TENNIS     -> Regular.TennisBall
+    SportCategory.BASKETBALL -> Regular.Basketball
+    SportCategory.CRICKET    -> Regular.Cricket
+    SportCategory.GOLF       -> Regular.Golf
 }
