@@ -55,7 +55,6 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         return
     }
     LaunchedEffect(Unit) {
-        playlistViewModel.loadAll()
         epgViewModel.load()
     }
 
@@ -70,6 +69,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                     NowScreen(
                         playerViewModel = playerViewModel,
                         playlistViewModel = playlistViewModel,
+                        epgViewModel      = epgViewModel,
                     )
                 }
                 composable(AppDestination.Browse.route) {

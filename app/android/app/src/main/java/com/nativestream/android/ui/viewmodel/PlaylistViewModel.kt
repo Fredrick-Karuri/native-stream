@@ -68,6 +68,7 @@ class PlaylistViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.sources.collect { stored ->
                 _sources.value = stored
+                if (stored.isNotEmpty()) loadAll()
             }
         }
     }
@@ -84,12 +85,9 @@ class PlaylistViewModel @Inject constructor(
             try {
                 val allChannels = fetchAllSourcesInParallel()
                 _channels.value = allChannels
-                Log.d(TAG, "Channels loaded: ${allChannels.size} — first: ${allChannels.firstOrNull()?.name}")
-                Log.d(TAG, "First channel group: '${allChannels.firstOrNull()?.groupTitle}'")
 
             } catch (e: Exception) {
                 _error.value = e.message
-                Log.e(TAG, "loadAll failed", e)
             } finally {
                 _isLoading.value = false
             }

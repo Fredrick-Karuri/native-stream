@@ -15,7 +15,6 @@ import com.nativestream.android.data.parser.EpgParser
 import com.nativestream.android.data.parser.EpgStore
 import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
-import com.nativestream.android.domain.model.PlaylistSource
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.domain.model.SportCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -53,6 +52,9 @@ class EpgViewModel @Inject constructor(
     private val _isAvailable = MutableStateFlow(true)
     val isAvailable: StateFlow<Boolean> = _isAvailable.asStateFlow()
 
+    private val _isReady = MutableStateFlow(false)
+    val isReady: StateFlow<Boolean> = _isReady.asStateFlow()
+
     // Keyed by source id — mirrors Swift stores: [UUID: EPGStore]
     private val stores = mutableMapOf<String, EpgStore>()
 
@@ -67,6 +69,7 @@ class EpgViewModel @Inject constructor(
                 stores.clear()
                 stores.putAll(newStores)
                 _isAvailable.value = stores.isNotEmpty()
+                _isReady.value = true
                 logLoadSummary()
             } catch (e: Exception) {
                 Log.e(TAG, "EPG load failed", e)

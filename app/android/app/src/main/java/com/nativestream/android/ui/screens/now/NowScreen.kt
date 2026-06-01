@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.regular.Television
 import com.adamglin.phosphoricons.regular.Clock
@@ -59,14 +58,15 @@ fun NowScreen(
 ) {
     val channels  by playlistViewModel.channels.collectAsState()
     val isLoading by playlistViewModel.isLoading.collectAsState()
+    val epgReady by epgViewModel.isReady.collectAsState()
 
-    val liveMatches  = remember(channels) {
+    val liveMatches  = remember(channels,epgReady) {
         NowBuckets.liveMatches(channels) { epgViewModel.currentProgramme(it) }
     }
-    val liveOnAir    = remember(channels) {
+    val liveOnAir = remember(channels, epgReady) {
         NowBuckets.liveOnAir(channels) { epgViewModel.currentProgramme(it) }
     }
-    val startingSoon = remember(channels) {
+    val startingSoon = remember(channels,epgReady) {
         NowBuckets.startingSoon(
             channels            = channels,
             currentProgrammeFor = { epgViewModel.currentProgramme(it) },

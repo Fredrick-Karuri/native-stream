@@ -1,7 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/screens/now/NowBuckets.kt
 //
-// NS-010: Now Screen Bucketing Logic
-// Mirrors the three computed bucket properties from NowScreen.swift exactly:
+// Now Screen Bucketing Logic
 //   - liveMatches  — live + sport keyword + " vs " in title
 //   - liveOnAir    — live + NOT a sport match
 //   - startingSoon — nothing live but next programme within 2 hours
