@@ -44,6 +44,7 @@ fun PlayerScreen(
     epgViewModel: EpgViewModel?       = null,
     playlistViewModel: PlaylistViewModel? = null,
     modifier: Modifier = Modifier,
+
 ) {
     val context       = LocalContext.current
     val activity      = context as? Activity
@@ -156,6 +157,8 @@ fun PlayerScreen(
                     },
                     resizeMode      = resizeMode,
                     onToggleResize  = { playerViewModel.toggleResizeMode() },
+                    channel   = activeChannel,
+                    programme = programme,
                 )
             }
         }

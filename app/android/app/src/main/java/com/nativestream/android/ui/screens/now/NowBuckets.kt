@@ -8,6 +8,7 @@
 package com.nativestream.android.ui.screens.now
 
 import com.nativestream.android.domain.model.Channel
+import com.nativestream.android.domain.model.LiveEligibility
 import com.nativestream.android.domain.model.Programme
 
 private const val STARTING_SOON_WINDOW_MS = 2 * 60 * 60 * 1000L // 2 hours
@@ -30,7 +31,7 @@ object NowBuckets {
     ): List<ChannelWithProgramme> =
         channels.mapNotNull { channel ->
             val programme = currentProgrammeFor(channel) ?: return@mapNotNull null
-            if (programme.isSportMatch && programme.title.contains(VS_SEPARATOR, ignoreCase = true)) {
+            if (LiveEligibility.isLive(channel, programme) && programme.title.contains(VS_SEPARATOR, ignoreCase = true)) {
                 ChannelWithProgramme(channel, programme)
             } else null
         }
@@ -45,7 +46,7 @@ object NowBuckets {
     ): List<ChannelWithProgramme> =
         channels.mapNotNull { channel ->
             val programme = currentProgrammeFor(channel) ?: return@mapNotNull null
-            if (!programme.isSportMatch) ChannelWithProgramme(channel, programme) else null
+            if (LiveEligibility.isLive(channel, programme)) ChannelWithProgramme(channel, programme) else null
         }
 
     /**

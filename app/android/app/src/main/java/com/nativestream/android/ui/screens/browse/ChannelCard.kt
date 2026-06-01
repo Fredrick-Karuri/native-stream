@@ -10,7 +10,6 @@
 package com.nativestream.android.ui.screens.browse
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nativestream.android.R
 import com.nativestream.android.domain.model.Channel
+import com.nativestream.android.domain.model.LiveEligibility
 import com.nativestream.android.ui.components.NSLiveBadge
 import com.nativestream.android.ui.components.NSProgressBar
 import com.nativestream.android.ui.theme.NSColors
@@ -70,7 +70,7 @@ fun ChannelCard(
     val programme  = epgViewModel.currentProgramme(channel)
     val nextProg   = epgViewModel.nextProgramme(channel)
     val isPlaying  = activeChannel?.id == channel.id
-    val isLive     = programme?.isSportMatch == true
+    val isLive = LiveEligibility.isLive(channel, programme)
     val isFavourite = favourites.contains(channel.id)
 
     val borderColor = when {

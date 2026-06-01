@@ -1,6 +1,6 @@
 // app/src/main/java/com/nativestream/android/domain/model/Programme.kt
 //
-// NS-012: Programme
+// Programme model
 // Represents a single EPG programme entry linked to a channel.
 // including computed properties for
 // progress, display strings, isNow, and sport matching.

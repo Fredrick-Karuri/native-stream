@@ -44,6 +44,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.media3.ui.AspectRatioFrameLayout
 import com.adamglin.phosphoricons.Regular
 import com.nativestream.android.R
+import com.nativestream.android.domain.model.Channel
+import com.nativestream.android.domain.model.LiveEligibility
+import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.ui.components.NSLiveBadge
 import com.nativestream.android.ui.components.NSProgressBar
 import com.nativestream.android.ui.theme.NSColors
@@ -73,6 +76,8 @@ fun PlayerControlsOverlay(
     onCast: () -> Unit = {},
     resizeMode: Int,
     onToggleResize: () -> Unit,
+    channel: Channel?,
+    programme: Programme?,
 ) {
     val controlsVisible by playerViewModel.controlsVisible.collectAsState()
     val isPlaying       by playerViewModel.isPlaying.collectAsState()
@@ -118,7 +123,7 @@ fun PlayerControlsOverlay(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    NSLiveBadge(isLive = true)
+                    NSLiveBadge(isLive = LiveEligibility.isLive(channel, programme))
                     QualityBadge(label = "HD")
                     ControlButton(
                         icon               = Icons.Default.Close,
