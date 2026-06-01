@@ -1,6 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/screens/browse/BrowseScreen.kt
 //
-// NS-013: Browse Screen — polished to match mobile design
+// Browse Screen
 // - Top bar: "Browse" title + search icon (mobile style)
 // - Chips: icon-above-label square pills matching design
 // - Grid: real ChannelCard, adaptive 2-column, correct height
@@ -21,13 +21,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,15 +40,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.foundation.layout.Box
 import com.adamglin.phosphoricons.RegularGroup
 import com.adamglin.phosphoricons.regular.Basketball
 import com.adamglin.phosphoricons.regular.Football
@@ -58,6 +55,7 @@ import com.adamglin.phosphoricons.regular.TennisBall
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.SportCategory
 import com.nativestream.android.ui.components.NSGroupHeader
+import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -66,8 +64,6 @@ import com.nativestream.android.ui.viewmodel.FavouritesViewModel
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 
-private val CHIP_SIZE        = 52.dp   // square chip from design
-private val CHIP_ICON_SIZE   = 16.dp
 private val CARD_COLUMNS     = 2       // fixed 2-col grid on mobile
 
 private val Regular = RegularGroup
@@ -85,11 +81,13 @@ fun BrowseScreen(
     val channels  by playlistViewModel.channels.collectAsState()
     val isLoading by playlistViewModel.isLoading.collectAsState()
 
-    var searchText    by remember { mutableStateOf("") }
     var showAddChannel by remember { mutableStateOf(false) }
 
     var selectedGroup by remember { mutableStateOf<String?>(null) }
     var selectedSport by remember { mutableStateOf<SportCategory?>(null) }
+
+    var searchActive by remember { mutableStateOf(false) }
+    var searchText   by remember { mutableStateOf("") }
 
     // Groups from playlist
     val groups = remember(channels) {
@@ -125,7 +123,13 @@ fun BrowseScreen(
         Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
 
             // ── Top bar — mobile style: title + search icon ───────────────────────
-            BrowseTopBar(onSearchClick = { /* expand search — future */ })
+            BrowseTopBar(
+                searchActive  = searchActive,
+                searchText    = searchText,
+                onSearchClick = { searchActive = true },
+                onSearchChange = { searchText = it },
+                onSearchClose  = { searchActive = false; searchText = "" },
+            )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
             // ── Sport + group chips ───────────────────────────────────────────────
@@ -184,7 +188,13 @@ fun BrowseScreen(
 // ── Top bar ───────────────────────────────────────────────────────────────────
 
 @Composable
-private fun BrowseTopBar(onSearchClick: () -> Unit) {
+private fun BrowseTopBar(
+    searchActive: Boolean,
+    searchText: String,
+    onSearchClick: () -> Unit,
+    onSearchChange: (String) -> Unit,
+    onSearchClose: () -> Unit,
+) {
     val dimens = NSDimens.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -193,16 +203,32 @@ private fun BrowseTopBar(onSearchClick: () -> Unit) {
             .background(NSColors.surface)
             .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
     ) {
-        Text(text = "Browse", style = NSType.heading(), color = NSColors.text)
-        Spacer(modifier = Modifier.weight(1f))
-        Icon(
-            imageVector        = Icons.Default.Search,
-            contentDescription = "Search",
-            tint               = NSColors.text2,
-            modifier           = Modifier
-                .size(20.dp)
-                .clickable(onClick = onSearchClick),
-        )
+        if (searchActive) {
+            NSTextField(
+                value         = searchText,
+                onValueChange = onSearchChange,
+                placeholder   = "Search channels…",
+                modifier      = Modifier.weight(1f),
+            )
+            Spacer(modifier = Modifier.width(dimens.spacing.sm))
+            Icon(
+                imageVector        = Icons.Default.Close,
+                contentDescription = "Close search",
+                tint               = NSColors.text2,
+                modifier           = Modifier.size(20.dp).clickable {
+                    onSearchClose()
+                },
+            )
+        } else {
+            Text(text = "Browse", style = NSType.heading(), color = NSColors.text)
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                imageVector        = Icons.Default.Search,
+                contentDescription = "Search",
+                tint               = NSColors.text2,
+                modifier           = Modifier.size(20.dp).clickable(onClick = onSearchClick),
+            )
+        }
     }
 }
 
