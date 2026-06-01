@@ -1,6 +1,6 @@
 // app/src/main/java/com/nativestream/android/data/parser/M3uParser.kt
 //
-// NS-021 + NS-023: M3U Parser
+// M3U Parser
 // Pure Kotlin M3U/M3U8 playlist parser. No third-party dependencies.
 // Mirrors M3UParser.swift exactly:
 //   - Parses InputStream line-by-line — no full-file buffering (ticket spec)

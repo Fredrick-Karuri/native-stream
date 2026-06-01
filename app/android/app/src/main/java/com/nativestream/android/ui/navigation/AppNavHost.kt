@@ -56,6 +56,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     }
     LaunchedEffect(Unit) {
         playlistViewModel.loadAll()
+        epgViewModel.load()
     }
 
     Box(modifier = modifier.fillMaxSize()) {

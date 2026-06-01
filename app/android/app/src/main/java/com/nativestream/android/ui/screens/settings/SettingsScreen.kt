@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -51,14 +51,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.rememberCoroutineScope
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
-import com.adamglin.phosphoricons.RegularGroup
+import com.adamglin.phosphoricons.regular.ArrowsClockwise
+import com.adamglin.phosphoricons.regular.Calendar
 import com.adamglin.phosphoricons.regular.Cpu
 import com.adamglin.phosphoricons.regular.Database
 import com.adamglin.phosphoricons.regular.FileLock
 import com.adamglin.phosphoricons.regular.GearSix
+import com.adamglin.phosphoricons.regular.Link
 import com.adamglin.phosphoricons.regular.Play
 import com.adamglin.phosphoricons.regular.Trash
-import com.nativestream.android.R
 import com.nativestream.android.data.local.BufferPreset
 import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.theme.NSColors
@@ -104,6 +105,11 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showAddSource by remember { mutableStateOf(false) }
+
+    var showEpgUrlDialog by remember { mutableStateOf(false) }
+    var epgInput by remember { mutableStateOf("") }
+
+    var editingSourceEpg by remember { mutableStateOf<Pair<String, String?>?>(null) } // id to epgUrl
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -173,32 +179,16 @@ fun SettingsScreen(
                             SourceRow(
                                 name = source.name,
                                 url = source.url,
-                                refreshHours = source.refreshIntervalHours,
+                                epgUrl = source.epgUrl,
+                                        refreshHours = source.refreshIntervalHours,
                                 isHealthy = true,
-                                onDelete     = {
-                                    playlistViewModel.removeSource(source.id)
-                                    playlistViewModel.loadAll()
-                                },
+                                onEpgEdit   = { epg -> editingSourceEpg = source.id to epg },
+                                onRefresh   = { playlistViewModel.loadAll() },
+                                onDelete    = { playlistViewModel.removeSource(source.id); playlistViewModel.loadAll() },
                             )
                         }
                         SettingsDivider()
                         AddSourceRow(onClick = { showAddSource = true })
-                    }
-                }
-
-                // ── EPG / TV GUIDE section ────────────────────────────────────────
-                item {
-                    SettingsSection(label = "EPG / TV Guide") {
-                        val epgUrl by settingsViewModel.epgUrl.collectAsState()
-                        SourceRow(
-                            name = "TV Guide (XMLTV)",
-                            url = epgUrl ?: "Not configured",
-                            refreshHours = 6,
-                            isHealthy = !epgUrl.isNullOrBlank(),
-                            onDelete     = {
-                                playlistViewModel.loadAll()
-                            },
-                        )
                     }
                 }
 
@@ -341,6 +331,66 @@ fun SettingsScreen(
                     },
                 )
             }
+            if (showEpgUrlDialog) {
+                val epgUrl by settingsViewModel.epgUrl.collectAsState()
+                AlertDialog(
+                    onDismissRequest = { showEpgUrlDialog = false },
+                    containerColor   = NSColors.surface2,
+                    title = { Text("EPG URL", style = NSType.heading(), color = NSColors.text) },
+                    text  = {
+                        NSTextField(
+                            value         = epgInput.ifEmpty { epgUrl ?: "" },
+                            onValueChange = { epgInput = it },
+                            placeholder   = "http://.../epg.xml",
+                        )
+                    },
+                    confirmButton = {
+                        Text("Save", style = NSType.captionMedium(), color = NSColors.accent,
+                            modifier = Modifier.clickable {
+                                settingsViewModel.setEpgUrl(epgInput)
+                                showEpgUrlDialog = false
+                            }.padding(8.dp))
+                    },
+                    dismissButton = {
+                        Text("Cancel", style = NSType.captionMedium(), color = NSColors.text3,
+                            modifier = Modifier.clickable { showEpgUrlDialog = false }.padding(8.dp))
+                    },
+                )
+            }
+
+            editingSourceEpg?.let { (sourceId, currentEpg) ->
+                var epgInput by remember { mutableStateOf(currentEpg ?: "") }
+                AlertDialog(
+                    onDismissRequest = { editingSourceEpg = null },
+                    containerColor   = NSColors.surface2,
+                    title = { Text("EPG URL", style = NSType.heading(), color = NSColors.text) },
+                    text  = {
+                        Column(verticalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.sm)) {
+                            Text("Link an EPG source to this playlist.",
+                                style = NSType.caption(), color = NSColors.text3)
+                            NSTextField(value = epgInput, onValueChange = { epgInput = it },
+                                placeholder = "http://.../epg.xml")
+                        }
+                    },
+                    confirmButton = {
+                        Text("Save", style = NSType.captionMedium(), color = NSColors.accent,
+                            modifier = Modifier.clickable {
+                                val updated = sources.find { it.id == sourceId }
+                                    ?.copy(epgUrl = epgInput.trim().ifEmpty { null })
+                                updated?.let { playlistViewModel.updateSource(it) }
+                                editingSourceEpg = null
+                            }.padding(8.dp))
+                    },
+                    dismissButton = {
+                        Text("Clear", style = NSType.captionMedium(), color = NSColors.text3,
+                            modifier = Modifier.clickable {
+                                val updated = sources.find { it.id == sourceId }?.copy(epgUrl = null)
+                                updated?.let { playlistViewModel.updateSource(it) }
+                                editingSourceEpg = null
+                            }.padding(8.dp))
+                    },
+                )
+            }
         }
     }
 }
@@ -467,14 +517,16 @@ private fun RowIcon(background: Color, tint: Color, icon: ImageVector) {
 }
 
 // ── Source row (health dot + refresh interval) ────────────────────────────────
-
 @Composable
 private fun SourceRow(
     name: String,
     url: String,
+    epgUrl: String?,
     refreshHours: Int,
     isHealthy: Boolean,
     onDelete: () -> Unit,
+    onRefresh: () -> Unit,
+    onEpgEdit: (String?) -> Unit,
 ) {
     val dimens = NSDimens.current
     Row(
@@ -487,35 +539,44 @@ private fun SourceRow(
         Spacer(modifier = Modifier.width(dimens.spacing.sm))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = name, style = NSType.bodyMedium(), color = NSColors.text)
-            Text(
-                text     = url,
-                style    = NSType.monoSmall(),
-                color    = NSColors.text3,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Text(text = url, style = NSType.monoSmall(), color = NSColors.text3,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Text(
-            text  = "↻ ${refreshHours}h",
-            style = NSType.monoSmall(),
-            color = NSColors.text3,
-        )
         Spacer(modifier = Modifier.width(dimens.spacing.sm))
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .clip(RoundedCornerShape(dimens.radius.sm))
-                .background(NSColors.live.copy(alpha = 0.08f))
-                .clickable(onClick = onDelete)
-                .padding(horizontal = dimens.spacing.sm, vertical = dimens.spacing.xs),
-        ) {
-            Icon(
-                imageVector        = PhosphorIcons.Regular.Trash,
-                contentDescription = "Remove source",
-                tint               = NSColors.live,
-                modifier           = Modifier.size(14.dp),
+        // ── Action icons ──────────────────────────────────────────────────────
+        Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacing.xs)) {
+            SourceActionIcon(
+                icon    = PhosphorIcons.Regular.Link,
+                tint    = if (!epgUrl.isNullOrBlank()) NSColors.accent2 else NSColors.text3,
+                onClick = { onEpgEdit(epgUrl) },
+            )
+            SourceActionIcon(
+                icon    = PhosphorIcons.Regular.ArrowsClockwise,
+                tint    = NSColors.text3,
+                onClick = onRefresh,
+            )
+            SourceActionIcon(
+                icon    = PhosphorIcons.Regular.Trash,
+                tint    = NSColors.live,
+                onClick = onDelete,
             )
         }
+    }
+}
+
+@Composable
+private fun SourceActionIcon(icon: ImageVector, tint: Color, onClick: () -> Unit) {
+    val dimens = NSDimens.current
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .clip(RoundedCornerShape(dimens.radius.sm))
+            .background(tint.copy(alpha = 0.08f))
+            .clickable(onClick = onClick)
+            .padding(dimens.spacing.xs),
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = tint,
+            modifier = Modifier.size(14.dp))
     }
 }
 

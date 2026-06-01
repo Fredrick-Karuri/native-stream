@@ -12,6 +12,7 @@ data class PlaylistSource(
     val id: String,
     val name: String,
     val url: String,
+    val epgUrl: String? = null,
     /** Refresh interval in hours. 0 = manual refresh only. */
     val refreshIntervalHours: Int = DEFAULT_REFRESH_INTERVAL_HOURS,
 ) {

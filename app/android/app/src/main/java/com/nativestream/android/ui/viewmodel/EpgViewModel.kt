@@ -15,6 +15,7 @@ import com.nativestream.android.data.parser.EpgParser
 import com.nativestream.android.data.parser.EpgStore
 import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
+import com.nativestream.android.domain.model.PlaylistSource
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.domain.model.SportCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +25,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 import java.util.zip.GZIPInputStream
@@ -60,7 +62,8 @@ class EpgViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val newStores = fetchAllStoresInParallel()
+                val sources = settingsDataStore.sources.first()
+                val newStores = fetchAllStoresInParallel(sources)
                 stores.clear()
                 stores.putAll(newStores)
                 _isAvailable.value = stores.isNotEmpty()
@@ -74,25 +77,29 @@ class EpgViewModel @Inject constructor(
         }
     }
 
-    private suspend fun fetchAllStoresInParallel(): Map<String, EpgStore> = coroutineScope {
-        // Single store from the configured EPG URL — mirrors settingsKey in Swift
-        val settingsEpgUrl = settingsDataStore.epgUrl()
-        listOfNotNull(settingsEpgUrl?.let { url ->
+    private suspend fun fetchAllStoresInParallel(
+        sources: List<com.nativestream.android.domain.model.PlaylistSource>,
+    ): Map<String, EpgStore> = coroutineScope {
+        val urls = buildList {
+            settingsDataStore.epgUrl()?.let { add("settings" to it) }
+            sources.forEach { source ->
+                source.epgUrl?.let { add(source.id to it) }
+            }
+        }
+        urls.map { (key, url) ->
             async {
-                try {
-                    val store = fetchAndParse(url)
-                    "settings" to store
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to fetch EPG from $url: ${e.message}")
+                try { key to fetchAndParse(url) }
+                catch (e: Exception) {
+                    Log.w(TAG, "Failed EPG $url: ${e.message}")
                     null
                 }
             }
-        }).awaitAll().filterNotNull().toMap()
+        }.awaitAll().filterNotNull().toMap()
     }
 
     private suspend fun fetchAndParse(rawUrl: String): EpgStore {
         val url = normalizeEpgUrl(rawUrl)
-        val bytes = apiClient.epgData()
+        val bytes = apiClient.fetchRawUrl(url)
         val decompressed = if (url.endsWith(".gz")) decompressGzip(bytes) else bytes
         return epgParser.parse(ByteArrayInputStream(decompressed))
     }

@@ -37,6 +37,7 @@ fun AddSourceSheet(
     var name     by remember { mutableStateOf("") }
     var url      by remember { mutableStateOf("") }
     var refresh  by remember { mutableStateOf("6") }
+    var epgUrl by remember { mutableStateOf("") }
 
     ModalBottomSheet(
         onDismissRequest = onDone,
@@ -58,6 +59,10 @@ fun AddSourceSheet(
                 NSTextField(value = url, onValueChange = { url = it }, placeholder = "http://...")
             }
             Column(verticalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.xs)) {
+                Text("EPG URL (optional)", style = NSType.caption(), color = NSColors.text3)
+                NSTextField(value = epgUrl, onValueChange = { epgUrl = it }, placeholder = "http://.../epg.xml")
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.xs)) {
                 Text("Refresh interval (hours)", style = NSType.caption(), color = NSColors.text3)
                 NSTextField(value = refresh, onValueChange = { refresh = it }, placeholder = "6")
             }
@@ -75,6 +80,7 @@ fun AddSourceSheet(
                                 id = UUID.randomUUID().toString(),
                                 name = name.trim(),
                                 url = url.trim(),
+                                epgUrl               = epgUrl.trim().ifEmpty { null },
                                 refreshIntervalHours = refresh.toIntOrNull() ?: 6,
                             )
                         )

@@ -106,8 +106,9 @@ class PlaylistViewModel @Inject constructor(
                         Log.w(TAG, "M3U line ${w.lineNumber}: ${w.reason}")
                     }
                     // If the playlist advertised an EPG URL and the source has none, save it
-                    if (result.epgUrl != null && source.url.isEmpty()) {
-                        updateSource(source.copy(url = result.epgUrl))
+                    if (result.epgUrl != null) {
+                        settingsDataStore.setEpgUrl(result.epgUrl)
+                        updateSource(source.copy(epgUrl = result.epgUrl))
                     }
                     result.channels
                 } catch (e: Exception) {
