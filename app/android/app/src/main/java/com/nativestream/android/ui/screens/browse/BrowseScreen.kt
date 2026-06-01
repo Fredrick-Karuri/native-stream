@@ -86,17 +86,34 @@ fun BrowseScreen(
     val isLoading by playlistViewModel.isLoading.collectAsState()
 
     var searchText    by remember { mutableStateOf("") }
-    var selectedGroup by remember { mutableStateOf<String?>(null) }
-    var selectedSport by remember { mutableStateOf<SportCategory?>(null) }
     var showAddChannel by remember { mutableStateOf(false) }
 
+    var selectedGroup by remember { mutableStateOf<String?>(null) }
+    var selectedSport by remember { mutableStateOf<SportCategory?>(null) }
 
-    val filtered = remember(channels, searchText) {
-        if (searchText.isEmpty()) channels
-        else channels.filter {
-            it.name.contains(searchText, ignoreCase = true) ||
-                    it.groupTitle.contains(searchText, ignoreCase = true)
-        }
+    // Groups from playlist
+    val groups = remember(channels) {
+        channels.map { it.groupTitle }.distinct().sorted()
+    }
+
+    // Sport sub-chips only when Sports group selected
+    val activeSports = remember(channels, selectedGroup) {
+        if (selectedGroup?.lowercase()?.contains("sport") == true)
+            epgViewModel.activeSports(channels)
+        else emptyList()
+    }
+
+
+    // Filtered channels
+    val filtered = remember(channels, selectedGroup, selectedSport, searchText) {
+        channels
+            .filter { if (selectedGroup != null) it.groupTitle == selectedGroup else true }
+            .filter { if (selectedSport != null) {
+                val prog = epgViewModel.currentProgramme(it) ?: epgViewModel.nextProgramme(it)
+                prog != null && epgViewModel.matchesSport(selectedSport!!, prog)
+            } else true }
+            .filter { if (searchText.isNotEmpty())
+                it.name.contains(searchText, ignoreCase = true) else true }
     }
 
     val groupedSections = remember(filtered, selectedGroup) {
@@ -113,33 +130,24 @@ fun BrowseScreen(
 
             // ── Sport + group chips ───────────────────────────────────────────────
             BrowseChipsRow(
-                groups = groupedSections.map { it.name },
+                groups        = groups,
                 selectedGroup = selectedGroup,
+                activeSports  = activeSports,
                 selectedSport = selectedSport,
-                onSelectAll = { selectedGroup = null; selectedSport = null },
-                onSelectSport = { selectedSport = it },
+                onSelectAll   = { selectedGroup = null; selectedSport = null },
                 onSelectGroup = { selectedGroup = it },
+                onSelectSport = { selectedSport = it },
             )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
-            if (selectedSport != null) {
-                MatchDayScreen(
-                    sport = selectedSport!!,
-                    playlistViewModel = playlistViewModel,
-                    epgViewModel = epgViewModel,
-                    onSelectChannel = { playerViewModel.play(it) },
-                    modifier = Modifier.weight(1f),
+            when {
+                isLoading          -> BrowseLoadingView()
+                filtered.isEmpty() -> BrowseEmptyView(searchText)
+                else               -> BrowseGrid(
+                    sections            = groupedSections,
+                    playerViewModel     = playerViewModel,
+                    epgViewModel        = epgViewModel,
+                    favouritesViewModel = favouritesViewModel,
                 )
-            }else {
-                when {
-                    isLoading -> BrowseLoadingView()
-                    filtered.isEmpty() -> BrowseEmptyView(searchText)
-                    else -> BrowseGrid(
-                        sections = groupedSections,
-                        playerViewModel = playerViewModel,
-                        epgViewModel = epgViewModel,
-                        favouritesViewModel = favouritesViewModel,
-                    )
-                }
             }
         }
 
@@ -199,99 +207,67 @@ private fun BrowseTopBar(onSearchClick: () -> Unit) {
 }
 
 // ── Chips — icon above label, square rounded, matching design ─────────────────
-
 @Composable
 private fun BrowseChipsRow(
     groups: List<String>,
     selectedGroup: String?,
+    activeSports: List<SportCategory>,
     selectedSport: SportCategory?,
     onSelectAll: () -> Unit,
-    onSelectSport: (SportCategory) -> Unit,
-    onSelectGroup: (String?) -> Unit,
+    onSelectGroup: (String) -> Unit,
+    onSelectSport: (SportCategory?) -> Unit,
 ) {
     val dimens = NSDimens.current
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(NSColors.surface)
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
+            .background(NSColors.surface),
     ) {
-        // All
-        SportChip(
-            label    = "All",
-            icon     = null,
-            isActive = selectedGroup == null && selectedSport == null,
-            onClick  = onSelectAll,
-        )
-        // Favourites
-        SportChip(
-            label    = "Favs",
-            icon     = Icons.Default.Star,
-            isActive = false,
-            onClick  = { onSelectGroup("Favourites") },
-        )
-        // Sport categories with icons
-        SportCategory.entries.forEach { sport ->
-            SportChip(
-                label     = sport.label,
-                icon   = sport.chipIcon(),
-                isActive  = selectedSport == sport,
-                onClick   = { onSelectSport(sport) },
-            )
+        // Level 1 — groups
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
+        ) {
+            NSChip(label = "All", isActive = selectedGroup == null, onClick = onSelectAll)
+            groups.forEach { group ->
+                NSChip(
+                    label    = group,
+                    isActive = selectedGroup == group,
+                    onClick  = { onSelectGroup(group); onSelectSport(null) },
+                )
+            }
+        }
+
+        // Level 2 — sport sub-chips, only when relevant
+        if (activeSports.isNotEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.xs),
+            ) {
+                NSChip(
+                    label   = "All Sports",
+                    isActive = selectedSport == null,
+                    onClick  = { onSelectSport(null) },
+                )
+                activeSports.forEach { sport ->
+                    NSChip(
+                        label    = sport.label,
+                        isActive = selectedSport == sport,
+                        onClick  = { onSelectSport(sport) },
+                    )
+                }
+            }
         }
     }
 }
 
-@Composable
-private fun SportChip(
-    label: String,
-    icon: ImageVector? = null,
-    iconRes: Int? = null,
-    isActive: Boolean,
-    onClick: () -> Unit,
-) {
-    val dimens       = NSDimens.current
-    val chipBg       = if (isActive) NSColors.accentGlow   else NSColors.surface2
-    val chipBorder   = if (isActive) NSColors.accentBorder else NSColors.border
-    val iconTint     = if (isActive) NSColors.accent2       else NSColors.text3
-    val labelColor   = if (isActive) NSColors.accent2       else NSColors.text3
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .size(CHIP_SIZE)
-            .clip(RoundedCornerShape(dimens.radius.lg))
-            .background(chipBg)
-            .border(0.5.dp, chipBorder, RoundedCornerShape(dimens.radius.lg))
-            .clickable(onClick = onClick)
-            .padding(dimens.spacing.xs),
-    ) {
-        when {
-            iconRes != null -> Icon(
-                imageVector        = ImageVector.vectorResource(iconRes),
-                contentDescription = label,
-                tint               = iconTint,
-                modifier           = Modifier.size(CHIP_ICON_SIZE),
-            )
-            icon != null -> Icon(
-                imageVector        = icon,
-                contentDescription = label,
-                tint               = iconTint,
-                modifier           = Modifier.size(CHIP_ICON_SIZE),
-            )
-        }
-        Text(
-            text      = label,
-            style     = NSType.caption(),
-            color     = labelColor,
-            textAlign = TextAlign.Center,
-            maxLines  = 1,
-        )
-    }
-}
 
 // ── Channel grid — real ChannelCard, 2-column ─────────────────────────────────
 
@@ -371,7 +347,6 @@ private fun BrowseEmptyView(searchText: String) {
     }
 }
 
-// NSChip kept for external use (MatchDayScreen etc)
 @Composable
 fun NSChip(label: String, isActive: Boolean, onClick: () -> Unit) {
     val dimens = NSDimens.current
@@ -384,7 +359,7 @@ fun NSChip(label: String, isActive: Boolean, onClick: () -> Unit) {
             .background(if (isActive) NSColors.accentGlow else NSColors.surface2)
             .border(0.5.dp, if (isActive) NSColors.accentBorder else NSColors.border, RoundedCornerShape(dimens.radius.pill))
             .clickable(onClick = onClick)
-            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.xs),
+            .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
     )
 }
 
