@@ -198,7 +198,7 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    // ── Stream loading with header injection (AND-018) ────────────────────────
+    // ── Stream loading with header injection ────────────────────────
 
     @OptIn(UnstableApi::class)
     private fun loadStream(channel: Channel) {

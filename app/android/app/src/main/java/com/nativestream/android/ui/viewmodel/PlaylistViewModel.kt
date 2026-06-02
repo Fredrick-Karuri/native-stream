@@ -25,6 +25,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 private const val TAG = "PlaylistViewModel"
@@ -93,7 +95,8 @@ class PlaylistViewModel @Inject constructor(
         }
     }
 
-    private suspend fun fetchAllSourcesInParallel(): List<Channel> = coroutineScope {
+    /** Fetch channels from all configured sources in parallel on background thread pools. */
+    private suspend fun fetchAllSourcesInParallel(): List<Channel> = withContext(Dispatchers.IO) {
         _sources.value.map { source ->
             async {
                 try {
@@ -110,6 +113,7 @@ class PlaylistViewModel @Inject constructor(
                     result.channels
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to load source ${source.name}", e)
+                    // Safe UI string update from background context
                     _error.value = "Failed to load ${source.name}: ${e.message}"
                     emptyList()
                 }
