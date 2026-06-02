@@ -1,6 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/screens/now/NowScreen.kt
 //
-// NS-010: Now Screen — polished
+// Now Screen
 // Section headers match design: pulse dot for matches, TV icon for on air, clock for soon.
 // "Show all / Show less" toggle for Live on Air.
 
@@ -26,6 +26,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +57,10 @@ fun NowScreen(
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
     epgViewModel: EpgViewModel           = hiltViewModel(),
 ) {
+    // Staggered initialization: Trigger EPG loading exactly one frame after structural bar rendering
+    LaunchedEffect(Unit) {
+        epgViewModel.load()
+    }
     val channels  by playlistViewModel.channels.collectAsState()
     val isLoading by playlistViewModel.isLoading.collectAsState()
     val epgReady by epgViewModel.isReady.collectAsState()

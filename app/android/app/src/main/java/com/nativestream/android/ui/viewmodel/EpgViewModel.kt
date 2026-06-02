@@ -1,9 +1,9 @@
 // app/src/main/java/com/nativestream/android/ui/viewmodel/EpgViewModel.kt
 //
-// NS-EPG: EPG ViewModel
+// EPG ViewModel
 // Owns EPG loading state and all programme query methods.
-// Mirrors EPGViewModel.swift exactly — parallel source loading, gzip support,
-// GitHub raw URL normalisation, sport helpers, match-rate diagnostic (AND-026).
+// Parallel source loading, gzip support,
+// GitHub raw URL normalisation, sport helpers, match-rate diagnostic.
 
 package com.nativestream.android.ui.viewmodel
 
@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 import java.util.zip.GZIPInputStream
 import javax.inject.Inject
@@ -61,11 +63,17 @@ class EpgViewModel @Inject constructor(
     // ── Load ──────────────────────────────────────────────────────────────────
 
     fun load() {
+        // Prevent redundant simultaneous loads if already active
+        if (_isLoading.value) return
+
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val sources = settingsDataStore.sources.first()
-                val newStores = fetchAllStoresInParallel(sources)
+                // Shift the entire heavy setup workflow safely off the Main thread
+                val newStores = withContext(Dispatchers.IO) {
+                    val sources = settingsDataStore.sources.first()
+                    fetchAllStoresInParallel(sources)
+                }
                 stores.clear()
                 stores.putAll(newStores)
                 _isAvailable.value = stores.isNotEmpty()

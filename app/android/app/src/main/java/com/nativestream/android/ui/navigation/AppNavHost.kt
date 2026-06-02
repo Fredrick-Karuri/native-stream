@@ -54,9 +54,6 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         OnboardingScreen(onComplete = { settingsViewModel.setOnboardingComplete(true) })
         return
     }
-    LaunchedEffect(Unit) {
-        epgViewModel.load()
-    }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
