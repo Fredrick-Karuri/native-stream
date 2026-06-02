@@ -1,16 +1,14 @@
 // app/src/main/java/com/nativestream/android/data/remote/ApiClient.kt
 //
 // API Client (Ktor)
-// Mirrors APIClient.swift actor exactly — same endpoints, same error mapping,
-// same timeout values. Server URL is configurable (not hardcoded) because
+// Server URL is configurable (not hardcoded) because
 // Android connects over LAN, not localhost.
 //
 // Inject via Hilt (see AppModule.kt). Do not instantiate directly.
 
 package com.nativestream.android.data.remote
+
 import io.ktor.client.engine.android.Android
-
-
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -31,6 +29,13 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import android.util.Log
 import javax.inject.Singleton
+import android.app.Application
+import javax.inject.Inject
+import io.ktor.client.plugins.cache.HttpCache
+import io.ktor.client.plugins.cache.storage.FileStorage
+import io.ktor.http.HttpHeaders
+import io.ktor.client.request.header
+import java.io.File
 
 private const val TAG = "ApiClient"
 private const val REQUEST_TIMEOUT_MS  = 10_000L
@@ -38,7 +43,9 @@ private const val RESOURCE_TIMEOUT_MS = 30_000L
 private const val UNMATCHED_DEFAULT_LIMIT = 50
 
 @Singleton
-class ApiClient  constructor() {
+class ApiClient  @Inject constructor(
+    private val application: Application
+) {
 
     // ── Base URL — set during onboarding / settings change ───────────────────
 
@@ -51,18 +58,26 @@ class ApiClient  constructor() {
     // ── Ktor HTTP client ──────────────────────────────────────────────────────
 
     private val httpClient = HttpClient(Android) {
+        // 1. Install Persistent Disk Storage Cache Plugin
+        install(HttpCache) {
+            val cacheDirectory = File(application.cacheDir, "ktor_network_cache")
+            publicStorage(FileStorage(cacheDirectory)) // Caches raw bytes directly to disk
+        }
+
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true
                 isLenient         = true
             })
         }
+
         install(Logging) {
             logger = object : Logger {
                 override fun log(message: String) { Log.d(TAG, message) }
             }
             level = LogLevel.INFO
         }
+
         engine {
             connectTimeout = REQUEST_TIMEOUT_MS.toInt()
             socketTimeout  = RESOURCE_TIMEOUT_MS.toInt()
@@ -132,7 +147,10 @@ class ApiClient  constructor() {
 
     private suspend fun rawGet(path: String): ByteArray =
         wrapNetworkErrors(path) {
-            val response = httpClient.get(resolve(path))
+            val response = httpClient.get(resolve(path)) {
+                // Forces client-side validation fallback policy: Max-Age 2 hours
+                header(HttpHeaders.CacheControl, "max-age=7200, public")
+            }
             guardSuccess(response)
             response.body()
         }
@@ -192,7 +210,10 @@ class ApiClient  constructor() {
 
     suspend fun fetchRawUrl(url: String): ByteArray =
         wrapNetworkErrors(url) {
-            val response = httpClient.get(url)
+            val response = httpClient.get(url) {
+                // Protects external playlist URLs with the same cache configuration guard
+                header(HttpHeaders.CacheControl, "max-age=7200, public")
+            }
             guardSuccess(response)
             response.body()
         }

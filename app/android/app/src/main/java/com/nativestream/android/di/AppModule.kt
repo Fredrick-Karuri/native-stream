@@ -4,6 +4,7 @@
 
 package com.nativestream.android.di
 
+import android.app.Application
 import android.content.Context
 import com.nativestream.android.data.cast.CastManager
 import com.nativestream.android.data.local.SettingsDataStore
@@ -22,8 +23,11 @@ import javax.inject.Singleton
 object AppModule {
 
     @Provides @Singleton
-    fun provideApiClient(settingsDataStore: SettingsDataStore): ApiClient {
-        val client = ApiClient()
+    fun provideApiClient(
+        @ApplicationContext context: Context,
+        settingsDataStore: SettingsDataStore
+    ): ApiClient {
+        val client = ApiClient(context as Application)
         val url = runBlocking { settingsDataStore.serverUrl.first() }
         client.setBaseUrl(url)
         return client
