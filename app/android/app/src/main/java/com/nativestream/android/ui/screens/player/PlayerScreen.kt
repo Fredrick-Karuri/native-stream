@@ -97,7 +97,13 @@ fun PlayerScreen(
                 .clickable(
                     indication        = null,
                     interactionSource = remember { MutableInteractionSource() },
-                    onClick           = { playerViewModel.onPlayerTapped() },
+                    onClick = {
+                        if (sidebarVisible) {
+                            playerViewModel.toggleSidebar()
+                        } else {
+                            playerViewModel.onPlayerTapped()
+                        }
+                    }
                 ),
         ) {
             AndroidView(

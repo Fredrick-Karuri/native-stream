@@ -44,12 +44,10 @@ import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
-import java.util.Date
 
 private val SIDEBAR_WIDTH      = 240.dp
 private val TAB_INDICATOR_H    = 1.5.dp
 private val SCHEDULE_HOURS     = 12
-private val PAST_PROG_ALPHA    = 0.4f
 
 enum class SidebarTab { ON_NOW, SCHEDULE }
 
