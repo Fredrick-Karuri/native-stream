@@ -41,10 +41,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.font.FontWeight
+import com.adamglin.phosphoricons.regular.SkipBack
+import com.adamglin.phosphoricons.regular.SkipForward
+import com.adamglin.PhosphorIcons
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.adamglin.phosphoricons.Regular
 import com.nativestream.android.R
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.ui.theme.NSColors
@@ -182,9 +184,9 @@ fun MiniPlayer(
                     horizontalArrangement = Arrangement.spacedBy(MINI_CTRL_SPACING),
                 ) {
                     MiniControl(
-                        icon               = ImageVector.vectorResource(R.drawable.ic_skip_back),
-                        contentDescription = "Skip back",
-                        onClick            = { /* TODO AND-017 */ },
+                        icon               = PhosphorIcons.Regular.SkipBack,
+                        contentDescription = "Previous channel",
+                        onClick            = { playerViewModel.playPreviousChannel() },
                     )
                     MiniControl(
                         icon               = ImageVector.vectorResource(
@@ -195,9 +197,9 @@ fun MiniPlayer(
                         onClick            = { playerViewModel.togglePlayback() },
                     )
                     MiniControl(
-                        icon               = ImageVector.vectorResource(R.drawable.ic_skip_forward),
-                        contentDescription = "Skip forward",
-                        onClick            = { /* TODO AND-017 */ },
+                        icon               = PhosphorIcons.Regular.SkipForward,
+                        contentDescription = "Next channel",
+                        onClick            = { playerViewModel.playNextChannel() },
                     )
                     NSProgressBar(
                         value    = currentProgramme?.progress?.toFloat() ?: 0f,
@@ -216,7 +218,7 @@ fun MiniPlayer(
     }
 }
 
-// ── Mini control button — mirrors MiniCtrl in MiniPlayerWidget.swift ─────────
+// ── Mini control button ─────────
 
 @Composable
 private fun MiniControl(
