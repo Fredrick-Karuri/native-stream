@@ -25,6 +25,9 @@ import com.adamglin.phosphoricons.regular.Screencast
 import com.adamglin.phosphoricons.regular.PictureInPicture
 import com.adamglin.phosphoricons.regular.ArrowsOut
 import com.adamglin.phosphoricons.regular.ArrowsIn
+import com.adamglin.phosphoricons.regular.SkipBack
+import com.adamglin.phosphoricons.regular.SkipForward
+
 import com.adamglin.PhosphorIcons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -71,6 +74,8 @@ fun PlayerControlsOverlay(
     onBack: () -> Unit,
     onToggleSidebar: () -> Unit,
     onPip: () -> Unit,
+    onNextChannel: () -> Unit,
+    onPreviousChannel: () -> Unit,
     modifier: Modifier = Modifier,
     isCastAvailable: Boolean = false,
     onCast: () -> Unit = {},
@@ -153,9 +158,9 @@ fun PlayerControlsOverlay(
                     horizontalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.sm),
                 ) {
                     ControlButton(
-                        icon               = ImageVector.vectorResource(R.drawable.ic_skip_back),
-                        contentDescription = "Skip back",
-                        onClick            = { /* live stream — no-op */ },
+                        icon               = PhosphorIcons.Regular.SkipBack,
+                        contentDescription = "Previous channel",
+                        onClick            = onPreviousChannel,
                         size               = CTRL_SECONDARY_SIZE,
                     )
                     ControlButton(
@@ -168,9 +173,9 @@ fun PlayerControlsOverlay(
                         isPrimary          = true,
                     )
                     ControlButton(
-                        icon               = ImageVector.vectorResource(R.drawable.ic_skip_forward),
-                        contentDescription = "Skip forward",
-                        onClick            = { /* live stream — no-op */ },
+                        icon               = PhosphorIcons.Regular.SkipForward,
+                        contentDescription = "Next channel",
+                        onClick            = onNextChannel,
                         size               = CTRL_SECONDARY_SIZE,
                     )
                     Spacer(modifier = Modifier.weight(1f))

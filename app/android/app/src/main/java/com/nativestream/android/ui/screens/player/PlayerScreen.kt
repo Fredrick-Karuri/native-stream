@@ -149,6 +149,8 @@ fun PlayerScreen(
                         }
                     },
                     modifier = Modifier.fillMaxSize(),
+                    onNextChannel     = { playerViewModel.playNextChannel() },
+                    onPreviousChannel = { playerViewModel.playPreviousChannel() },
                     isCastAvailable = isCastAvailable,
                     onCast = {
                         activeChannel?.let {

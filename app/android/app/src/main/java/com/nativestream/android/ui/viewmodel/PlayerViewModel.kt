@@ -275,7 +275,7 @@ class PlayerViewModel @Inject constructor(
     }
 
 
-    // ── Sidebar channel list (AND-019) ────────────────────────────────────────
+    // ── Sidebar channel list ────────────────────────────────────────
     // Populated from PlaylistViewModel when sidebar opens.
 
     private val _channelList =
@@ -294,6 +294,32 @@ class PlayerViewModel @Inject constructor(
 
     fun toggleSidebar() {
         _sidebarVisible.value = !_sidebarVisible.value
+    }
+
+    fun playNextChannel() {
+        val list = _channelList.value
+        if (list.isEmpty()) return
+
+        val currentChannel = _activeChannel.value ?: return
+        val currentIndex = list.indexOf(currentChannel)
+
+        if (currentIndex != -1) {
+            val nextIndex = (currentIndex + 1) % list.size
+            play(list[nextIndex])
+        }
+    }
+
+    fun playPreviousChannel() {
+        val list = _channelList.value
+        if (list.isEmpty()) return
+
+        val currentChannel = _activeChannel.value ?: return
+        val currentIndex = list.indexOf(currentChannel)
+
+        if (currentIndex != -1) {
+            val prevIndex = if (currentIndex - 1 < 0) list.lastIndex else currentIndex - 1
+            play(list[prevIndex])
+        }
     }
 
     private fun mapHeightToQuality(height: Int): String? {
