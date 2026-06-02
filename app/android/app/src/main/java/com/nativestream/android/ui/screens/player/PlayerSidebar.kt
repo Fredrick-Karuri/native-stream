@@ -1,8 +1,7 @@
 // app/src/main/java/com/nativestream/android/ui/screens/player/PlayerSidebar.kt
 //
-// NS-019: Player Sidebar
+// Player Sidebar
 // 240dp collapsible sidebar with two tabs: On Now and Schedule.
-// Mirrors PlayerSidebar.swift, PlayerOnNowTab, PlayerScheduleTab exactly.
 // Channel switch via ExoPlayer.setMediaItem() through PlayerViewModel.play().
 
 package com.nativestream.android.ui.screens.player

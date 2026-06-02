@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nativestream.android.domain.model.Channel
+import com.nativestream.android.ui.components.NSProgressBar
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -69,7 +71,7 @@ fun PlayerSidebarRow(
         )
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.weight(1f),
         ) {
             Text(
@@ -83,14 +85,22 @@ fun PlayerSidebarRow(
                 Text(
                     text     = it.title,
                     style    = NSType.monoSmall(),
-                    color    = Color.White.copy(alpha = 0.3f),
+                    color    = Color.White.copy(alpha = if (isPlaying) 0.5f else 0.3f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+
+            // Inline timeline tracker replacing bulky time text strings
+            if (current != null) {
+                NSProgressBar(
+                    value    = current.progress.toFloat(),
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
         }
 
-        // Right indicator
+        // Cleaned up right-side indicator layout block
         when {
             isPlaying -> Icon(
                 imageVector        = Icons.Default.PlayArrow,
@@ -98,15 +108,12 @@ fun PlayerSidebarRow(
                 tint               = NSColors.accent,
                 modifier           = Modifier.size(PLAY_ICON_SIZE),
             )
-            current != null -> Text(
-                text  = current.timeRemainingString,
-                style = NSType.monoSmall(),
-                color = Color.White.copy(alpha = 0.3f),
-            )
-            next != null -> Text(
-                text  = next.startTimeString,
-                style = NSType.monoSmall(),
-                color = NSColors.accent.copy(alpha = 0.7f),
+            current == null && next != null -> Text(
+                text     = next.startTimeString,
+                style    = NSType.monoSmall(),
+                color    = NSColors.accent.copy(alpha = 0.7f),
+                maxLines = 1,
+                modifier = Modifier.wrapContentWidth(Alignment.End),
             )
         }
     }
