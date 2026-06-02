@@ -82,6 +82,7 @@ fun PlayerControlsOverlay(
     val controlsVisible by playerViewModel.controlsVisible.collectAsState()
     val isPlaying       by playerViewModel.isPlaying.collectAsState()
     val isMuted         by playerViewModel.isMuted.collectAsState()
+    val videoQuality    by playerViewModel.videoQuality.collectAsState()
 
     AnimatedVisibility(
         visible  = controlsVisible,
@@ -124,7 +125,9 @@ fun PlayerControlsOverlay(
                         )
                     }
                     NSLiveBadge(isLive = LiveEligibility.isLive(channel, programme))
-                    QualityBadge(label = "HD")
+                    videoQuality?.let { quality ->
+                        QualityBadge(label = quality)
+                    }
                     ControlButton(
                         icon               = Icons.Default.Close,
                         contentDescription = "Stop",

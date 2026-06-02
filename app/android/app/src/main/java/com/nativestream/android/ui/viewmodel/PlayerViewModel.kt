@@ -16,6 +16,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -61,6 +62,7 @@ class PlayerViewModel @Inject constructor(
                 if (state == Player.STATE_READY) {
                     _playerError.value = null
                     retryCount = 0
+                    _videoQuality.value = mapHeightToQuality(player.videoSize.height)
                 }
             }
 
@@ -68,8 +70,13 @@ class PlayerViewModel @Inject constructor(
                 _isPlaying.value = isPlaying
             }
 
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                _videoQuality.value = mapHeightToQuality(videoSize.height)
+            }
+
             override fun onPlayerError(error: PlaybackException) {
                 Log.e(TAG, "Playback error: ${error.message}")
+                _videoQuality.value = null
                 scheduleRetry()
             }
         })
@@ -105,6 +112,9 @@ class PlayerViewModel @Inject constructor(
     private val _resizeMode = MutableStateFlow(AspectRatioFrameLayout.RESIZE_MODE_FIT)
 
     val resizeMode: StateFlow<Int> = _resizeMode.asStateFlow()
+
+    private val _videoQuality = MutableStateFlow<String?>(null)
+    val videoQuality: StateFlow<String?> = _videoQuality.asStateFlow()
 
     // ── Retry state ───────────────────────────────────────────────────────────
 
@@ -284,6 +294,16 @@ class PlayerViewModel @Inject constructor(
 
     fun toggleSidebar() {
         _sidebarVisible.value = !_sidebarVisible.value
+    }
+
+    private fun mapHeightToQuality(height: Int): String? {
+        return when {
+            height >= 2160 -> "4K"
+            height >= 1080 -> "FHD"
+            height >= 720  -> "HD"
+            height > 0     -> "SD"
+            else           -> null // Unknown or audio-only
+        }
     }
 
 }
