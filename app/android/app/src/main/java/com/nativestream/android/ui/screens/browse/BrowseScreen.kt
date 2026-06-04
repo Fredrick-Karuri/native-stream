@@ -16,12 +16,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -132,7 +137,11 @@ fun BrowseScreen(
         if (selectedGroup != null) sorted.filter { it.name == selectedGroup } else sorted
     }
     Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
+        Column(
+            modifier = modifier
+            .fillMaxSize()
+            .background(NSColors.bg)
+        ) {
 
             // ── Top bar — mobile style: title + search icon ───────────────────────
             BrowseTopBar(
@@ -207,21 +216,16 @@ private fun BrowseTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(NSColors.surface)
+            .windowInsetsPadding(WindowInsets.displayCutout)
             .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
     ) {
         if (searchActive) {
-            NSTextField(
-                value         = searchText,
-                onValueChange = onSearchChange,
-                placeholder   = "Search channels…",
-                modifier      = Modifier.weight(1f),
+            BrowseSearchBar(
+                searchText     = searchText,
+                onSearchChange = onSearchChange,
+                onSearchClose  = onSearchClose,
             )
-            Spacer(modifier = Modifier.width(dimens.spacing.sm))
-            NSIconButton(
-                icon               = Icons.Default.Close,
-                contentDescription = "Close search",
-                onClick            = onSearchClose,
-            )
+            Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
         } else {
             Text(text = "Browse", style = NSType.heading(), color = NSColors.text)
             Spacer(modifier = Modifier.weight(1f))
@@ -441,6 +445,35 @@ fun NSChip(
             text  = label,
             style = NSType.caption(),
             color = if (isActive) NSColors.accent2 else NSColors.text3,
+        )
+    }
+}
+
+@Composable
+private fun BrowseSearchBar(
+    searchText: String,
+    onSearchChange: (String) -> Unit,
+    onSearchClose: () -> Unit,
+) {
+    val dimens = NSDimens.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(NSColors.surface)
+            .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
+    ) {
+        NSTextField(
+            value         = searchText,
+            onValueChange = onSearchChange,
+            placeholder   = "Search channels…",
+            modifier      = Modifier.weight(1f),
+        )
+        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+        NSIconButton(
+            icon               = Icons.Default.Close,
+            contentDescription = "Close search",
+            onClick            = onSearchClose,
         )
     }
 }

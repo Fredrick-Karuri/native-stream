@@ -60,6 +60,7 @@ data class NSBadgeTokens(
 
 data class NSIconButtonTokens(
     val small: Dp,
+    val medium:Dp,
     val large: Dp,
 )
 
@@ -186,6 +187,7 @@ private fun buildDimens(scale: Float): NSDimensTokens {
         ),
         iconButton = NSIconButtonTokens(
             small = dp(22f),
+            medium = dp(27f),
             large = dp(32f),
         ),
         toggle = NSToggleTokens(

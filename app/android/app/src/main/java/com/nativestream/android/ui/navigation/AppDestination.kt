@@ -1,7 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/navigation/AppDestination.kt
 //
-// NS-008: App Navigation Destinations
-// Sealed hierarchy mirroring AppDestination from SportNavRail.swift.
+// App Navigation Destinations
 // Used by NavHost and bottom navigation bar.
 
 package com.nativestream.android.ui.navigation

@@ -99,7 +99,7 @@ fun NSIconButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    size: Dp          = NSDimens.current.iconButton.small,
+    size: Dp          = NSDimens.current.iconButton.medium,
     isDark: Boolean   = false,
     modifier: Modifier = Modifier,
 ) {
