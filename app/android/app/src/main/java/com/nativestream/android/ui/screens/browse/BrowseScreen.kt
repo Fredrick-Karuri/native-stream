@@ -45,12 +45,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.adamglin.phosphoricons.RegularGroup
 import com.adamglin.phosphoricons.regular.Basketball
 import com.adamglin.phosphoricons.regular.Football
 import com.adamglin.phosphoricons.regular.Cricket
 import com.adamglin.phosphoricons.regular.Golf
 import com.adamglin.phosphoricons.regular.SoccerBall
+import com.adamglin.phosphoricons.regular.Star
 import com.adamglin.phosphoricons.regular.TennisBall
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.SportCategory
@@ -89,6 +91,9 @@ fun BrowseScreen(
     var searchActive by remember { mutableStateOf(false) }
     var searchText   by remember { mutableStateOf("") }
 
+    var showFavouritesOnly by remember { mutableStateOf(false) }
+    val favouriteIds by favouritesViewModel.favouriteIds.collectAsState()
+
     // Groups from playlist
     val groups = remember(channels) {
         channels.map { it.groupTitle }.distinct().sorted()
@@ -103,7 +108,7 @@ fun BrowseScreen(
 
 
     // Filtered channels
-    val filtered = remember(channels, selectedGroup, selectedSport, searchText) {
+    val filtered = remember(channels, selectedGroup, selectedSport, searchText, showFavouritesOnly, favouriteIds) {
         channels
             .filter { if (selectedGroup != null) it.groupTitle == selectedGroup else true }
             .filter { if (selectedSport != null) {
@@ -112,6 +117,7 @@ fun BrowseScreen(
             } else true }
             .filter { if (searchText.isNotEmpty())
                 it.name.contains(searchText, ignoreCase = true) else true }
+            .filter { if (showFavouritesOnly) favouriteIds.contains(it.id) else true }
     }
 
     val groupedSections = remember(filtered, selectedGroup) {
@@ -138,10 +144,12 @@ fun BrowseScreen(
                 selectedGroup = selectedGroup,
                 activeSports  = activeSports,
                 selectedSport = selectedSport,
-                onSelectAll   = { selectedGroup = null; selectedSport = null },
-                onSelectGroup = { selectedGroup = it },
+                onSelectAll   = { selectedGroup = null; selectedSport = null; showFavouritesOnly = false },
+                onSelectGroup = { selectedGroup = it; selectedSport = null; showFavouritesOnly = false },
                 onSelectSport = { selectedSport = it },
-            )
+                showFavouritesOnly  = showFavouritesOnly,
+                onToggleFavourites = { if (!showFavouritesOnly) { showFavouritesOnly = true; selectedGroup = null; selectedSport = null } },
+                )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
             when {
                 isLoading          -> BrowseLoadingView()
@@ -242,6 +250,8 @@ private fun BrowseChipsRow(
     onSelectAll: () -> Unit,
     onSelectGroup: (String) -> Unit,
     onSelectSport: (SportCategory?) -> Unit,
+    showFavouritesOnly: Boolean,
+    onToggleFavourites: () -> Unit,
 ) {
     val dimens = NSDimens.current
     Column(
@@ -257,7 +267,17 @@ private fun BrowseChipsRow(
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
         ) {
-            NSChip(label = "All", isActive = selectedGroup == null, onClick = onSelectAll)
+            NSChip(
+                label = "All",
+                isActive = selectedGroup == null && !showFavouritesOnly,
+                onClick = onSelectAll
+            )
+            NSChip(
+                label    = "Favourites",
+                isActive = showFavouritesOnly,
+                icon     = Regular.Star,
+                onClick  = onToggleFavourites,
+            )
             groups.forEach { group ->
                 NSChip(
                     label    = group,
@@ -374,19 +394,37 @@ private fun BrowseEmptyView(searchText: String) {
 }
 
 @Composable
-fun NSChip(label: String, isActive: Boolean, onClick: () -> Unit) {
+fun NSChip(
+    label: String,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+) {
     val dimens = NSDimens.current
-    Text(
-        text  = label,
-        style = NSType.caption(),
-        color = if (isActive) NSColors.accent2 else NSColors.text3,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.xs),
         modifier = Modifier
             .clip(RoundedCornerShape(dimens.radius.pill))
             .background(if (isActive) NSColors.accentGlow else NSColors.surface2)
             .border(0.5.dp, if (isActive) NSColors.accentBorder else NSColors.border, RoundedCornerShape(dimens.radius.pill))
             .clickable(onClick = onClick)
             .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
-    )
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector        = icon,
+                contentDescription = null,
+                tint               = if (isActive) NSColors.accent2 else NSColors.text3,
+                modifier           = Modifier.size(12.dp),
+            )
+        }
+        Text(
+            text  = label,
+            style = NSType.caption(),
+            color = if (isActive) NSColors.accent2 else NSColors.text3,
+        )
+    }
 }
 
 // ── Sport icon mapping ────────────────────────────────────────────────────────
