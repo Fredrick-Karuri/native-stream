@@ -1,6 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/screens/browse/AddChannelSheet.kt
 //
-// Bottom sheet triggered from Browse FAB:
+// Bottom sheet triggered from Browse :
 //   - Fields: Stream URL (required), Name (required), Group, TVG ID
 //   - Validation prevents empty submit
 //   - Inline error display on failure

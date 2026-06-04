@@ -46,6 +46,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import com.adamglin.phosphoricons.RegularGroup
 import com.adamglin.phosphoricons.regular.Basketball
 import com.adamglin.phosphoricons.regular.Football
@@ -57,6 +60,7 @@ import com.adamglin.phosphoricons.regular.TennisBall
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.SportCategory
 import com.nativestream.android.ui.components.NSGroupHeader
+import com.nativestream.android.ui.components.NSIconButton
 import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
@@ -93,6 +97,8 @@ fun BrowseScreen(
 
     var showFavouritesOnly by remember { mutableStateOf(false) }
     val favouriteIds by favouritesViewModel.favouriteIds.collectAsState()
+
+    var showPlayUrl by remember { mutableStateOf(false) }
 
     // Groups from playlist
     val groups = remember(channels) {
@@ -135,6 +141,8 @@ fun BrowseScreen(
                 onSearchClick = { searchActive = true },
                 onSearchChange = { searchText = it },
                 onSearchClose  = { searchActive = false; searchText = "" },
+                onPlayUrl    = { showPlayUrl = true },
+                onAddChannel = { showAddChannel = true },
             )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
@@ -163,19 +171,6 @@ fun BrowseScreen(
             }
         }
 
-
-        var showPlayUrl by remember { mutableStateOf(false) }
-
-        FloatingActionButton(
-            onClick = { showPlayUrl = true },
-            containerColor = NSColors.accent,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = 80.dp, end = 16.dp), // above bottom nav
-        ) {
-            Icon(Icons.Default.PlayArrow, contentDescription = "Play URL", tint = NSColors.bg)
-        }
-
         if (showPlayUrl) {
             PlayURLSheet(
                 playerViewModel = playerViewModel,
@@ -202,8 +197,11 @@ private fun BrowseTopBar(
     onSearchClick: () -> Unit,
     onSearchChange: (String) -> Unit,
     onSearchClose: () -> Unit,
+    onPlayUrl: () -> Unit,
+    onAddChannel: () -> Unit,
 ) {
     val dimens = NSDimens.current
+    var menuExpanded by remember { mutableStateOf(false) }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -219,23 +217,43 @@ private fun BrowseTopBar(
                 modifier      = Modifier.weight(1f),
             )
             Spacer(modifier = Modifier.width(dimens.spacing.sm))
-            Icon(
-                imageVector        = Icons.Default.Close,
+            NSIconButton(
+                icon               = Icons.Default.Close,
                 contentDescription = "Close search",
-                tint               = NSColors.text2,
-                modifier           = Modifier.size(20.dp).clickable {
-                    onSearchClose()
-                },
+                onClick            = onSearchClose,
             )
         } else {
             Text(text = "Browse", style = NSType.heading(), color = NSColors.text)
             Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                imageVector        = Icons.Default.Search,
-                contentDescription = "Search",
-                tint               = NSColors.text2,
-                modifier           = Modifier.size(20.dp).clickable(onClick = onSearchClick),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NSIconButton(
+                    icon               = Icons.Default.Search,
+                    contentDescription = "Search",
+                    onClick            = onSearchClick,
+                )
+                Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                Box {
+                    NSIconButton(
+                        icon               = Icons.Default.MoreVert,
+                        contentDescription = "More",
+                        onClick            = { menuExpanded = true },
+                    )
+                    DropdownMenu(
+                        expanded         = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        containerColor   = NSColors.surface2,
+                    ) {
+                        DropdownMenuItem(
+                            text    = { Text("Play URL", style = NSType.caption(), color = NSColors.text) },
+                            onClick = { menuExpanded = false; onPlayUrl() },
+                        )
+                        DropdownMenuItem(
+                            text    = { Text("Add Channel", style = NSType.caption(), color = NSColors.text) },
+                            onClick = { menuExpanded = false; onAddChannel() },
+                        )
+                    }
+                }
+            }
         }
     }
 }
