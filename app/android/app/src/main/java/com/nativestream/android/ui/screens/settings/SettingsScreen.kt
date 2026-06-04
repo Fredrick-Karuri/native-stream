@@ -128,7 +128,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .background(NSColors.surface)
                     .windowInsetsPadding(WindowInsets.displayCutout)
-                    .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
+                    .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.lg)
             ) {
                 Text(text = "Settings", style = NSType.heading(), color = NSColors.text)
             }

@@ -23,8 +23,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -48,8 +51,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -198,7 +199,6 @@ fun BrowseScreen(
 }
 
 // ── Top bar ───────────────────────────────────────────────────────────────────
-
 @Composable
 private fun BrowseTopBar(
     searchActive: Boolean,
@@ -211,22 +211,19 @@ private fun BrowseTopBar(
 ) {
     val dimens = NSDimens.current
     var menuExpanded by remember { mutableStateOf(false) }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(NSColors.surface)
-            .windowInsetsPadding(WindowInsets.displayCutout)
-            .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
+            .windowInsetsPadding(WindowInsets.displayCutout),
     ) {
-        if (searchActive) {
-            BrowseSearchBar(
-                searchText     = searchText,
-                onSearchChange = onSearchChange,
-                onSearchClose  = onSearchClose,
-            )
-            Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
-        } else {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
+        ) {
             Text(text = "Browse", style = NSType.heading(), color = NSColors.text)
             Spacer(modifier = Modifier.weight(1f))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -258,6 +255,18 @@ private fun BrowseTopBar(
                     }
                 }
             }
+        }
+
+        AnimatedVisibility(
+            visible = searchActive,
+            enter   = fadeIn() + expandVertically(),
+            exit    = fadeOut() + shrinkVertically(),
+        ) {
+            BrowseSearchBar(
+                searchText     = searchText,
+                onSearchChange = onSearchChange,
+                onSearchClose  = onSearchClose,
+            )
         }
     }
 }
