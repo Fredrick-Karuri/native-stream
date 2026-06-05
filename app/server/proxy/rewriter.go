@@ -9,49 +9,40 @@ import (
 	"strings"
 )
 
-func (p *Proxy) rewritePlaylist(body, baseURL, channelID string) string {
+func (p *Proxy) rewritePlaylist(body, baseURL, channelID string, headers map[string]string) string {
 	lines := strings.Split(body, "\n")
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
 			continue
 		}
-
-		// 1. Intercept pre-signed AWS URLs inside complex HLS metadata tags
 		if strings.HasPrefix(trimmed, "#") && strings.Contains(trimmed, `URI="`) {
-			lines[i] = p.proxySecureURIAttr(trimmed, channelID, baseURL)
+			lines[i] = p.proxySecureURIAttr(trimmed, channelID, baseURL, headers)
 			continue
 		}
-
-		// 2. Catch standard plain segment lines if they appear
 		if !strings.HasPrefix(trimmed, "#") {
-			lines[i] = p.wrapURLInProxy(trimmed, channelID, baseURL)
+			lines[i] = p.wrapURLInProxy(trimmed, channelID, baseURL, headers)
 		}
 	}
-
 	return strings.Join(lines, "\n")
 }
 
-func (p *Proxy) proxySecureURIAttr(line string, channelID, baseURL string) string {
+func (p *Proxy) proxySecureURIAttr(line, channelID, baseURL string, headers map[string]string) string {
 	start := strings.Index(line, `URI="`)
 	if start == -1 {
 		return line
 	}
 	start += 5
-
 	end := strings.Index(line[start:], `"`)
 	if end == -1 {
 		return line
 	}
-
 	rawURI := line[start : start+end]
-	proxiedURI := p.wrapURLInProxy(rawURI, channelID, baseURL)
-	
+	proxiedURI := p.wrapURLInProxy(rawURI, channelID, baseURL, headers)
 	return line[:start] + proxiedURI + line[start+end:]
 }
 
-func (p *Proxy) wrapURLInProxy(targetURL string, channelID, baseURL string) string {
-	// Resolve relative paths into absolute URLs first
+func (p *Proxy) wrapURLInProxy(targetURL, channelID, baseURL string, headers map[string]string) string {
 	if !strings.HasPrefix(targetURL, "http://") && !strings.HasPrefix(targetURL, "https://") {
 		if base, err := url.Parse(baseURL); err == nil {
 			if ref, err := url.Parse(targetURL); err == nil {
@@ -60,7 +51,6 @@ func (p *Proxy) wrapURLInProxy(targetURL string, channelID, baseURL string) stri
 		}
 	}
 
-	// 🟢 DETERMINISTIC FIXED INDEX: Hash only the clean URL path to extract a stable unique ID
 	u, err := url.Parse(targetURL)
 	var lookupKey string
 	if err == nil {
@@ -71,9 +61,6 @@ func (p *Proxy) wrapURLInProxy(targetURL string, channelID, baseURL string) stri
 		lookupKey = hex.EncodeToString(hash[:])
 	}
 
-	// Register the long signed link into our server map using the stable hash key
-	p.cacheTargetURL(lookupKey, targetURL)
-	
-	// Appends a clean, deterministic path token that scales predictably
+	p.cacheSegment(lookupKey, targetURL, headers)
 	return fmt.Sprintf("/stream/%s/proxy/seg/%s.ts", channelID, lookupKey)
 }

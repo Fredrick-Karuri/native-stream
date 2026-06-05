@@ -1,4 +1,4 @@
-// discovery/matcher.go — NS-204
+// discovery/matcher.go
 // Matches candidate links to channels using keyword sets.
 
 package discovery

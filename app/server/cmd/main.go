@@ -1,4 +1,4 @@
-// cmd/main.go — Phase 4: hardened with slog, circuit breaker, graceful shutdown.
+// cmd/main.go — hardened with slog, circuit breaker, graceful shutdown.
 
 package main
 
@@ -123,12 +123,22 @@ func main() {
 		}
 	}
 
+	// DirectFetchers — pre-resolved candidates, bypass extractor
+	var directFetchers []discovery.DirectFetcher
+	if cfg.Discovery.LocalScriptPath != "" {
+		lsc := crawlers.NewLocalScriptCrawler(cfg.Discovery.LocalScriptPath)
+		directFetchers = append(directFetchers, lsc)
+		slog.Info("direct fetcher enabled", "name", "local-script-crawler", "path", cfg.Discovery.LocalScriptPath)
+	}
+
 	matcher := discovery.NewMatcher(s)
 	discEngine := discovery.NewEngine(discovery.Config{
 		Enabled:          cfg.Discovery.Enabled,
 		DefaultInterval:  cfg.Discovery.DefaultInterval,
 		PriorityInterval: cfg.Discovery.PriorityInterval,
 	}, crawlerList, matcher, v)
+
+	discEngine.WithDirectFetchers(directFetchers) 
 
 	// ── API ────────────────────────────────────────────────────────────────────
 	serverAddr := fmt.Sprintf("http://%s", cfg.Server.Addr())

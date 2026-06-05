@@ -1,4 +1,4 @@
-// store/store.go — NS-101, NS-102, NS-103
+// store/store.go
 // In-memory channel store with JSON snapshot persistence and auto-snapshotting.
 
 package store
@@ -29,6 +29,7 @@ type LinkScore struct {
 	URL          string    `json:"url"`
 	ChannelID    string    `json:"channel_id"`
 	SourceURL    string    `json:"source_url"`
+	Headers        map[string]string `json:"headers,omitempty"`
 	Score        float64   `json:"score"`
 	LatencyMS    int64     `json:"latency_ms"`
 	EstBitrateKbps int     `json:"est_bitrate_kbps"`

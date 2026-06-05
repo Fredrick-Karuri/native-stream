@@ -1,4 +1,4 @@
-// service/service.go — NS-170
+// service/service.go
 // Installs and removes a launchd plist so the server auto-starts on login.
 
 package service

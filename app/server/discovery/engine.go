@@ -1,4 +1,4 @@
-// discovery/engine.go — NS-202, NS-221, NS-222
+// discovery/engine.go
 // Orchestrates crawlers → extractor → matcher → validator pipeline.
 // Match-aware: escalates crawl priority for channels with imminent kickoffs.
 
@@ -30,6 +30,7 @@ type Config struct {
 type Engine struct {
 	cfg       Config
 	crawlers  []Crawler
+	directFetchers []DirectFetcher
 	extractor *LinkExtractor
 	matcher   *ChannelMatcher
 	validator *validator.Validator
@@ -64,6 +65,13 @@ func NewEngine(
 		e.sourceStates[c.Name()] = &SourceState{Name: c.Name()}
 	}
 	return e
+}
+
+func (e *Engine) WithDirectFetchers(fetchers []DirectFetcher) {
+	e.directFetchers = fetchers
+	for _, f := range fetchers {
+		e.sourceStates[f.Name()] = &SourceState{Name: f.Name()}
+	}
 }
 
 // Run starts the discovery loop. Blocks until ctx is cancelled.
@@ -187,7 +195,56 @@ func (e *Engine) runCycle(ctx context.Context) {
 			SourceURL: candidates[i].SourceURL,
 		})
 	}
+
+	// Direct fetchers — pre-resolved candidates, skip extractor
+	for _, df := range e.directFetchers {
+		direct, err := df.FetchDirect(ctx)
+
+		e.mu.Lock()
+		st := e.sourceStates[df.Name()]
+		if err != nil {
+			st.LastError = err.Error()
+			fmt.Fprintf(os.Stderr, "[discovery/%s] fetch error: %v\n", df.Name(), err)
+			e.mu.Unlock()
+			continue
+		}
+		st.LastFetch = time.Now()
+		st.LinksFound += len(direct)
+		st.LastError = ""
+		e.mu.Unlock()
+
+		for i := range direct {
+			channelID := e.matcher.Match(&CandidateLink{
+				URL:         direct[i].URL,
+				ContextText: direct[i].ChannelName + " " + direct[i].GroupTitle,
+				SourceURL:   direct[i].SourceURL,
+			})
+			if channelID == "" {
+				// store as unmatched using ChannelName as context
+				e.mu.Lock()
+				e.unmatched = append(e.unmatched, CandidateLink{
+					URL:         direct[i].URL,
+					ContextText: direct[i].ChannelName,
+					SourceURL:   direct[i].SourceURL,
+				})
+				if len(e.unmatched) > 200 {
+					e.unmatched = e.unmatched[len(e.unmatched)-200:]
+				}
+				e.mu.Unlock()
+				continue
+			}
+			direct[i].ChannelID = channelID
+			e.validator.Submit(validator.Candidate{
+				URL:       direct[i].URL,
+				ChannelID: channelID,
+				SourceURL: direct[i].SourceURL,
+				Headers:   direct[i].Headers,
+			})
+		}
+	}
+
 }
+
 
 func (e *Engine) fetchAll(ctx context.Context) []RawItem {
 	var (

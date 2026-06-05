@@ -25,3 +25,11 @@ func injectHeaders(req *http.Request, r *http.Request, cfg Config) {
 		req.Header.Set("Range", rng)
 	}
 }
+
+// InjectFromMap sets per-link headers onto req, overriding static config
+// values where both define the same key (e.g. per-stream User-Agent).
+func InjectFromMap(req *http.Request, headers map[string]string) {
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+}

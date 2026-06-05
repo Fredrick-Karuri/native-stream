@@ -36,3 +36,7 @@ app/android/local.properties
 app/android/**/*.hprof
 app/android/.gradle/
 app/android/.idea/
+
+# Private local script — never commit
+crawlers/*.py
+*.local.py

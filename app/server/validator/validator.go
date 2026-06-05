@@ -1,4 +1,4 @@
-// validator/validator.go — NS-111, NS-112, NS-113, NS-114
+// validator/validator.go
 // Link validator: scores stream URLs and promotes/quarantines based on health.
 
 package validator
@@ -41,6 +41,7 @@ type Candidate struct {
 	URL       string
 	ChannelID string
 	SourceURL string
+	Headers   map[string]string 
 }
 
 // ── Validator ─────────────────────────────────────────────────────────────────
@@ -152,6 +153,7 @@ func (v *Validator) probeCandidate(c Candidate) {
 		URL:          c.URL,
 		ChannelID:    c.ChannelID,
 		SourceURL:    c.SourceURL,
+		Headers:      c.Headers, 
 		DiscoveredAt: time.Now(),
 	}
 	v.probeAndUpdate(link)
@@ -161,6 +163,7 @@ func (v *Validator) probeAndUpdate(link *store.LinkScore) {
 	scored := v.measure(link.URL)
 	scored.ChannelID = link.ChannelID
 	scored.SourceURL = link.SourceURL
+	scored.Headers = link.Headers 
 	scored.DiscoveredAt = link.DiscoveredAt
 	scored.URL = link.URL
 

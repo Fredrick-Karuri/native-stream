@@ -1,4 +1,4 @@
-// config/config.go — NS-150
+// config/config.go
 // Loads server configuration from ~/.config/nativestream/config.yaml
 // Uses stdlib only — no third-party dependencies.
 
@@ -74,6 +74,7 @@ type DiscoveryConfig struct {
 	Subreddits       []string
 	TelegramChannels []string
 	DirectM3UURLs    []string
+	LocalScriptPath  string
 }
 
 type SeedConfig struct {
@@ -141,6 +142,10 @@ type rawConfig struct {
 			Enabled bool     `yaml:"enabled"`
 			URLs    []string `yaml:"urls"`
 		} `yaml:"direct_m3u"`
+		LocalScript struct {
+			Enabled bool   `yaml:"enabled"`
+			Path    string `yaml:"path"`
+		} `yaml:"local_script"`
 	} `yaml:"discovery"`
 	Seed struct {
 		M3UPath string `yaml:"m3u_path"`
@@ -292,6 +297,9 @@ func applyDiscovery(cfg *Config, raw *rawConfig) {
 	}
 	if raw.Discovery.DirectM3U.Enabled {
 		cfg.Discovery.DirectM3UURLs = raw.Discovery.DirectM3U.URLs
+	}
+	if raw.Discovery.LocalScript.Enabled {
+    	cfg.Discovery.LocalScriptPath = raw.Discovery.LocalScript.Path
 	}
 }
 
