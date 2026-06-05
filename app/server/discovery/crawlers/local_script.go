@@ -46,8 +46,10 @@ func (c *LocalScriptCrawler) FetchDirect(ctx context.Context) ([]discovery.Direc
 	execCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(execCtx, "python3", c.ScriptPath)
+	cmd := exec.CommandContext(execCtx, "/bin/bash", c.ScriptPath)
+	cmd.Env = os.Environ()
 	out, err := cmd.Output()
+
 	if err != nil {
 		return nil, fmt.Errorf("local-script-crawler exec: %w", err)
 	}

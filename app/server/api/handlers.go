@@ -1,4 +1,4 @@
-// api/handlers.go — NS-121, NS-122, NS-123, NS-124, NS-125
+// api/handlers.go
 // HTTP API: playlist, EPG, channel management, health, probe endpoints.
 
 package api
