@@ -42,8 +42,8 @@ func (c *LocalScriptCrawler) FetchDirect(ctx context.Context) ([]discovery.Direc
 		return nil, nil
 	}
 
-	// subprocess with 15 s hard deadline
-	execCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	// subprocess with hard deadline
+	execCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 
 	cmd := exec.CommandContext(execCtx, "/bin/bash", c.ScriptPath)

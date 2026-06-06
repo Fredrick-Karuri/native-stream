@@ -46,3 +46,32 @@ func (m *ChannelMatcher) Match(link *CandidateLink) string {
 
 	return ""
 }
+
+func (m *ChannelMatcher) AutoRegister(candidate DirectCandidate) string {
+	id := slugify(candidate.ChannelName)
+	if id == "" {
+		return ""
+	}
+
+	// Don't duplicate if already registered
+	if ch := m.store.Get(id); ch != nil {
+		return ch.ID
+	}
+
+	ch := &store.Channel{
+		ID:         id,
+		Name:       candidate.ChannelName,
+		GroupTitle: candidate.GroupTitle,
+		TvgID:      candidate.TvgID,
+		LogoURL:    candidate.LogoURL,
+		Keywords:   []string{strings.ToLower(candidate.ChannelName)},
+	}
+	m.store.Add(ch)
+	return id
+}
+
+func slugify(name string) string {
+	name = strings.ToLower(strings.TrimSpace(name))
+	words := strings.Fields(name)
+	return strings.Join(words, "-")
+}

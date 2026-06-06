@@ -219,19 +219,30 @@ func (e *Engine) runCycle(ctx context.Context) {
 				ContextText: direct[i].ChannelName + " " + direct[i].GroupTitle,
 				SourceURL:   direct[i].SourceURL,
 			})
+
+			// with this:
 			if channelID == "" {
-				// store as unmatched using ChannelName as context
-				e.mu.Lock()
-				e.unmatched = append(e.unmatched, CandidateLink{
-					URL:         direct[i].URL,
-					ContextText: direct[i].ChannelName,
-					SourceURL:   direct[i].SourceURL,
-				})
-				if len(e.unmatched) > 200 {
-					e.unmatched = e.unmatched[len(e.unmatched)-200:]
+				if direct[i].ChannelName != "" {
+					newID := e.matcher.AutoRegister(direct[i])
+					if newID != "" {
+						channelID = newID
+					} else {
+						// fallback: still track as unmatched
+						e.mu.Lock()
+						e.unmatched = append(e.unmatched, CandidateLink{
+							URL:         direct[i].URL,
+							ContextText: direct[i].ChannelName,
+							SourceURL:   direct[i].SourceURL,
+						})
+						if len(e.unmatched) > 200 {
+							e.unmatched = e.unmatched[len(e.unmatched)-200:]
+						}
+						e.mu.Unlock()
+						continue
+					}
+				} else {
+					continue
 				}
-				e.mu.Unlock()
-				continue
 			}
 			direct[i].ChannelID = channelID
 			e.validator.Submit(validator.Candidate{

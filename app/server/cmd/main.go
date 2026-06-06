@@ -141,7 +141,12 @@ func main() {
 	discEngine.WithDirectFetchers(directFetchers) 
 
 	// ── API ────────────────────────────────────────────────────────────────────
-	serverAddr := fmt.Sprintf("http://%s", cfg.Server.Addr())
+
+	playbackHost := cfg.Server.Host
+	if playbackHost == "0.0.0.0" {
+		playbackHost = "127.0.0.1"
+	}
+	serverAddr := fmt.Sprintf("http://%s:%d", playbackHost, cfg.Server.Port)
 	h := api.New(s, e, px, v, proxyCfg, serverAddr)
 
 	mux := http.NewServeMux()
