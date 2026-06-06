@@ -109,12 +109,12 @@ fun PlayerScreen(
             AndroidView(
                 factory = { ctx ->
                     PlayerView(ctx).apply {
-                        player        = playerViewModel.exoPlayer
+                        player        = playerViewModel.player
                         useController = false
                     }
                 },
                 update   = { view ->
-                    view.player = playerViewModel.exoPlayer
+                    view.player = playerViewModel.player
                     view.resizeMode = resizeMode
                },
                 modifier = Modifier.fillMaxSize(),

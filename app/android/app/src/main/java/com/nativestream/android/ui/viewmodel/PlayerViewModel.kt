@@ -18,10 +18,13 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import android.content.ComponentName
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
+import com.nativestream.android.data.player.NativeStreamPlaybackService
 import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,6 +49,7 @@ private const val PIP_ASPECT_RATIO_DEN     = 9
 private val SCORE_REGEX                    = Regex("""(\d+)\s*[–\-]\s*(\d+)""")
 
 
+
 @OptIn(UnstableApi::class)
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
@@ -53,10 +57,31 @@ class PlayerViewModel @Inject constructor(
     private val apiClient: ApiClient,
 ) : AndroidViewModel(application) {
 
+    // ── Player (MediaController → service) ───────────────────────────────────
+    private var _player: Player? = null
+    val player: Player get() = _player!!
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+
+
     // ── ExoPlayer ─────────────────────────────────────────────────────────────
 
-    val exoPlayer: ExoPlayer = ExoPlayer.Builder(application).build().also { player ->
-        player.addListener(object : Player.Listener {
+    init {
+        val sessionToken = SessionToken(
+            application,
+            ComponentName(application, NativeStreamPlaybackService::class.java)
+        )
+        controllerFuture = MediaController.Builder(application, sessionToken)
+            .buildAsync()
+            .also { future ->
+                future.addListener({
+                    _player = future.get()          // MediaController IS-A Player, no cast needed
+                    _player!!.addListener(playerListener)
+                }, MoreExecutors.directExecutor())
+            }
+    }
+
+
+    private val playerListener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
                 _isPlaying.value = player.isPlaying
                 if (state == Player.STATE_READY) {
@@ -79,7 +104,7 @@ class PlayerViewModel @Inject constructor(
                 _videoQuality.value = null
                 scheduleRetry()
             }
-        })
+
     }
 
     // ── Public state ──────────────────────────────────────────────────────────
@@ -152,13 +177,13 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun togglePlayback() {
-        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-        _isPlaying.value = exoPlayer.isPlaying
+        if (player.isPlaying) player.pause() else player.play()
+        _isPlaying.value = player.isPlaying
     }
 
     fun toggleMute() {
         val muted = !_isMuted.value
-        exoPlayer.volume = if (muted) 0f else 1f
+        player.volume = if (muted) 0f else 1f
         _isMuted.value = muted
     }
 
@@ -170,7 +195,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun stop() {
-        exoPlayer.stop()
+        player.stop()
         _isPlayerVisible.value = false
         _isPlaying.value = false
         _activeChannel.value = null
@@ -202,17 +227,13 @@ class PlayerViewModel @Inject constructor(
 
     @OptIn(UnstableApi::class)
     private fun loadStream(channel: Channel) {
-        val dataSourceFactory = DefaultHttpDataSource.Factory().apply {
-            if (channel.streamHeaders.isNotEmpty()) {
-                setDefaultRequestProperties(channel.streamHeaders)
-            }
-        }
-        val mediaSource = HlsMediaSource.Factory(dataSourceFactory)
-            .createMediaSource(MediaItem.fromUri(channel.streamUrl))
-
-        exoPlayer.setMediaSource(mediaSource)
-        exoPlayer.prepare()
-        exoPlayer.play()
+        val p = _player ?: return
+        val mediaItem = MediaItem.Builder()
+            .setUri(channel.streamUrl)          // set URI directly on the item
+            .build()
+        p.setMediaItem(mediaItem)
+        p.prepare()
+        p.play()
     }
 
     // ── Retry logic (AND-022) ─────────────────────────────────────────────────
@@ -271,7 +292,7 @@ class PlayerViewModel @Inject constructor(
         super.onCleared()
         retryJob?.cancel()
         controlsHideJob?.cancel()
-        exoPlayer.release()
+        MediaController.releaseFuture(controllerFuture!!)
     }
 
 

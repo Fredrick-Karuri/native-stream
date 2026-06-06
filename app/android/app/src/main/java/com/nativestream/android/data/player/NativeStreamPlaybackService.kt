@@ -6,11 +6,12 @@ package com.nativestream.android.data.player
 
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class NativeStreamPlaybackService : MediaSessionService() {
@@ -18,6 +19,7 @@ class NativeStreamPlaybackService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
 
     override fun onCreate() {
+        val dataSourceFactory = DefaultHttpDataSource.Factory()
         super.onCreate()
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
@@ -25,11 +27,14 @@ class NativeStreamPlaybackService : MediaSessionService() {
             .build()
 
         val player = ExoPlayer.Builder(this)
-            .setAudioAttributes(audioAttributes, /* handleAudioFocus= */ true)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setAudioAttributes(audioAttributes, true)
             .setHandleAudioBecomingNoisy(true)
             .build()
 
-        mediaSession = MediaSession.Builder(this, player).build()
+        mediaSession = MediaSession.Builder(this, player)
+            .setCallback(MediaSessionCallback())
+            .build()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? =
