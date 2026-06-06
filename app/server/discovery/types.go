@@ -29,6 +29,7 @@ type CandidateLink struct {
 	ContextText    string // surrounding text used for channel matching
 	Found          time.Time
 	NeedsExpansion bool // true if URL is a .m3u that needs fetching and re-parsing
+	Headers        map[string]string 
 }
 
 // State tracks per-source discovery state (last seen timestamps etc).

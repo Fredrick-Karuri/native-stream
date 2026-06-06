@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync"
 	"time"
+	"strings"
 
 	"github.com/fredrick-karuri/nativestream/server/validator"
 )
@@ -176,9 +177,24 @@ func (e *Engine) runCycle(ctx context.Context) {
 	e.foundToday += len(candidates)
 	e.mu.Unlock()
 
-	// 4. Match to channels and submit to validator
+		// 4. Match to channels and submit to validator
 	for i := range candidates {
-		channelID := e.matcher.Match(&candidates[i])
+		var channelID string
+
+		// Express Lane Bypass [NS-305]: Identify if the item comes from your local script
+		if candidates[i].SourceURL == "/Users/fredrickkaruri/.config/nativestream/run_scraper.sh" {
+			// Auto-generate a clean, distinct database channel token key mapping on the fly
+			cleanName := candidates[i].ContextText
+			if cleanName == "" {
+				cleanName = "direct-stream-track"
+			}
+			cleanName = strNormalize(cleanName)
+			channelID = "direct-" + cleanName
+		} else {
+			// Default public loop fallback path
+			channelID = e.matcher.Match(&candidates[i])
+		}
+
 		if channelID == "" {
 			e.mu.Lock()
 			e.unmatched = append(e.unmatched, candidates[i])
@@ -188,13 +204,18 @@ func (e *Engine) runCycle(ctx context.Context) {
 			e.mu.Unlock()
 			continue
 		}
+
 		candidates[i].ChannelID = channelID
+		
+		// Submit to the active Validator probers with your custom headers attached!
 		e.validator.Submit(validator.Candidate{
 			URL:       candidates[i].URL,
 			ChannelID: channelID,
 			SourceURL: candidates[i].SourceURL,
+			Headers:   candidates[i].Headers, // FIX: Pass headers forward into validation engine context
 		})
 	}
+
 
 	// Direct fetchers — pre-resolved candidates, skip extractor
 	for _, df := range e.directFetchers {
@@ -224,6 +245,8 @@ func (e *Engine) runCycle(ctx context.Context) {
 			if channelID == "" {
 				if direct[i].ChannelName != "" {
 					newID := e.matcher.AutoRegister(direct[i])
+					fmt.Fprintf(os.Stderr, "[engine] AutoRegister name=%s id=%s\n", direct[i].ChannelName, newID)
+
 					if newID != "" {
 						channelID = newID
 					} else {
@@ -307,4 +330,29 @@ func deduplicate(links []CandidateLink) []CandidateLink {
 		}
 	}
 	return out
+}
+
+func strNormalize(s string) string {
+	s = jsonNormalizeLower(s)
+	var out []rune
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+			out = append(out, r)
+		} else if r == ' ' || r == '|' || r == '_' {
+			out = append(out, '-')
+		}
+	}
+	return string(out)
+}
+
+func jsonNormalizeLower(s string) string {
+	var sb strings.Builder
+	for _, r := range s {
+		if r >= 'A' && r <= 'Z' {
+			sb.WriteRune(r + 32)
+		} else {
+			sb.WriteRune(r)
+		}
+	}
+	return sb.String()
 }

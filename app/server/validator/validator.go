@@ -160,7 +160,7 @@ func (v *Validator) probeCandidate(c Candidate) {
 }
 
 func (v *Validator) probeAndUpdate(link *store.LinkScore) {
-	scored := v.measure(link.URL)
+	scored := v.measure(link.URL, link.Headers)
 	scored.ChannelID = link.ChannelID
 	scored.SourceURL = link.SourceURL
 	scored.Headers = link.Headers 
@@ -176,7 +176,7 @@ func (v *Validator) probeAndUpdate(link *store.LinkScore) {
 }
 
 // measure performs the actual HTTP probe and returns a scored LinkScore.
-func (v *Validator) measure(url string) *store.LinkScore {
+func (v *Validator) measure(url string, headers map[string]string) *store.LinkScore {
 	link := &store.LinkScore{
 		URL:         url,
 		LastChecked: time.Now(),
@@ -198,6 +198,10 @@ func (v *Validator) measure(url string) *store.LinkScore {
 	if v.origin != "" {
 		req.Header.Set("Origin", v.origin)
 	}
+    // Override with per-link headers
+    for k, val := range headers {
+        req.Header.Set(k, val)
+    }
 
 	resp, err := v.client.Do(req)
 	latency := time.Since(start)
@@ -215,7 +219,7 @@ func (v *Validator) measure(url string) *store.LinkScore {
 
 	bitrate := 0
 	if reachability > 0 {
-		bitrate = v.estimateBitrate(url)
+		bitrate = v.estimateBitrate(url,headers)
 	}
 
 	link.EstBitrateKbps = bitrate
@@ -223,7 +227,7 @@ func (v *Validator) measure(url string) *store.LinkScore {
 	return link
 }
 
-func (v *Validator) estimateBitrate(url string) int {
+func (v *Validator) estimateBitrate(url string,headers map[string]string) int {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return 0
@@ -238,6 +242,9 @@ func (v *Validator) estimateBitrate(url string) int {
 	if v.origin != "" {
 		req.Header.Set("Origin", v.origin)
 	}
+    for k, val := range headers {
+        req.Header.Set(k, val)
+    }
 
 	start := time.Now()
 	resp, err := v.client.Do(req)

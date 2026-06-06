@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"os"
+	"fmt"
 
 	"github.com/fredrick-karuri/nativestream/server/store"
 )
@@ -111,6 +113,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	injectHeaders(req, r, p.cfg)
 	InjectFromMap(req, ch.ActiveLink.Headers)
+	fmt.Fprintf(os.Stderr, "[proxy] url=%s headers=%v\n", targetURL, req.Header)
 
 	resp, err := p.client.Do(req)
 	if err != nil {
