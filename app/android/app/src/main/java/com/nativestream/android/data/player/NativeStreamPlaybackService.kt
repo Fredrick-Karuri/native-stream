@@ -4,6 +4,8 @@
 
 package com.nativestream.android.data.player
 
+import android.app.PendingIntent
+import android.content.Intent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
@@ -12,6 +14,7 @@ import androidx.media3.session.MediaSessionService
 import dagger.hilt.android.AndroidEntryPoint
 
 import androidx.media3.common.util.UnstableApi
+import com.nativestream.android.MainActivity
 
 @AndroidEntryPoint
 class NativeStreamPlaybackService : MediaSessionService() {
@@ -34,6 +37,16 @@ class NativeStreamPlaybackService : MediaSessionService() {
 
         mediaSession = MediaSession.Builder(this, player)
             .setCallback(MediaSessionCallback())
+            .setSessionActivity(
+                PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    },
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                )
+            )
             .build()
     }
 
