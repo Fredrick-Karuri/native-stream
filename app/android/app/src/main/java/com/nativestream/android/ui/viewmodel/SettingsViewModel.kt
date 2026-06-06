@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.util.Log
+import kotlinx.coroutines.flow.map
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -36,6 +37,10 @@ class SettingsViewModel @Inject constructor(
 
     val onboardingComplete: StateFlow<Boolean> = settingsDataStore.onboardingComplete
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val isLoading: StateFlow<Boolean> = settingsDataStore.onboardingComplete
+        .map { false }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     fun setServerUrl(url: String) {
         viewModelScope.launch {

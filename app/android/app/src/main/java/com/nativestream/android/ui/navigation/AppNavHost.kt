@@ -11,13 +11,18 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -34,6 +39,7 @@ import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
 import com.nativestream.android.ui.viewmodel.CastViewModel
+import com.nativestream.android.R
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
@@ -46,14 +52,18 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val hasActiveChannel by playerViewModel.hasActiveChannel.collectAsState()
 
     val isPlayerVisible     by playerViewModel.isPlayerVisible.collectAsState()
-    val onboardingComplete  by settingsViewModel.onboardingComplete.collectAsState()
+    val isLoading by settingsViewModel.isLoading.collectAsState()
+    val onboardingComplete by settingsViewModel.onboardingComplete.collectAsState()
 
     // Show onboarding until complete
+    if (isLoading) {
+        return
+    }
+
     if (!onboardingComplete) {
         OnboardingScreen(onComplete = { settingsViewModel.setOnboardingComplete(true) })
         return
     }
-
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             NavHost(
