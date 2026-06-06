@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import org.json.JSONObject
 import javax.inject.Inject
 
 private const val TAG = "PlayerViewModel"
@@ -228,8 +229,13 @@ class PlayerViewModel @Inject constructor(
     @OptIn(UnstableApi::class)
     private fun loadStream(channel: Channel) {
         val p = _player ?: return
+        val headersJson = if (channel.streamHeaders.isNotEmpty())
+            JSONObject(channel.streamHeaders).toString()
+        else ""
+
         val mediaItem = MediaItem.Builder()
-            .setUri(channel.streamUrl)          // set URI directly on the item
+            .setUri(channel.streamUrl)
+            .setMediaId(headersJson)
             .build()
         p.setMediaItem(mediaItem)
         p.prepare()
