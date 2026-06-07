@@ -1,8 +1,6 @@
 // app/src/main/java/com/nativestream/android/data/parser/EpgParser.kt
 //
-// NS-EPG: EPG Parser (FX-001, FX-002)
 // Kotlin XMLTV parser using XmlPullParser (SAX-equivalent).
-// Mirrors EPGParser.swift exactly:
 //   - Produces Map<String, List<Programme>> keyed by channel tvg-id
 //   - Supports files > 100MB without OOM — no full-file buffering
 //   - FX-002 case-insensitive fallback matching handled in EpgStore

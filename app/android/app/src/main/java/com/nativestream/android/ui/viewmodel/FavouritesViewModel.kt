@@ -44,7 +44,6 @@ class FavouritesViewModel @Inject constructor(
         }
     }
 
-    /** Toggle starred state — persists immediately. Mirrors FavouritesManager.toggle(). */
     fun toggle(channel: Channel) {
         viewModelScope.launch {
             context.favouritesStore.edit { prefs ->

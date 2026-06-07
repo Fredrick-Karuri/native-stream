@@ -1,9 +1,7 @@
 // app/src/main/java/com/nativestream/android/domain/model/Channel.kt
 //
-// NS-011: Channel
+// Channel
 // Core data model representing a single TV channel in the playlist.
-// Mirrors Channel.swift exactly — including id derivation logic and
-// streamHeaders for Referer/User-Agent injection (AND-018).
 
 package com.nativestream.android.domain.model
 
@@ -44,7 +42,7 @@ data class Channel(
         )
     }
 
-    // Equality and hashing keyed on id only — mirrors Swift Hashable impl
+    // Equality and hashing keyed on id only
     override fun equals(other: Any?): Boolean =
         other is Channel && other.id == id
 

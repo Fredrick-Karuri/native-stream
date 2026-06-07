@@ -2,8 +2,7 @@
 //
 // M3U Parser
 // Pure Kotlin M3U/M3U8 playlist parser. No third-party dependencies.
-// Mirrors M3UParser.swift exactly:
-//   - Parses InputStream line-by-line — no full-file buffering (ticket spec)
+//   - Parses InputStream line-by-line — no full-file buffering
 //   - Extracts tvg-id, tvg-logo, group-title from #EXTINF
 //   - Skips malformed entries with a logged warning (no crash)
 //   - Channels with missing tvg-id get empty string

@@ -1,7 +1,6 @@
 // app/src/main/java/com/nativestream/android/data/remote/ApiError.kt
 //
-// NS-004: API Error types
-// Mirrors APIError from APIClient.swift exactly.
+// API Error types
 // All Ktor exceptions are mapped to these at the call-site in ApiClient.kt.
 
 package com.nativestream.android.data.remote

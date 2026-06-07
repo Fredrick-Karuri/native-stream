@@ -2,7 +2,7 @@
 //
 // Player ViewModel
 // ExoPlayer-backed. Manages playback state, HLS stream loading, retry logic ,
-// header injection (AND-018), PiP state (AND-020), and player visibility.
+// header injection, PiP state, and player visibility.
 
 package com.nativestream.android.ui.viewmodel
 

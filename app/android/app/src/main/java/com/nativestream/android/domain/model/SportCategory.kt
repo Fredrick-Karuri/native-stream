@@ -1,9 +1,8 @@
 // app/src/main/java/com/nativestream/android/domain/model/SportCategory.kt
 //
-// NS-007: Sport Category
-// Mirrors SportCategory enum from SportNavRail.swift.
+//Sport Category
 // Drives EPG keyword matching, Browse chip filtering, and sport chip
-// visibility logic (AND-027).
+// visibility logic.
 
 package com.nativestream.android.domain.model
 

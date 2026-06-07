@@ -178,7 +178,6 @@ class PlaylistViewModel @Inject constructor(
 
 
     /**
-     * AND-026: EPG TVG-ID match diagnostic.
      * Logs match rate + unmatched channels to Logcat on every cold start.
      * Called by the caller after both playlist + EPG have loaded.
      */

@@ -5,6 +5,7 @@ agp = "8.9.1"
 kotlin = "2.1.20"
 ksp = "2.1.20-1.0.32"
 
+
 # AndroidX
 coreKtx = "1.16.0"
 lifecycleRuntimeKtx = "2.9.0"
@@ -39,6 +40,7 @@ kotlinxSerialization = "1.8.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
+robolectric = "4.14.1"
 
 #Icons
 
@@ -97,6 +99,7 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

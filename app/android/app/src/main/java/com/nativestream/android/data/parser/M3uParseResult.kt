@@ -1,8 +1,7 @@
 // app/src/main/java/com/nativestream/android/data/parser/M3uParseResult.kt
 //
-// NS-021: M3U Parse Result
-// Container returned by M3uParser.parse(). Mirrors the tuple returned by
-// M3UParser.parse() in M3UParser.swift.
+// M3U Parse Result
+// Container returned by M3uParser.parse().
 
 package com.nativestream.android.data.parser
 

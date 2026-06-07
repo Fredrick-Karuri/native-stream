@@ -1,9 +1,9 @@
 // app/src/main/java/com/nativestream/android/data/parser/EpgStore.kt
 //
-// NS-EPG: EPG Store
+// EPG Store
 // Holds parsed programme data keyed by channel tvg-id.
-// Implements FX-002 case-insensitive fallback matching — exact match first,
-// lowercase fallback second — mirroring Mac EPGStore behaviour.
+// Implements case-insensitive fallback matching — exact match first,
+// lowercase fallback second.
 
 package com.nativestream.android.data.parser
 

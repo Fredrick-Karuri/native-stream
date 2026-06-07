@@ -1,7 +1,6 @@
 // app/src/main/java/com/nativestream/android/data/remote/ApiDtos.kt
 //
-// NS-004: API Data Transfer Objects
-// Mirrors all request/response structs from APIClient.swift exactly.
+// API Data Transfer Objects
 // Snake_case JSON keys mapped via @SerialName to camelCase Kotlin fields.
 // Dates arrive as ISO-8601 strings and are stored as such — callers parse
 // to Instant/Date at the domain boundary.
