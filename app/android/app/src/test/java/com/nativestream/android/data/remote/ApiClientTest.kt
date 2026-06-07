@@ -7,17 +7,13 @@
 // endpoint mapping by subclassing ApiClient with an overridden httpClient
 // backed by a MockEngine — no interface extraction required.
 //
-// MockEngine is part of ktor-client-mock; add to build.gradle.kts:
-//   testImplementation("io.ktor:ktor-client-mock:2.3.x")
 
 package com.nativestream.android.data.remote
 
-import android.app.Application
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
-import io.ktor.client.engine.mock.respondError
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.HttpRequestData
 import io.ktor.http.ContentType
@@ -25,10 +21,13 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.utils.io.ByteReadChannel
-import io.mockk.every
-import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -44,17 +43,7 @@ import java.io.IOException
  * Testable subclass that accepts an injected HttpClient built around MockEngine,
  * bypassing the production Ktor Android engine and disk cache.
  */
-private class TestApiClient(
-    application: Application,
-    val mockEngine: MockEngine,
-) : ApiClient(application) {
 
-    val capturedRequests: List<HttpRequestData> get() = mockEngine.requestHistory
-
-    // Override the internal httpClient with a mock-backed one.
-    // Exposed via reflection-free package-private swap using the same field name
-    // is not possible without DI refactor; use the companion helper instead.
-}
 
 // Simpler approach: wrap ApiClient in a helper that records requests via MockEngine
 // and exposes a factory for building the client.
@@ -251,16 +240,15 @@ private fun buildKtorClient(engine: MockEngine): HttpClient = HttpClient(engine)
     }
 }
 
-// Inline extension helpers mirroring ApiClient's private primitives
 private suspend inline fun <reified T> HttpClient.get(url: String): T =
-    this.get(url).body()
+    this.get(url).body<T>()
 
 private suspend inline fun <reified T> HttpClient.post(url: String, body: Any): T {
-    val response = this.post(url) {
-        io.ktor.client.request.setBody(body)
-        io.ktor.http.contentType(ContentType.Application.Json)
+    val response: HttpResponse = this.post(url) {
+        setBody(body)
+        contentType(ContentType.Application.Json)
     }
-    return response.body()
+    return response.body<T>()
 }
 
 private suspend fun HttpClient.delete(url: String) {
