@@ -12,7 +12,7 @@ final class EPGViewModel {
     var isAvailable: Bool = true
     var epgURL: URL? = nil
 
-    private let parser = EPGParser()
+//    private let parser = EPGParser()
     private let settingsKey = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 
     // MARK: - Load
@@ -27,11 +27,14 @@ final class EPGViewModel {
             guard let url = source.epgURL else { return false }
             return Self.normalizeEPGURL(url) != settingsURL
         }
+        var collected: [UUID: EPGStore] = [:]
+
 
         await withTaskGroup(of: (id: UUID, store: EPGStore?).self) { group in
             for source in uniqueSources {
                 guard let url = source.epgURL else { continue }
-                group.addTask { [parser] in
+                group.addTask {
+                    let parser = EPGParser()   // ← own instance per task
                     do {
                         let store = try await Self.fetchAndParse(url: url, parser: parser)
                         return (source.id, store)
@@ -43,7 +46,8 @@ final class EPGViewModel {
             }
 
             if let url = epgURL {
-                group.addTask { [parser] in
+                group.addTask {
+                    let parser = EPGParser()
                     let store = try? await Self.fetchAndParse(url: url, parser: parser)
                     return (self.settingsKey, store)
                 }
@@ -51,9 +55,11 @@ final class EPGViewModel {
 
             for await result in group {
                 if let store = result.store {
-                    stores[result.id] = store
+                    
+                    collected[result.id] = store
                 }
             }
+            stores = collected
         }
 
         isAvailable = !stores.isEmpty

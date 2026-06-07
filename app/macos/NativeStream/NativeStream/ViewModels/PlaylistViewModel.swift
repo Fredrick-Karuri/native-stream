@@ -16,14 +16,8 @@ final class PlaylistViewModel {
     var error: AppError? = nil
 
     // MARK: - Computed
-
-    var groups: [String: [Channel]] {
-        Dictionary(grouping: channels, by: \.groupTitle)
-    }
-
-    var sortedGroupNames: [String] {
-        groups.keys.sorted()
-    }
+    private(set) var groups: [String: [Channel]] = [:]
+    private(set) var sortedGroupNames: [String] = []
 
     // MARK: - Dependencies
 
@@ -81,6 +75,8 @@ final class PlaylistViewModel {
         }
 
         channels = allChannels
+        groups = Dictionary(grouping: channels, by: \.groupTitle)
+        sortedGroupNames = groups.keys.sorted()
         isLoading = false
         let now = Date()
         sources = sources.map { var s = $0; s.lastFetched = now; return s }

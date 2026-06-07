@@ -80,7 +80,9 @@ struct AppShell: View {
         await loadEPG()             // then load EPG with populated sources
         if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
         playlistVM.scheduleAutoRefresh()
-        epgVM.logMatchDiagnostic(for: playlistVM.channels)
+        Task(priority: .background) {          // ← don't block cold start
+            epgVM.logMatchDiagnostic(for: playlistVM.channels)
+        }
     }
 
     private func loadEPG() async {
