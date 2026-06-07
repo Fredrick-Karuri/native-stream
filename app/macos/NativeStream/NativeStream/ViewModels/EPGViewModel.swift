@@ -70,7 +70,7 @@ final class EPGViewModel {
 
     // MARK: - Fetch + parse
 
-    private static func fetchAndParse(url: URL, parser: EPGParser) async throws -> EPGStore {
+    private nonisolated static func fetchAndParse(url: URL, parser: EPGParser) async throws -> EPGStore {
         let normalized = normalizeEPGURL(url)
         let (data, response) = try await URLSession.shared.data(from: normalized)
         guard let http = response as? HTTPURLResponse,
@@ -108,7 +108,7 @@ final class EPGViewModel {
         }.value
     }
 
-    static func normalizeEPGURL(_ url: URL) -> URL {
+    nonisolated static func normalizeEPGURL(_ url: URL) -> URL {
         guard url.host == "github.com" else { return url }
         let fixed = url.absoluteString
             .replacingOccurrences(of: "https://github.com/", with: "https://raw.githubusercontent.com/")
@@ -116,7 +116,7 @@ final class EPGViewModel {
         return URL(string: fixed) ?? url
     }
     
-    private static func stripGzipHeader(_ data: Data) -> Data? {
+    private nonisolated static func stripGzipHeader(_ data: Data) -> Data? {
         guard data.count > 18 else { return nil }
         var offset = 10
         let flags = data[3]
