@@ -151,7 +151,7 @@ fun PlayerControlsOverlay(
                     .padding(NSDimens.current.spacing.md)
                     .align(Alignment.BottomCenter),
             ) {
-                NSProgressBar(value = 0f) // live stream — always at end
+                NSProgressBar(value = programme?.progress?.toFloat() ?: 1f)
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
