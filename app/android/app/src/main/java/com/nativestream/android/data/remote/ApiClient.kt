@@ -25,6 +25,7 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import android.util.Log
@@ -44,7 +45,8 @@ private const val UNMATCHED_DEFAULT_LIMIT = 50
 
 @Singleton
 class ApiClient  @Inject constructor(
-    private val application: Application
+    private val application: Application,
+    engine: HttpClientEngine = Android.create()
 ) {
 
     // ── Base URL — set during onboarding / settings change ───────────────────
@@ -57,7 +59,7 @@ class ApiClient  @Inject constructor(
 
     // ── Ktor HTTP client ──────────────────────────────────────────────────────
 
-    private val httpClient = HttpClient(Android) {
+    private val httpClient = HttpClient(engine) {
         // 1. Install Persistent Disk Storage Cache Plugin
         install(HttpCache) {
             val cacheDirectory = File(application.cacheDir, "ktor_network_cache")
@@ -79,8 +81,11 @@ class ApiClient  @Inject constructor(
         }
 
         engine {
-            connectTimeout = REQUEST_TIMEOUT_MS.toInt()
-            socketTimeout  = RESOURCE_TIMEOUT_MS.toInt()
+            //  Safely configure timeouts if the active runtime engine supports them
+            if (this is io.ktor.client.engine.android.AndroidEngineConfig) {
+                connectTimeout = REQUEST_TIMEOUT_MS.toInt()
+                socketTimeout  = RESOURCE_TIMEOUT_MS.toInt()
+            }
         }
     }
 

@@ -5,13 +5,15 @@
 // AND-T006 — M3uParser: EPG URL detection
 
 package com.nativestream.android.data.parser
-
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
+@RunWith(RobolectricTestRunner::class)
 class M3uParserTest {
 
     private lateinit var parser: M3uParser
@@ -23,7 +25,7 @@ class M3uParserTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun parse(content: String) = parser.parse(content.trimIndent().byteInputStream())
+    private fun parse(content: String) = parser.parse(content.trimIndent().toByteArray())
 
     // =========================================================================
     // AND-T004 — Happy path
@@ -149,7 +151,8 @@ class M3uParserTest {
             sb.append("http://stream.example.com/ch$i.m3u8\n")
         }
         val start = System.currentTimeMillis()
-        val result = parser.parse(sb.toString().byteInputStream())
+        val result = parser.parse(sb.toString().toByteArray())
+
         val elapsed = System.currentTimeMillis() - start
         assertEquals(10_000, result.channels.size)
         assertTrue("Parsing took ${elapsed}ms, expected < 500ms", elapsed < 500)
