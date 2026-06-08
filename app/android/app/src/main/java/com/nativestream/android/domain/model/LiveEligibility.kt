@@ -12,7 +12,7 @@ object LiveEligibility {
         val group = channel.groupTitle.lowercase()
         return when {
             NEWS_GROUPS.any  { group.contains(it) } -> true          // news = always live
-            SPORT_GROUPS.any { group.contains(it) } -> programme.isSportMatch  // sport = only matches
+            SPORT_GROUPS.any { group.contains(it) } -> programme.isSportMatch || programme.title.contains(" vs ", ignoreCase = true)
             else -> false                                             // entertainment = never
         }
     }

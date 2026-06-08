@@ -46,7 +46,10 @@ object NowBuckets {
     ): List<ChannelWithProgramme> =
         channels.mapNotNull { channel ->
             val programme = currentProgrammeFor(channel) ?: return@mapNotNull null
-            if (LiveEligibility.isLive(channel, programme)) ChannelWithProgramme(channel, programme) else null
+            if (LiveEligibility.isLive(channel, programme) &&
+                !programme.title.contains(VS_SEPARATOR, ignoreCase = true)) {
+                ChannelWithProgramme(channel, programme)
+            } else null
         }
 
     /**
