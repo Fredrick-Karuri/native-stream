@@ -17,7 +17,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -83,33 +87,43 @@ fun MatchDayScreen(
         if (allMatches.isEmpty()) {
             MatchDayEmptyView(sport = sport)
         } else {
-            LazyColumn(
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 280.dp),
                 verticalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.xxl),
-                modifier = Modifier.fillMaxSize().padding(NSDimens.current.spacing.xl),
+                horizontalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.md),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(NSDimens.current.spacing.xl),
             ) {
                 if (liveMatches.isNotEmpty()) {
-                    item {
-                        MatchSection(
-                            title         = "Live now",
-                            matches       = liveMatches,
-                            isLiveSection = true,
-                            channels      = channels,
-                            onSelectChannel = onSelectChannel,
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        MatchSectionHeader(title = "Live now", count = liveMatches.size, isLive = true)
+                    }
+                    items(liveMatches, key = { it.programme.id }) { match ->
+                        val channel = channels.firstOrNull { it.tvgId == match.channelTvgId }
+                        MatchCard(
+                            match    = match,
+                            onClick  = { channel?.let(onSelectChannel) },
+                            modifier = Modifier.widthIn(max = 400.dp),
                         )
                     }
                 }
                 if (upcomingMatches.isNotEmpty()) {
-                    item {
-                        MatchSection(
-                            title         = "Up next",
-                            matches       = upcomingMatches,
-                            isLiveSection = false,
-                            channels      = channels,
-                            onSelectChannel = onSelectChannel,
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        MatchSectionHeader(title = "Up next", count = upcomingMatches.size, isLive = false)
+                    }
+                    items(upcomingMatches, key = { it.programme.id }) { match ->
+                        val channel = channels.firstOrNull { it.tvgId == match.channelTvgId }
+                        MatchCard(
+                            match    = match,
+                            onClick  = { channel?.let(onSelectChannel) },
+                            modifier = Modifier.widthIn(max = 400.dp),
                         )
                     }
                 }
-                item { Spacer(modifier = Modifier.height(80.dp)) }
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Spacer(modifier = Modifier.height(80.dp))
+                }
             }
         }
     }
@@ -159,38 +173,25 @@ fun MatchDayHero(sport: SportCategory, totalCount: Int, liveCount: Int) {
     }
 }
 
-// ── Match section ─────────────────────────────────────────────────────────────
+// ── Section header (grid span item) ──────────────────────────────────────────
 
 @Composable
-private fun MatchSection(
-    title: String,
-    matches: List<MatchItem>,
-    isLiveSection: Boolean,
-    channels: List<Channel>,
-    onSelectChannel: (Channel) -> Unit,
-) {
+private fun MatchSectionHeader(title: String, count: Int, isLive: Boolean) {
     val dimens = NSDimens.current
-    Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
-        ) {
-            if (isLiveSection) NSPulseDot()
-            NSGroupHeader(title = title, count = matches.size)
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.sm)) {
-            matches.forEach { match ->
-                val channel = channels.firstOrNull { it.tvgId == match.channelTvgId }
-                MatchCard(match = match, onClick = { channel?.let(onSelectChannel) })
-            }
-        }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+        modifier = Modifier.padding(bottom = dimens.spacing.sm),
+    ) {
+        if (isLive) NSPulseDot()
+        NSGroupHeader(title = title, count = count)
     }
 }
 
 // ── Match card ────────────────────────────────────────────────────────────────
 
 @Composable
-fun MatchCard(match: MatchItem, onClick: () -> Unit) {
+fun MatchCard(match: MatchItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val dimens     = NSDimens.current
     val isLive     = match.programme.isNow
     val background = matchCardBackground(match.variant)
@@ -198,7 +199,7 @@ fun MatchCard(match: MatchItem, onClick: () -> Unit) {
 
     Column(
         verticalArrangement = Arrangement.spacedBy(dimens.spacing.md),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(dimens.radius.lg))
             .background(background)
@@ -377,7 +378,7 @@ private fun parseMatchItem(programme: Programme, channelTvgId: String): MatchIte
         programme.isNow                                                       -> MatchCardVariant.LIVE
         competitionLower.contains("champions") || competitionLower.contains("ucl")   -> MatchCardVariant.UCL
         competitionLower.contains("premier") || competitionLower.contains("liga") ||
-            competitionLower.contains("bundesliga")                           -> MatchCardVariant.FEATURED
+                competitionLower.contains("bundesliga")                           -> MatchCardVariant.FEATURED
         else                                                                  -> MatchCardVariant.PLAIN
     }
 

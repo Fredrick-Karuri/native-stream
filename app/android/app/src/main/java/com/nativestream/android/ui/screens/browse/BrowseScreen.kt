@@ -28,8 +28,10 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -77,9 +79,14 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import com.nativestream.android.ui.LocalWindowSizeClass
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.lazy.items
 private val Regular = RegularGroup
 
+private val MASTER_PANE_WIDTH = 320.dp
 private data class ChannelSection(val name: String, val channels: List<Channel>)
 
 @Composable
@@ -105,6 +112,9 @@ fun BrowseScreen(
     val favouriteIds by favouritesViewModel.favouriteIds.collectAsState()
 
     var showPlayUrl by remember { mutableStateOf(false) }
+
+    var selectedChannelId by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedChannel = channels.find { it.id == selectedChannelId }
 
     // Groups from playlist
     val groups = remember(channels) {
@@ -172,12 +182,28 @@ fun BrowseScreen(
             when {
                 isLoading          -> BrowseLoadingView()
                 filtered.isEmpty() -> BrowseEmptyView(searchText)
-                else               -> BrowseGrid(
-                    sections            = groupedSections,
-                    playerViewModel     = playerViewModel,
-                    epgViewModel        = epgViewModel,
-                    favouritesViewModel = favouritesViewModel,
-                )
+                else -> {
+                    val windowSizeClass = LocalWindowSizeClass.current
+                    val useDetail = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+
+                    if (useDetail) {
+                        BrowseMasterDetail(
+                            sections            = groupedSections,
+                            selectedChannel     = selectedChannel,
+                            onSelectChannel     = { selectedChannel = it },
+                            playerViewModel     = playerViewModel,
+                            epgViewModel        = epgViewModel,
+                            favouritesViewModel = favouritesViewModel,
+                        )
+                    } else {
+                        BrowseGrid(
+                            sections            = groupedSections,
+                            playerViewModel     = playerViewModel,
+                            epgViewModel        = epgViewModel,
+                            favouritesViewModel = favouritesViewModel,
+                        )
+                    }
+                }
             }
         }
 
@@ -492,4 +518,109 @@ private fun SportCategory.chipIcon() = when (this) {
     SportCategory.BASKETBALL -> Regular.Basketball
     SportCategory.CRICKET    -> Regular.Cricket
     SportCategory.GOLF       -> Regular.Golf
+}
+
+
+@Composable
+private fun BrowseMasterDetail(
+    sections: List<ChannelSection>,
+    selectedChannel: Channel?,
+    onSelectChannel: (Channel) -> Unit,
+    playerViewModel: PlayerViewModel,
+    epgViewModel: EpgViewModel,
+    favouritesViewModel: FavouritesViewModel,
+) {
+    val dimens = NSDimens.current
+
+    Row(modifier = Modifier.fillMaxSize()) {
+        // Left pane — single-column channel list
+        LazyColumn(
+            modifier = Modifier
+                .width(MASTER_PANE_WIDTH)
+                .fillMaxHeight()
+                .background(NSColors.surface),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
+        ) {
+            sections.forEach { section ->
+                item(key = "header_${section.name}") {
+                    NSGroupHeader(
+                        title    = section.name,
+                        count    = section.channels.size,
+                        modifier = Modifier.padding(
+                            horizontal = dimens.spacing.md,
+                            vertical   = dimens.spacing.sm,
+                        ),
+                    )
+                }
+                items(section.channels, key = { it.id }) { channel ->
+                    MasterPaneRow(
+                        channel    = channel,
+                        isSelected = selectedChannel?.id == channel.id,
+                        onClick    = { onSelectChannel(channel) },
+                    )
+                }
+            }
+            item { Spacer(modifier = Modifier.height(80.dp)) }
+        }
+
+        // Divider
+        Box(
+            modifier = Modifier
+                .width(0.5.dp)
+                .fillMaxHeight()
+                .background(NSColors.border)
+        )
+
+        // Right pane — detail or empty state
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        ) {
+            if (selectedChannel != null) {
+                BrowseDetailPane(
+                    channel         = selectedChannel,
+                    epgViewModel    = epgViewModel,
+                    playerViewModel = playerViewModel,
+                )
+            } else {
+                DetailEmptyState()
+            }
+        }
+    }
+}
+
+@Composable
+private fun MasterPaneRow(
+    channel: Channel,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    val dimens = NSDimens.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(if (isSelected) NSColors.accentGlow else NSColors.surface)
+            .clickable(onClick = onClick)
+            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+    ) {
+        Text(
+            text     = channel.name,
+            style    = NSType.caption(),
+            color    = if (isSelected) NSColors.accent2 else NSColors.text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun DetailEmptyState() {
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+        Text(
+            text  = "Select a channel",
+            style = NSType.caption(),
+            color = NSColors.text3,
+        )
+    }
 }
