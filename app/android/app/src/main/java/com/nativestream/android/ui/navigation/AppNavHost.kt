@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -63,6 +64,9 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     if (!onboardingComplete) {
         OnboardingScreen(onComplete = { settingsViewModel.setOnboardingComplete(true) })
         return
+    }
+    LaunchedEffect(Unit) {
+        playerViewModel.connectToService()
     }
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {

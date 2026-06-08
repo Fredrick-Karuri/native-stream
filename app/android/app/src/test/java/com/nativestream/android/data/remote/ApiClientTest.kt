@@ -209,7 +209,7 @@ class ApiClientErrorTest {
         val apiClient = ApiClient(application = mockApplication, engine = engine)
         var caught: ApiError? = null
         try {
-            // 👇 Triggers a raw data read which hits the decoding validation rules cleanly
+            // Triggers a raw data read which hits the decoding validation rules cleanly
             apiClient.playlistData()
         } catch (e: ApiError) {
             caught = e
@@ -218,10 +218,6 @@ class ApiClientErrorTest {
         // Assert that the exception matches the spec criteria rules
         assertNotNull("Expected an error conversion mapping", caught)
     }
-
-
-
-
 
 
     @Test

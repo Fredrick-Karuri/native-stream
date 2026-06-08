@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "com.nativestream.android"
-        minSdk = 26          // API 26+ per ticket spec
+        minSdk = 26          // API 26+
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
@@ -62,6 +62,9 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
     }
 }
 
@@ -118,6 +121,8 @@ dependencies {
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.turbine)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(composeBom)

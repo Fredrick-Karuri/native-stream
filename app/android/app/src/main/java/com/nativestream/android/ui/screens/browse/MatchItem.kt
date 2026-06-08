@@ -1,6 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/screens/browse/MatchItem.kt
 //
-// NS-013: Match Item
+// Match Item
 
 package com.nativestream.android.ui.screens.browse
 

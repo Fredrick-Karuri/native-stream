@@ -22,6 +22,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import android.content.ComponentName
+import androidx.annotation.VisibleForTesting
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.nativestream.android.data.player.NativeStreamPlaybackService
@@ -61,50 +62,54 @@ class PlayerViewModel @Inject constructor(
     // ── Player (MediaController → service) ───────────────────────────────────
     private var _player: Player? = null
     val player: Player get() = _player!!
-    private var controllerFuture: ListenableFuture<MediaController>? = null
 
-
-    // ── ExoPlayer ─────────────────────────────────────────────────────────────
-
-    init {
+    fun connectToService() {
+        if (_player != null) return
+        val app = getApplication<Application>()
         val sessionToken = SessionToken(
-            application,
-            ComponentName(application, NativeStreamPlaybackService::class.java)
+            app,
+            ComponentName(app, NativeStreamPlaybackService::class.java)
         )
-        controllerFuture = MediaController.Builder(application, sessionToken)
+        controllerFuture = MediaController.Builder(app, sessionToken)
             .buildAsync()
             .also { future ->
                 future.addListener({
-                    _player = future.get()          // MediaController IS-A Player, no cast needed
+                    _player = future.get()
                     _player!!.addListener(playerListener)
                 }, MoreExecutors.directExecutor())
             }
     }
 
+    @VisibleForTesting
+    internal fun setPlayerForTest(p: Player) {
+        _player = p
+        _player!!.addListener(playerListener)
+    }
+    private var controllerFuture: ListenableFuture<MediaController>? = null
 
     private val playerListener = object : Player.Listener {
-            override fun onPlaybackStateChanged(state: Int) {
-                _isPlaying.value = player.isPlaying
-                if (state == Player.STATE_READY) {
-                    _playerError.value = null
-                    retryCount = 0
-                    _videoQuality.value = mapHeightToQuality(player.videoSize.height)
-                }
+        override fun onPlaybackStateChanged(state: Int) {
+            _isPlaying.value = player.isPlaying
+            if (state == Player.STATE_READY) {
+                _playerError.value = null
+                retryCount = 0
+                _videoQuality.value = mapHeightToQuality(player.videoSize.height)
             }
+        }
 
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                _isPlaying.value = isPlaying
-            }
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            _isPlaying.value = isPlaying
+        }
 
-            override fun onVideoSizeChanged(videoSize: VideoSize) {
-                _videoQuality.value = mapHeightToQuality(videoSize.height)
-            }
+        override fun onVideoSizeChanged(videoSize: VideoSize) {
+            _videoQuality.value = mapHeightToQuality(videoSize.height)
+        }
 
-            override fun onPlayerError(error: PlaybackException) {
-                Log.e(TAG, "Playback error: ${error.message}")
-                _videoQuality.value = null
-                scheduleRetry()
-            }
+        override fun onPlayerError(error: PlaybackException) {
+            Log.e(TAG, "Playback error: ${error.message}")
+            _videoQuality.value = null
+            scheduleRetry()
+        }
 
     }
 
@@ -242,29 +247,24 @@ class PlayerViewModel @Inject constructor(
         p.play()
     }
 
-    // ── Retry logic (AND-022) ─────────────────────────────────────────────────
+    // ── Retry logic ─────────────────────────────────────────────────
     // Up to 3 retries with 2s delay, re-fetching active link from server each time.
 
     private fun scheduleRetry() {
-        if (retryCount >= MAX_RETRY_ATTEMPTS) {
+        retryCount++
+        if (retryCount > MAX_RETRY_ATTEMPTS) {
             _playerError.value = "Stream failed after $MAX_RETRY_ATTEMPTS attempts"
-            Log.e(TAG, "Max retries reached for ${_activeChannel.value?.name}")
             return
         }
         retryJob?.cancel()
         retryJob = viewModelScope.launch {
-            retryCount++
-            Log.d(TAG, "Retry $retryCount/$MAX_RETRY_ATTEMPTS in ${RETRY_DELAY_MS}ms")
             delay(RETRY_DELAY_MS)
             _activeChannel.value?.let { channel ->
                 try {
-                    // Re-fetch active link from server before retrying
                     val detail = apiClient.getChannel(channel.tvgId.ifEmpty { channel.id })
                     val activeUrl = detail.activeLink?.url ?: channel.streamUrl
-                    val refreshedChannel = channel.copy(streamUrl = activeUrl)
-                    loadStream(refreshedChannel)
+                    loadStream(channel.copy(streamUrl = activeUrl))
                 } catch (e: Exception) {
-                    Log.w(TAG, "Failed to re-fetch active link: ${e.message} — using cached URL")
                     loadStream(channel)
                 }
             }

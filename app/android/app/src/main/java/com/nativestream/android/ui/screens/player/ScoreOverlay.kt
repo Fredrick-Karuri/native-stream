@@ -1,6 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/screens/player/ScoreOverlay.kt
 //
-// NS-017: Score Overlay
+//  Score Overlay
 // Shown in the player when EPG programme title contains " vs ".
 
 package com.nativestream.android.ui.screens.player
