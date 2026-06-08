@@ -5,11 +5,17 @@
 
 package com.nativestream.android.ui.viewmodel
 
+import android.app.Application
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.test.core.app.ApplicationProvider
 import com.nativestream.android.domain.model.Channel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -22,9 +28,12 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class FavouritesViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
@@ -37,11 +46,16 @@ class FavouritesViewModelTest {
         streamUrl = "http://stream.example.com/bbc1.m3u8",
     )
 
+    private lateinit var dataStore: DataStore<Preferences>
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        context = ApplicationProvider.getApplicationContext()
-        viewModel = FavouritesViewModel(context)
+        dataStore = PreferenceDataStoreFactory.create(
+            scope = CoroutineScope(testDispatcher + SupervisorJob()),
+            produceFile = { File(ApplicationProvider.getApplicationContext<Context>().cacheDir, "test_favourites.preferences_pb") }
+        )
+        viewModel = FavouritesViewModel(dataStore)
     }
 
     @After
@@ -79,7 +93,7 @@ class FavouritesViewModelTest {
         advanceUntilIdle()
 
         // Recreate ViewModel — DataStore read happens on init
-        val recreated = FavouritesViewModel(context)
+        val recreated = FavouritesViewModel(dataStore)
         advanceUntilIdle()
 
         assertTrue(
