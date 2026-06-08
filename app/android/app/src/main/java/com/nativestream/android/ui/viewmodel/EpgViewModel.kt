@@ -18,6 +18,7 @@ import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.domain.model.SportCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -31,6 +32,7 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 import java.util.zip.GZIPInputStream
 import javax.inject.Inject
+import javax.inject.Named
 
 private const val TAG = "EpgViewModel"
 private const val DEFAULT_SCHEDULE_HOURS = 6
@@ -44,6 +46,7 @@ class EpgViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val epgParser: EpgParser,
     private val settingsDataStore: SettingsDataStore,
+    @Named("io") private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
 
     // ── Public state ──────────────────────────────────────────────────────────
@@ -65,12 +68,12 @@ class EpgViewModel @Inject constructor(
     fun load() {
         // Prevent redundant simultaneous loads if already active
         if (_isLoading.value) return
+        _isLoading.value = true
 
         viewModelScope.launch {
-            _isLoading.value = true
             try {
                 // Shift the entire heavy setup workflow safely off the Main thread
-                val newStores = withContext(Dispatchers.IO) {
+                val newStores = withContext(ioDispatcher) {
                     val sources = settingsDataStore.sources.first()
                     fetchAllStoresInParallel(sources)
                 }

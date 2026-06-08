@@ -5,6 +5,8 @@
 
 package com.nativestream.android.ui.viewmodel
 
+import android.app.Application
+import android.os.Looper
 import com.nativestream.android.data.local.SettingsDataStore
 import com.nativestream.android.data.parser.EpgParser
 import com.nativestream.android.data.parser.EpgStore
@@ -31,7 +33,13 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class EpgViewModelTest {
 
@@ -99,7 +107,7 @@ class EpgViewModelTest {
         coEvery { apiClient.fetchRawUrl(any()) } returns ByteArray(0)
         coEvery { epgParser.parse(any()) } returns fakeStore
 
-        viewModel = EpgViewModel(apiClient, epgParser, settingsDataStore)
+        viewModel = EpgViewModel(apiClient, epgParser, settingsDataStore,testDispatcher)
     }
 
     @After
@@ -112,9 +120,9 @@ class EpgViewModelTest {
     @Test
     fun `T013 - load sets isLoading true during fetch then false after`() = runTest {
         viewModel.load()
-        // isLoading goes true synchronously before dispatcher runs
-        assertTrue(viewModel.isLoading.value)
+        assertTrue(viewModel.isLoading.value)  // synchronous now
         advanceUntilIdle()
+        shadowOf(Looper.getMainLooper()).idle()  // flush Robolectric's main looper
         assertFalse(viewModel.isLoading.value)
     }
 
@@ -122,6 +130,7 @@ class EpgViewModelTest {
     fun `T013 - currentProgramme delegates to store and returns correctly`() = runTest {
         viewModel.load()
         advanceUntilIdle()
+        shadowOf(Looper.getMainLooper()).idle()
         val current = viewModel.currentProgramme(bbcChannel)
         assertNotNull(current)
         assertEquals("News at Noon", current!!.title)
@@ -131,6 +140,7 @@ class EpgViewModelTest {
     fun `T013 - nextProgramme returns earliest future programme`() = runTest {
         viewModel.load()
         advanceUntilIdle()
+        shadowOf(Looper.getMainLooper()).idle()
         val next = viewModel.nextProgramme(bbcChannel)
         assertNotNull(next)
         assertEquals("Afternoon Show", next!!.title)
@@ -170,6 +180,7 @@ class EpgViewModelTest {
     fun `T013 - activeSports sorted by live count descending`() = runTest {
         viewModel.load()
         advanceUntilIdle()
+        shadowOf(Looper.getMainLooper()).idle()
         val sports = viewModel.activeSports(listOf(bbcChannel, skyChannel))
         // Football should appear (premier league keyword match on sky channel)
         assertTrue(sports.contains(SportCategory.FOOTBALL))
