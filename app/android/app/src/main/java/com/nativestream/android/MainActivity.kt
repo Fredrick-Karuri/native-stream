@@ -12,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.compose.ui.Modifier
@@ -19,7 +20,11 @@ import com.nativestream.android.ui.navigation.AppNavHost
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSTheme
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import androidx.compose.runtime.CompositionLocalProvider
+import com.nativestream.android.ui.LocalWindowSizeClass
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -30,10 +35,14 @@ class MainActivity : ComponentActivity() {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
+
         setContent {
-            NSTheme {
-                Surface(modifier = Modifier.fillMaxSize(),color = NSColors.bg) {
-                    AppNavHost()
+            val windowSizeClass = calculateWindowSizeClass(this)
+            CompositionLocalProvider(LocalWindowSizeClass provides windowSizeClass) {
+                NSTheme {
+                    Surface(modifier = Modifier.fillMaxSize(), color = NSColors.bg) {
+                        AppNavHost()
+                    }
                 }
             }
         }

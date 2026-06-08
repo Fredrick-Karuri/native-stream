@@ -86,6 +86,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.ui.text.google.fonts)
+    implementation(libs.androidx.material3.window.size)
 
     // Media3 / ExoPlayer
     implementation(libs.androidx.media3.exoplayer)

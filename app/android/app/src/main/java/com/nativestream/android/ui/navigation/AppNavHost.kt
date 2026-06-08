@@ -11,19 +11,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -40,7 +35,9 @@ import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
 import com.nativestream.android.ui.viewmodel.CastViewModel
-import com.nativestream.android.R
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import com.nativestream.android.ui.LocalWindowSizeClass
+import androidx.compose.foundation.layout.Row
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
@@ -56,6 +53,17 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val isLoading by settingsViewModel.isLoading.collectAsState()
     val onboardingComplete by settingsViewModel.onboardingComplete.collectAsState()
 
+    val windowSizeClass = LocalWindowSizeClass.current
+    val useRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+
+    val onDestinationSelected: (AppDestination) -> Unit = { destination ->
+        navController.navigate(destination.route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState    = true
+        }
+    }
+
     // Show onboarding until complete
     if (isLoading) {
         return
@@ -69,56 +77,52 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         playerViewModel.connectToService()
     }
     Box(modifier = modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            NavHost(
-                navController    = navController,
-                startDestination = AppDestination.Now.route,
-                modifier         = Modifier.weight(1f),
-            ) {
-                composable(AppDestination.Now.route) {
-                    NowScreen(
-                        playerViewModel = playerViewModel,
-                        playlistViewModel = playlistViewModel,
-                        epgViewModel      = epgViewModel,
-                    )
-                }
-                composable(AppDestination.Browse.route) {
-                    BrowseScreen(
-                        playerViewModel = playerViewModel,
-                        playlistViewModel = playlistViewModel,
-                    )
-                }
-                composable(AppDestination.Settings.route) {
-                    SettingsScreen()
-                }
-            }
-
-            AnimatedVisibility(
-                visible = hasActiveChannel && !isPlayerVisible,
-                enter   = slideInVertically { it },
-                exit    = slideOutVertically { it },
-            ) {
-                MiniPlayer(
-                    playerViewModel = playerViewModel,
-                    epgViewModel    = epgViewModel,
-                    onExpand        = { playerViewModel.showPlayer() },
-                    onClose         = { playerViewModel.stop() },
+        Row(modifier = Modifier.fillMaxSize()) {
+            if (useRail) {
+                NSNavRail(
+                    navController         = navController,
+                    destinations          = bottomNavDestinations,
+                    onDestinationSelected = onDestinationSelected,
                 )
             }
-
-            NSBottomNavBar(
-                navController = navController,
-                destinations  = bottomNavDestinations,
-                onDestinationSelected = { destination ->
-                    navController.navigate(destination.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState    = true
+            Column(modifier = Modifier.weight(1f)) {
+                NavHost(
+                    navController    = navController,
+                    startDestination = AppDestination.Now.route,
+                    modifier         = Modifier.weight(1f),
+                ) {
+                    composable(AppDestination.Now.route) {
+                        NowScreen(playerViewModel, playlistViewModel =playlistViewModel, epgViewModel=epgViewModel)
                     }
-                },
-            )
+                    composable(AppDestination.Browse.route) {
+                        BrowseScreen(playerViewModel=playerViewModel, playlistViewModel=playlistViewModel)
+                    }
+                    composable(AppDestination.Settings.route) {
+                        SettingsScreen()
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = hasActiveChannel && !isPlayerVisible,
+                    enter   = slideInVertically { it },
+                    exit    = slideOutVertically { it },
+                ) {
+                    MiniPlayer(
+                        playerViewModel = playerViewModel,
+                        epgViewModel    = epgViewModel,
+                        onExpand        = { playerViewModel.showPlayer() },
+                        onClose         = { playerViewModel.stop() },
+                    )
+                }
+
+                if (!useRail) {
+                    NSBottomNavBar(
+                        navController         = navController,
+                        destinations          = bottomNavDestinations,
+                        onDestinationSelected = onDestinationSelected,
+                    )
+                }
+            }
         }
 
         AnimatedVisibility(
