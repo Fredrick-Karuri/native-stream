@@ -11,6 +11,7 @@
 
 - **ID** — `AND-TABLET-001` etc.
 - **Effort** — S (< 2hrs), M (half day), L (full day), XL (2+ days)
+- **Needs** — files to read before starting
 - **Window class** — `Compact` (< 600dp) · `Medium` (600–840dp) · `Expanded` (840dp+)
 - **Done when** — observable acceptance criteria
 
@@ -34,6 +35,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-001 — WindowSizeClass integration
 - **Effort:** S
+- **Needs:** `MainActivity.kt`, `AppNavHost.kt`, `NSTheme.kt`
 - **Description:** Add `androidx.compose.material3:material3-window-size-class` dependency. Compute `WindowSizeClass` in `MainActivity` and provide it via `CompositionLocal` so all screens can read it without threading through parameters.
 - **Implementation:**
   ```kotlin
@@ -48,6 +50,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-002 — Adaptive navigation shell
 - **Effort:** M
+- **Needs:** `AppNavHost.kt`, `NSBottomNavBar.kt`, `AppDestination.kt`, `NSDimens.kt`
 - **Description:** Replace the fixed `NSBottomNavBar` with `NavigationSuiteScaffold` (Material3) which automatically renders bottom bar on Compact, navigation rail on Medium/Expanded. Matches the existing Mac rail pattern on large screens.
 - **Compact:** existing bottom nav (unchanged)
 - **Medium/Expanded:** left navigation rail with icon + label, matching `NS.Rail` sizing tokens
@@ -57,6 +60,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-003 — Safe area + edge-to-edge on all form factors
 - **Effort:** S
+- **Needs:** `MainActivity.kt`, `AppNavHost.kt`
 - **Description:** Ensure `WindowInsets` are consumed correctly on tablets (no content hidden behind system bars or camera cutouts). Apply `Modifier.windowInsetsPadding()` at scaffold level, not per-screen.
 - **Done when:** No content clipped on Samsung tablet, Pixel Fold, and a standard foldable emulator.
 
@@ -68,6 +72,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-004 — Now screen two-column layout (Expanded)
 - **Effort:** M
+- **Needs:** `NowScreen.kt`, `NowBuckets.kt`, `MatchCards.kt`, `LiveOnAirAndSoonCards.kt`
 - **Description:** On `Expanded` width, the Now screen splits into two columns:
     - Left (weight 1): Matches live section (hero + small grid)
     - Right (weight 1): Live on air + Starting soon stacked vertically
@@ -78,6 +83,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-005 — Match hero card wider art area
 - **Effort:** S
+- **Needs:** `MatchCards.kt`, `NSDimens.kt`
 - **Description:** On `Expanded`, `MatchHeroCard` art area height increases from `dimens.match.heroArtHeight` to `180dp` to use the available horizontal space. Score overlay remains centred.
 - **Done when:** Hero card fills its column width at correct aspect. Score readable at larger size.
 
@@ -89,6 +95,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-006 — Adaptive channel grid columns
 - **Effort:** S
+- **Needs:** `BrowseScreen.kt`, `ChannelCard.kt`, `ChannelLogoView.kt`
 - **Description:** Replace the fixed 2-column `chunked(2)` grid with `LazyVerticalGrid(GridCells.Adaptive(minSize = 160.dp))`. This gives:
     - Compact: 2 columns
     - Medium: 3–4 columns
@@ -99,6 +106,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-007 — Browse master-detail layout (Expanded)
 - **Effort:** L
+- **Needs:** `BrowseScreen.kt`, `ChannelCard.kt`, `EpgViewModel.kt`, `PlaylistViewModel.kt`, `NSColors.kt`, `NSDimens.kt`
 - **Description:** On `Expanded`, Browse becomes a two-pane layout:
     - Left pane (fixed 320dp): group chips + channel list (single column)
     - Right pane (flex): channel detail — current programme, schedule for next 6h, "Watch now" button
@@ -110,6 +118,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-008 — MatchDayScreen adaptive grid
 - **Effort:** S
+- **Needs:** `MatchDayScreen.kt`, `MatchItem.kt`, `MatchCardVariant.kt`
 - **Description:** `MatchDayScreen` match card grid uses `GridCells.Adaptive(minSize = 280.dp)` so it goes from 1-column on phone to 2–3 columns on tablet. Match cards should never exceed 400dp wide.
 - **Done when:** Cards reflow correctly. Competition labels readable at all widths.
 
@@ -121,6 +130,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-009 — Player landscape persistent sidebar
 - **Effort:** M
+- **Needs:** `PlayerScreen.kt`, `PlayerSidebar.kt`, `PlayerViewModel.kt`, `NSDimens.kt`
 - **Description:** On `Expanded` in landscape, the player sidebar is **always visible** (not collapsible) — mirrors the existing Mac player design. On `Compact`/`Medium`, existing slide-in behaviour unchanged. Sidebar width: `dimens.player.sidebarWidth` (230dp).
 - **Done when:** Sidebar visible without toggle on tablet landscape. Sidebar hidden/toggleable on phone. Channel switching works in both modes.
 
@@ -128,6 +138,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-010 — Player controls sizing
 - **Effort:** S
+- **Needs:** `PlayerControls.kt`, `NSDimens.kt`, `NSColors.kt`
 - **Description:** On `Expanded`, player control buttons scale up — primary control to 52dp, secondary to 44dp — using the existing `dimens.player` tokens. Icon sizes scale proportionally.
 - **Done when:** Controls visually balanced on a 10" tablet. Touch targets ≥ 48dp on all form factors (Material accessibility requirement).
 
@@ -139,6 +150,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-011 — Settings sidebar-panel layout (Medium/Expanded)
 - **Effort:** M
+- **Needs:** `SettingsScreen.kt`, `SettingsSections.kt`, `SettingsViewModel.kt`, `NSDimens.kt`
 - **Description:** On `Medium`/`Expanded`, restore the sidebar-panel layout (section nav on left, content on right) that was intentionally removed for the phone design. On `Compact`, keep the single scrollable column.
 - **Sidebar width:** `dimens.settings.sidebarWidth` (200dp)
 - **Panel:** scrollable, full remaining width
@@ -148,6 +160,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-012 — Settings form field widths
 - **Effort:** S
+- **Needs:** `SettingsSections.kt`, `NSTextField.kt`, `NSDimens.kt`
 - **Description:** On `Expanded`, text fields (server URL, EPG URL, source URL) are capped at 480dp width and left-aligned, rather than stretching full width. Prevents unreadably wide text fields.
 - **Done when:** Fields capped on tablet. Full-width on phone. No layout shift during input.
 
@@ -159,7 +172,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-013 — Foldable hinge avoidance
 - **Effort:** M
-- **Needs:** `androidx.window:window` (Jetpack Window Manager)
+- **Needs:** `AppNavHost.kt`, `PlayerScreen.kt`, `NowScreen.kt` — plus `androidx.window:window` (Jetpack Window Manager)
 - **Description:** On foldable devices in tabletop or book posture, avoid placing interactive content across the hinge. Use `DisplayFeature` to detect hinge position and apply `Modifier.windowInsetsPadding()` accordingly.
 - **Done when:** Player controls not split by hinge in tabletop posture. Now screen content not bisected in book posture.
 
@@ -167,6 +180,7 @@ All layout decisions key off `WindowWidthSizeClass`. Height class used only wher
 
 ### AND-TABLET-014 — Foldable tabletop player mode
 - **Effort:** M
+- **Needs:** `PlayerScreen.kt`, `PlayerControls.kt`, `PlayerViewModel.kt`, `EpgViewModel.kt` — plus `androidx.window:window`
 - **Description:** When a foldable is in tabletop posture (half-open, horizontal hinge):
     - Top half: video playback
     - Bottom half: player controls + programme info + mini EPG

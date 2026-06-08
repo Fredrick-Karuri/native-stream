@@ -30,8 +30,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -75,8 +73,10 @@ import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.FavouritesViewModel
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
-
-private val CARD_COLUMNS     = 2       // fixed 2-col grid on mobile
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 
 private val Regular = RegularGroup
 
@@ -347,7 +347,6 @@ private fun BrowseChipsRow(
 
 
 // ── Channel grid — real ChannelCard, 2-column ─────────────────────────────────
-
 @Composable
 private fun BrowseGrid(
     sections: List<ChannelSection>,
@@ -356,41 +355,38 @@ private fun BrowseGrid(
     favouritesViewModel: FavouritesViewModel,
 ) {
     val dimens = NSDimens.current
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(dimens.spacing.xxl),
+
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 160.dp),
+        verticalArrangement = Arrangement.spacedBy(dimens.spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
     ) {
         sections.forEach { section ->
-            item(key = "header_${section.name}") {
+            item(
+                key = "header_${section.name}",
+                span = { GridItemSpan(maxLineSpan) },
+            ) {
                 NSGroupHeader(title = section.name, count = section.channels.size)
             }
-            // Emit rows of 2
-            val rows = section.channels.chunked(CARD_COLUMNS)
-            itemsIndexed(rows, key = { i, _ -> "${section.name}_row_$i" }) { _, row ->
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    row.forEach { channel ->
-                        ChannelCard(
-                            channel             = channel,
-                            playerViewModel     = playerViewModel,
-                            epgViewModel        = epgViewModel,
-                            favouritesViewModel = favouritesViewModel,
-                            onClick             = { playerViewModel.play(channel) },
-                            modifier            = Modifier.weight(1f),
-                        )
-                    }
-                    // Fill empty slot if odd number
-                    if (row.size < CARD_COLUMNS) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
+            items(
+                items = section.channels,
+                key   = { it.id },
+            ) { channel ->
+                ChannelCard(
+                    channel             = channel,
+                    playerViewModel     = playerViewModel,
+                    epgViewModel        = epgViewModel,
+                    favouritesViewModel = favouritesViewModel,
+                    onClick             = { playerViewModel.play(channel) },
+                )
             }
         }
-        item { Spacer(modifier = Modifier.height(80.dp)) }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Spacer(modifier = Modifier.height(80.dp))
+        }
     }
 }
 

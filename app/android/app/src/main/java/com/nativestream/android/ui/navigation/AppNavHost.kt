@@ -38,6 +38,9 @@ import com.nativestream.android.ui.viewmodel.CastViewModel
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import com.nativestream.android.ui.LocalWindowSizeClass
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
@@ -76,7 +79,11 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     LaunchedEffect(Unit) {
         playerViewModel.connectToService()
     }
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+    ) {
         Row(modifier = Modifier.fillMaxSize()) {
             if (useRail) {
                 NSNavRail(

@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.Programme
+import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.NSLiveBadge
 import com.nativestream.android.ui.components.NSProgressBar
 import com.nativestream.android.ui.theme.NSColors
@@ -56,6 +58,12 @@ fun MatchHeroCard(
     modifier: Modifier = Modifier,
 ) {
     val dimens = NSDimens.current
+    val windowSizeClass = LocalWindowSizeClass.current
+    val artHeight = if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded) {
+        180.dp
+    } else {
+        dimens.match.heroArtHeight
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -69,7 +77,7 @@ fun MatchHeroCard(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(dimens.match.heroArtHeight)
+                .height(artHeight)
                 .background(NSColors.surface3),
         ) {
             MatchScoreOverlay(

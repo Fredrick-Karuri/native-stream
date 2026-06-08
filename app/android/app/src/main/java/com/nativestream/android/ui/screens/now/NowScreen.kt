@@ -3,6 +3,7 @@
 // Now Screen
 // Section headers match design: pulse dot for matches, TV icon for on air, clock for soon.
 // "Show all / Show less" toggle for Live on Air.
+// AND-TABLET-004: two-column layout on Expanded width.
 
 package com.nativestream.android.ui.screens.now
 
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,6 +30,7 @@ import com.adamglin.phosphoricons.regular.Clock
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adamglin.phosphoricons.Regular
+import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.NSGroupHeader
 import com.nativestream.android.ui.components.NSPulseDot
 import com.nativestream.android.ui.theme.NSColors
@@ -138,8 +142,24 @@ private fun NowContent(
     startingSoon: List<ChannelWithProgramme>,
     onSelect: (com.nativestream.android.domain.model.Channel) -> Unit,
 ) {
+    val windowSizeClass = LocalWindowSizeClass.current
+    val useColumns = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+
+    if (useColumns) {
+        NowContentTwoColumn(liveMatches, liveOnAir, startingSoon, onSelect)
+    } else {
+        NowContentSingleColumn(liveMatches, liveOnAir, startingSoon, onSelect)
+    }
+}
+
+@Composable
+private fun NowContentSingleColumn(
+    liveMatches: List<ChannelWithProgramme>,
+    liveOnAir: List<ChannelWithProgramme>,
+    startingSoon: List<ChannelWithProgramme>,
+    onSelect: (com.nativestream.android.domain.model.Channel) -> Unit,
+) {
     val dimens = NSDimens.current
-    var showAllOnAir by remember { mutableStateOf(false) }
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(dimens.spacing.xxl),
@@ -173,72 +193,153 @@ private fun NowContent(
 
         // ── Live on air ───────────────────────────────────────────────────────
         if (liveOnAir.isNotEmpty()) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
-                    ) {
-                        Icon(
-                            imageVector        = PhosphorIcons.Regular.Television,
-                            contentDescription = null,
-                            tint               = NSColors.text3,
-                            modifier           = Modifier.size(SECTION_ICON_SIZE),
-                        )
-                        NSGroupHeader(title = "Live on air", count = liveOnAir.size)
-                    }
-
-                    val visible = if (showAllOnAir) liveOnAir
-                    else liveOnAir.take(LIVE_ON_AIR_INITIAL_VISIBLE)
-
-                    Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.sm)) {
-                        visible.forEach { item ->
-                            LiveOnAirRow(
-                                channel   = item.channel,
-                                programme = item.programme,
-                                onClick   = { onSelect(item.channel) },
-                            )
-                        }
-                    }
-
-                    if (liveOnAir.size > LIVE_ON_AIR_INITIAL_VISIBLE) {
-                        val label = if (showAllOnAir) "Show less"
-                        else "Show all ${liveOnAir.size}"
-                        Text(
-                            text     = label,
-                            style    = NSType.captionMedium(),
-                            color    = NSColors.accent2,
-                            modifier = Modifier
-                                .clickable { showAllOnAir = !showAllOnAir }
-                                .padding(vertical = dimens.spacing.xs),
-                        )
-                    }
-                }
-            }
+            item { LiveOnAirSection(liveOnAir = liveOnAir, onSelect = onSelect) }
         }
 
         // ── Starting soon ─────────────────────────────────────────────────────
         if (startingSoon.isNotEmpty()) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
+            item { StartingSoonSection(startingSoon = startingSoon, onSelect = onSelect) }
+        }
+
+        item { Spacer(modifier = Modifier.height(80.dp)) }
+    }
+}
+
+@Composable
+private fun NowContentTwoColumn(
+    liveMatches: List<ChannelWithProgramme>,
+    liveOnAir: List<ChannelWithProgramme>,
+    startingSoon: List<ChannelWithProgramme>,
+    onSelect: (com.nativestream.android.domain.model.Channel) -> Unit,
+) {
+    val dimens = NSDimens.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(dimens.spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
+    ) {
+        // Left — Matches live
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(dimens.spacing.md),
+        ) {
+            if (liveMatches.isNotEmpty()) {
+                item {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
                     ) {
-                        Icon(
-                            imageVector        = PhosphorIcons.Regular.Clock,
-                            contentDescription = null,
-                            tint               = NSColors.text3,
-                            modifier           = Modifier.size(SECTION_ICON_SIZE),
-                        )
-                        NSGroupHeader(title = "Starting soon", count = startingSoon.size)
+                        NSPulseDot()
+                        NSGroupHeader(title = "Matches live", count = liveMatches.size)
                     }
-                    StartingSoonGrid(items = startingSoon, onSelectChannel = onSelect)
                 }
+                item {
+                    MatchHeroCard(
+                        channel   = liveMatches.first().channel,
+                        programme = liveMatches.first().programme,
+                        onClick   = { onSelect(liveMatches.first().channel) },
+                    )
+                }
+                if (liveMatches.size > 1) {
+                    item {
+                        MatchSmallGrid(items = liveMatches.drop(1), onSelectChannel = onSelect)
+                    }
+                }
+            }
+            item { Spacer(modifier = Modifier.height(80.dp)) }
+        }
+
+        // Right — Live on air + Starting soon
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(dimens.spacing.xxl),
+        ) {
+            if (liveOnAir.isNotEmpty()) {
+                item { LiveOnAirSection(liveOnAir = liveOnAir, onSelect = onSelect) }
+            }
+            if (startingSoon.isNotEmpty()) {
+                item { StartingSoonSection(startingSoon = startingSoon, onSelect = onSelect) }
+            }
+            item { Spacer(modifier = Modifier.height(80.dp)) }
+        }
+    }
+}
+
+// ── Extracted section composables ─────────────────────────────────────────────
+
+@Composable
+private fun LiveOnAirSection(
+    liveOnAir: List<ChannelWithProgramme>,
+    onSelect: (com.nativestream.android.domain.model.Channel) -> Unit,
+) {
+    val dimens = NSDimens.current
+    var showAllOnAir by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+        ) {
+            Icon(
+                imageVector        = PhosphorIcons.Regular.Television,
+                contentDescription = null,
+                tint               = NSColors.text3,
+                modifier           = Modifier.size(SECTION_ICON_SIZE),
+            )
+            NSGroupHeader(title = "Live on air", count = liveOnAir.size)
+        }
+
+        val visible = if (showAllOnAir) liveOnAir
+        else liveOnAir.take(LIVE_ON_AIR_INITIAL_VISIBLE)
+
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.sm)) {
+            visible.forEach { item ->
+                LiveOnAirRow(
+                    channel   = item.channel,
+                    programme = item.programme,
+                    onClick   = { onSelect(item.channel) },
+                )
             }
         }
 
-        item { Spacer(modifier = Modifier.height(80.dp)) }
+        if (liveOnAir.size > LIVE_ON_AIR_INITIAL_VISIBLE) {
+            val label = if (showAllOnAir) "Show less"
+            else "Show all ${liveOnAir.size}"
+            Text(
+                text     = label,
+                style    = NSType.captionMedium(),
+                color    = NSColors.accent2,
+                modifier = Modifier
+                    .clickable { showAllOnAir = !showAllOnAir }
+                    .padding(vertical = dimens.spacing.xs),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StartingSoonSection(
+    startingSoon: List<ChannelWithProgramme>,
+    onSelect: (com.nativestream.android.domain.model.Channel) -> Unit,
+) {
+    val dimens = NSDimens.current
+
+    Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+        ) {
+            Icon(
+                imageVector        = PhosphorIcons.Regular.Clock,
+                contentDescription = null,
+                tint               = NSColors.text3,
+                modifier           = Modifier.size(SECTION_ICON_SIZE),
+            )
+            NSGroupHeader(title = "Starting soon", count = startingSoon.size)
+        }
+        StartingSoonGrid(items = startingSoon, onSelectChannel = onSelect)
     }
 }
 
