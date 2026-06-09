@@ -47,10 +47,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.material3.Text
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.media3.ui.PlayerView
 import com.nativestream.android.domain.model.Programme
-import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.NSProgressBar
 import com.nativestream.android.ui.foldable.rememberFoldPosture
 import com.nativestream.android.ui.theme.NSColors
@@ -140,7 +138,6 @@ private fun PlayerStandardLayout(
     val foldPosture     = rememberFoldPosture()
 
     val programme: Programme? = activeChannel?.let { epgViewModel?.currentProgramme(it) }
-    val hasScoreOverlay = programme?.title?.contains(" vs ", ignoreCase = true) == true
 
     Row(
         modifier = modifier
@@ -184,13 +181,6 @@ private fun PlayerStandardLayout(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
-
-            if (hasScoreOverlay && programme != null && !isInPip) {
-                ScoreOverlay(
-                    programme = programme,
-                    modifier  = Modifier.align(Alignment.Center),
-                )
-            }
 
             playerError?.let { error ->
                 Box(
