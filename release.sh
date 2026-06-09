@@ -84,7 +84,13 @@ case $COMPONENT in
         ;;
 esac
 
+# Extract the active local branch name automatically
+CURRENT_BRANCH=$(git branch --show-current)
+
 echo "Targeting Tag Creation: $TAG"
-git tag "$TAG"
-git push origin main --tags
-echo "🚀 Release process initiated on GitHub for $TAG!"
+git tag "$TAG" 2>/dev/null || echo "Local tag already exists, attempting push..."
+
+# FIXED: Replaced hardcoded 'main' with the active branch variable
+git push origin "$CURRENT_BRANCH" --tags
+echo "🚀 Release process initiated on GitHub for $TAG on branch $CURRENT_BRANCH!"
+
