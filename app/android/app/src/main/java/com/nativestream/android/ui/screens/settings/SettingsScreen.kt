@@ -1,12 +1,8 @@
 // app/src/main/java/com/nativestream/android/ui/screens/settings/SettingsScreen.kt
 //
-// Settings Screen — mobile design (single scrollable column)
-// Matches the Android design exactly:
-//   - Server health card at top
-//   - Section labels (SERVER, PLAYLIST SOURCES, EPG/TV GUIDE, PLAYBACK, PROXY)
-//   - Icon rows with chevron or toggle on the right
-//   - Source rows with health dot + refresh interval
-//   - Buffer preset segmented picker inline
+// Settings Screen — adaptive layout:
+//   Compact  → single scrollable column (phone)
+//   Medium/Expanded → two-pane sidebar layout (tablet)
 
 package com.nativestream.android.ui.screens.settings
 
@@ -20,26 +16,34 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,14 +53,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.rememberCoroutineScope
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.ArrowsClockwise
-import com.adamglin.phosphoricons.regular.Calendar
 import com.adamglin.phosphoricons.regular.Cpu
 import com.adamglin.phosphoricons.regular.Database
 import com.adamglin.phosphoricons.regular.FileLock
@@ -65,6 +64,7 @@ import com.adamglin.phosphoricons.regular.Link
 import com.adamglin.phosphoricons.regular.Play
 import com.adamglin.phosphoricons.regular.Trash
 import com.nativestream.android.data.local.BufferPreset
+import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
@@ -78,6 +78,7 @@ private val ROW_ICON_RADIUS      = 8.dp
 private val ROW_ICON_INNER_SIZE  = 16.dp
 private val CHEVRON_SIZE         = 16.dp
 private val SECTION_LABEL_BOTTOM = 6.dp
+private val SETTINGS_SIDEBAR_WIDTH = 200.dp
 
 // Icon background colours matching design
 private val COLOR_BLUE   = Color(0xFF0EA5E9).copy(alpha = 0.12f)
@@ -89,34 +90,59 @@ private val TINT_GREEN   = Color(0xFF10B981)
 private val TINT_AMBER   = Color(0xFFF59E0B)
 private val TINT_RED     = Color(0xFFEF4444)
 
+private enum class SettingsSection {
+    SERVER, SOURCES, PLAYBACK, PROXY;
+    val label get() = when (this) {
+        SERVER   -> "Server"
+        SOURCES  -> "Sources"
+        PLAYBACK -> "Playback"
+        PROXY    -> "Proxy"
+    }
+}
+
+@Composable
+private fun settingsFieldModifier(): Modifier {
+    val windowSizeClass = LocalWindowSizeClass.current
+    return if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded) {
+        Modifier.widthIn(max = 480.dp)
+    } else {
+        Modifier.fillMaxWidth()
+    }
+}
+
+// ── Root screen ───────────────────────────────────────────────────────────────
+
 @Composable
 fun SettingsScreen(
-    modifier: Modifier            = Modifier,
+    modifier: Modifier = Modifier,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
 ) {
     val dimens = NSDimens.current
-    val serverUrl by settingsViewModel.serverUrl.collectAsState()
+    val serverUrl    by settingsViewModel.serverUrl.collectAsState()
     val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
-    val sources by playlistViewModel.sources.collectAsState()
+    val sources      by playlistViewModel.sources.collectAsState()
 
     var proxyEnabled by remember { mutableStateOf(false) }
-    var hwDecode by remember { mutableStateOf(true) }
+    var hwDecode     by remember { mutableStateOf(true) }
 
     var showServerUrlDialog by remember { mutableStateOf(false) }
-    var urlInput by remember(serverUrl) { mutableStateOf(serverUrl) }
+    var urlInput            by remember(serverUrl) { mutableStateOf(serverUrl) }
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    var showAddSource by remember { mutableStateOf(false) }
+    val scope             = rememberCoroutineScope()
+    var showAddSource     by remember { mutableStateOf(false) }
 
-    var showEpgUrlDialog by remember { mutableStateOf(false) }
-    var epgInput by remember { mutableStateOf("") }
+    var showEpgUrlDialog  by remember { mutableStateOf(false) }
+    var epgInput          by remember { mutableStateOf("") }
 
-    var editingSourceEpg by remember { mutableStateOf<Pair<String, String?>?>(null) } // id to epgUrl
+    var editingSourceEpg  by remember { mutableStateOf<Pair<String, String?>?>(null) }
+
+    val windowSizeClass = LocalWindowSizeClass.current
+    val useSidebar = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost   = { SnackbarHost(snackbarHostState) },
         containerColor = NSColors.bg,
     ) { paddingValues ->
         Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
@@ -128,278 +154,621 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .background(NSColors.surface)
                     .windowInsetsPadding(WindowInsets.displayCutout)
-                    .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.lg)
+                    .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.lg),
             ) {
                 Text(text = "Settings", style = NSType.heading(), color = NSColors.text)
             }
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
-            ) {
-                // ── Server health card ────────────────────────────────────────────
-                item {
-                    ServerHealthCard(serverUrl = serverUrl)
-                }
-
-                // ── SERVER section ────────────────────────────────────────────────
-                item {
-                    SettingsSection(label = "Server") {
-                        SettingsIconRow(
-                            iconBackground = COLOR_BLUE,
-                            iconTint = TINT_BLUE,
-                            icon = PhosphorIcons.Regular.Database,
-                            title = "Server URL",
-                            subtitle = serverUrl.removePrefix("http://"),
-                            onClick = { showServerUrlDialog = true }
-                        )
-                        SettingsDivider()
-                        SettingsIconRow(
-                            iconBackground = COLOR_GREEN,
-                            iconTint = TINT_GREEN,
-                            icon = PhosphorIcons.Regular.Cpu,
-                            title = "Trigger probe",
-                            subtitle = "Re-validate all stream links",
-                            onClick = {
-                                settingsViewModel.triggerProbe { success ->
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            if (success) "Probe started successfully" else "Probe failed — check server"
-                                        )
-                                    }
-                                }
-                            }
-                        )
-                    }
-                }
-
-                // ── PLAYLIST SOURCES section ──────────────────────────────────────
-                item {
-                    SettingsSection(label = "Playlist Sources") {
-                        sources.forEachIndexed { index, source ->
-                            if (index > 0) SettingsDivider()
-                            SourceRow(
-                                name = source.name,
-                                url = source.url,
-                                epgUrl = source.epgUrl,
-                                        refreshHours = source.refreshIntervalHours,
-                                isHealthy = true,
-                                onEpgEdit   = { epg -> editingSourceEpg = source.id to epg },
-                                onRefresh   = { playlistViewModel.loadAll() },
-                                onDelete    = { playlistViewModel.removeSource(source.id); playlistViewModel.loadAll() },
-                            )
-                        }
-                        SettingsDivider()
-                        AddSourceRow(onClick = { showAddSource = true })
-                    }
-                }
-
-                // ── PLAYBACK section ──────────────────────────────────────────────
-                item {
-                    SettingsSection(label = "Playback") {
-                        // Buffer preset row
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    horizontal = dimens.spacing.md,
-                                    vertical = dimens.spacing.sm
-                                ),
-                        ) {
-                            RowIcon(
-                                background = COLOR_BLUE,
-                                tint = TINT_BLUE,
-                                icon = PhosphorIcons.Regular.GearSix
-                            )
-                            Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                            Text(
-                                text = "Buffer preset",
-                                style = NSType.bodyMedium(),
-                                color = NSColors.text,
-                                modifier = Modifier.weight(1f)
-                            )
-                            BufferSegmentedPicker(
-                                selected = bufferPreset,
-                                onSelect = { settingsViewModel.setBufferPreset(it) },
-                            )
-                        }
-                        SettingsDivider()
-                        // Hardware decode row
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    horizontal = dimens.spacing.md,
-                                    vertical = dimens.spacing.sm
-                                ),
-                        ) {
-                            RowIcon(
-                                background = COLOR_AMBER,
-                                tint = TINT_AMBER,
-                                icon = PhosphorIcons.Regular.Play
-                            )
-                            Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Hardware decode",
-                                    style = NSType.bodyMedium(),
-                                    color = NSColors.text
-                                )
-                                Text(
-                                    text = "Always on (ExoPlayer)",
-                                    style = NSType.caption(),
-                                    color = NSColors.text3
-                                )
-                            }
-                            NSToggle(checked = hwDecode, onCheckedChange = {}, enabled = false)
-                        }
-                    }
-                }
-
-                // ── PROXY section ─────────────────────────────────────────────────
-                item {
-                    SettingsSection(label = "Proxy") {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    horizontal = dimens.spacing.md,
-                                    vertical = dimens.spacing.sm
-                                ),
-                        ) {
-                            RowIcon(
-                                background = COLOR_RED,
-                                tint = TINT_RED,
-                                icon = PhosphorIcons.Regular.FileLock
-                            )
-                            Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Enable proxy",
-                                    style = NSType.bodyMedium(),
-                                    color = NSColors.text
-                                )
-                                Text(
-                                    text = "Inject Referer / User-Agent",
-                                    style = NSType.caption(),
-                                    color = NSColors.text3
-                                )
-                            }
-                            NSToggle(
-                                checked = proxyEnabled,
-                                onCheckedChange = { proxyEnabled = it })
-                        }
-                    }
-                }
-
-                item { Spacer(modifier = Modifier.height(80.dp)) }
-            }
-            if (showAddSource) {
-                AddSourceSheet(
-                    onDone = { showAddSource = false },
-                    playlistViewModel = playlistViewModel
+            if (useSidebar) {
+                SettingsTwoPane(
+                    settingsViewModel   = settingsViewModel,
+                    playlistViewModel   = playlistViewModel,
+                    showAddSource       = showAddSource,
+                    onShowAddSource     = { showAddSource = it },
+                    showServerUrlDialog = showServerUrlDialog,
+                    onShowServerUrl     = { showServerUrlDialog = it },
+                    urlInput            = urlInput,
+                    onUrlInput          = { urlInput = it },
+                    showEpgUrlDialog    = showEpgUrlDialog,
+                    onShowEpgUrl        = { showEpgUrlDialog = it },
+                    epgInput            = epgInput,
+                    onEpgInput          = { epgInput = it },
+                    editingSourceEpg    = editingSourceEpg,
+                    onEditingSourceEpg  = { editingSourceEpg = it },
+                    snackbarHostState   = snackbarHostState,
+                    scope               = scope,
+                    proxyEnabled        = proxyEnabled,
+                    onProxyEnabled      = { proxyEnabled = it },
+                    hwDecode            = hwDecode,
                 )
-            }
-            if (showServerUrlDialog) {
-                androidx.compose.material3.AlertDialog(
-                    onDismissRequest = { showServerUrlDialog = false },
-                    containerColor = NSColors.surface2,
-                    title = { Text("Server URL", style = NSType.heading(), color = NSColors.text) },
-                    text = {
-                        NSTextField(
-                            value = urlInput,
-                            onValueChange = { urlInput = it },
-                            placeholder = "http://192.168.1.x:8888",
-                        )
-                    },
-                    confirmButton = {
-                        Text(
-                            "Save", style = NSType.captionMedium(), color = NSColors.accent,
-                            modifier = Modifier.clickable {
-                                settingsViewModel.setServerUrl(urlInput)
-                                showServerUrlDialog = false
-                            }.padding(8.dp)
-                        )
-                    },
-                    dismissButton = {
-                        Text(
-                            "Cancel", style = NSType.captionMedium(), color = NSColors.text3,
-                            modifier = Modifier.clickable { showServerUrlDialog = false }
-                                .padding(8.dp)
-                        )
-                    },
-                )
-            }
-            if (showEpgUrlDialog) {
-                val epgUrl by settingsViewModel.epgUrl.collectAsState()
-                AlertDialog(
-                    onDismissRequest = { showEpgUrlDialog = false },
-                    containerColor   = NSColors.surface2,
-                    title = { Text("EPG URL", style = NSType.heading(), color = NSColors.text) },
-                    text  = {
-                        NSTextField(
-                            value         = epgInput.ifEmpty { epgUrl ?: "" },
-                            onValueChange = { epgInput = it },
-                            placeholder   = "http://.../epg.xml",
-                        )
-                    },
-                    confirmButton = {
-                        Text("Save", style = NSType.captionMedium(), color = NSColors.accent,
-                            modifier = Modifier.clickable {
-                                settingsViewModel.setEpgUrl(epgInput)
-                                showEpgUrlDialog = false
-                            }.padding(8.dp))
-                    },
-                    dismissButton = {
-                        Text("Cancel", style = NSType.captionMedium(), color = NSColors.text3,
-                            modifier = Modifier.clickable { showEpgUrlDialog = false }.padding(8.dp))
-                    },
-                )
-            }
-
-            editingSourceEpg?.let { (sourceId, currentEpg) ->
-                var epgInput by remember { mutableStateOf(currentEpg ?: "") }
-                AlertDialog(
-                    onDismissRequest = { editingSourceEpg = null },
-                    containerColor   = NSColors.surface2,
-                    title = { Text("EPG URL", style = NSType.heading(), color = NSColors.text) },
-                    text  = {
-                        Column(verticalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.sm)) {
-                            Text("Link an EPG source to this playlist.",
-                                style = NSType.caption(), color = NSColors.text3)
-                            NSTextField(value = epgInput, onValueChange = { epgInput = it },
-                                placeholder = "http://.../epg.xml")
-                        }
-                    },
-                    confirmButton = {
-                        Text("Save", style = NSType.captionMedium(), color = NSColors.accent,
-                            modifier = Modifier.clickable {
-                                val updated = sources.find { it.id == sourceId }
-                                    ?.copy(epgUrl = epgInput.trim().ifEmpty { null })
-                                updated?.let { playlistViewModel.updateSource(it) }
-                                editingSourceEpg = null
-                            }.padding(8.dp))
-                    },
-                    dismissButton = {
-                        Text("Clear", style = NSType.captionMedium(), color = NSColors.text3,
-                            modifier = Modifier.clickable {
-                                val updated = sources.find { it.id == sourceId }?.copy(epgUrl = null)
-                                updated?.let { playlistViewModel.updateSource(it) }
-                                editingSourceEpg = null
-                            }.padding(8.dp))
-                    },
+            } else {
+                SettingsSingleColumn(
+                    settingsViewModel   = settingsViewModel,
+                    playlistViewModel   = playlistViewModel,
+                    showAddSource       = showAddSource,
+                    onShowAddSource     = { showAddSource = it },
+                    showServerUrlDialog = showServerUrlDialog,
+                    onShowServerUrl     = { showServerUrlDialog = it },
+                    urlInput            = urlInput,
+                    onUrlInput          = { urlInput = it },
+                    showEpgUrlDialog    = showEpgUrlDialog,
+                    onShowEpgUrl        = { showEpgUrlDialog = it },
+                    epgInput            = epgInput,
+                    onEpgInput          = { epgInput = it },
+                    editingSourceEpg    = editingSourceEpg,
+                    onEditingSourceEpg  = { editingSourceEpg = it },
+                    snackbarHostState   = snackbarHostState,
+                    scope               = scope,
+                    proxyEnabled        = proxyEnabled,
+                    onProxyEnabled      = { proxyEnabled = it },
+                    hwDecode            = hwDecode,
                 )
             }
         }
     }
 }
 
+// ── Two-pane (tablet) ─────────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsTwoPane(
+    settingsViewModel: SettingsViewModel,
+    playlistViewModel: PlaylistViewModel,
+    showAddSource: Boolean,
+    onShowAddSource: (Boolean) -> Unit,
+    showServerUrlDialog: Boolean,
+    onShowServerUrl: (Boolean) -> Unit,
+    urlInput: String,
+    onUrlInput: (String) -> Unit,
+    showEpgUrlDialog: Boolean,
+    onShowEpgUrl: (Boolean) -> Unit,
+    epgInput: String,
+    onEpgInput: (String) -> Unit,
+    editingSourceEpg: Pair<String, String?>?,
+    onEditingSourceEpg: (Pair<String, String?>?) -> Unit,
+    snackbarHostState: SnackbarHostState,
+    scope: kotlinx.coroutines.CoroutineScope,
+    proxyEnabled: Boolean,
+    onProxyEnabled: (Boolean) -> Unit,
+    hwDecode: Boolean,
+) {
+    val dimens       = NSDimens.current
+    val serverUrl    by settingsViewModel.serverUrl.collectAsState()
+    val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
+    val sources      by playlistViewModel.sources.collectAsState()
+
+    var selectedSection by rememberSaveable { mutableStateOf(SettingsSection.SERVER) }
+
+    Row(modifier = Modifier.fillMaxSize()) {
+
+        // ── Left sidebar ──────────────────────────────────────────────────────
+        LazyColumn(
+            modifier = Modifier
+                .width(SETTINGS_SIDEBAR_WIDTH)
+                .fillMaxHeight()
+                .background(NSColors.surface),
+        ) {
+            items(SettingsSection.entries) { section ->
+                val isActive = selectedSection == section
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(if (isActive) NSColors.accentGlow else Color.Transparent)
+                        .clickable { selectedSection = section }
+                        .padding(
+                            horizontal = dimens.spacing.lg,
+                            vertical   = dimens.spacing.md,
+                        ),
+                ) {
+                    Text(
+                        text  = section.label,
+                        style = NSType.bodyMedium(),
+                        color = if (isActive) NSColors.accent2 else NSColors.text,
+                    )
+                }
+            }
+        }
+
+        // Divider
+        Box(
+            modifier = Modifier
+                .width(0.5.dp)
+                .fillMaxHeight()
+                .background(NSColors.border),
+        )
+
+        // ── Right panel ───────────────────────────────────────────────────────
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
+        ) {
+            when (selectedSection) {
+                SettingsSection.SERVER -> {
+                    item { ServerHealthCard(serverUrl = serverUrl) }
+                    item {
+                        SettingsSection(label = "Server") {
+                            SettingsIconRow(
+                                iconBackground = COLOR_BLUE,
+                                iconTint       = TINT_BLUE,
+                                icon           = PhosphorIcons.Regular.Database,
+                                title          = "Server URL",
+                                subtitle       = serverUrl.removePrefix("http://"),
+                                onClick        = { onShowServerUrl(true) },
+                            )
+                            SettingsDivider()
+                            SettingsIconRow(
+                                iconBackground = COLOR_GREEN,
+                                iconTint       = TINT_GREEN,
+                                icon           = PhosphorIcons.Regular.Cpu,
+                                title          = "Trigger probe",
+                                subtitle       = "Re-validate all stream links",
+                                onClick        = {
+                                    settingsViewModel.triggerProbe { success ->
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                if (success) "Probe started successfully"
+                                                else "Probe failed — check server"
+                                            )
+                                        }
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+
+                SettingsSection.SOURCES -> {
+                    item {
+                        SettingsSection(label = "Playlist Sources") {
+                            sources.forEachIndexed { index, source ->
+                                if (index > 0) SettingsDivider()
+                                SourceRow(
+                                    name         = source.name,
+                                    url          = source.url,
+                                    epgUrl       = source.epgUrl,
+                                    refreshHours = source.refreshIntervalHours,
+                                    isHealthy    = true,
+                                    onEpgEdit    = { epg -> onEditingSourceEpg(source.id to epg) },
+                                    onRefresh    = { playlistViewModel.loadAll() },
+                                    onDelete     = {
+                                        playlistViewModel.removeSource(source.id)
+                                        playlistViewModel.loadAll()
+                                    },
+                                )
+                            }
+                            SettingsDivider()
+                            AddSourceRow(onClick = { onShowAddSource(true) })
+                        }
+                    }
+                }
+
+                SettingsSection.PLAYBACK -> {
+                    item {
+                        SettingsSection(label = "Playback") {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        horizontal = dimens.spacing.md,
+                                        vertical   = dimens.spacing.sm,
+                                    ),
+                            ) {
+                                RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.GearSix)
+                                Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                                Text(
+                                    text     = "Buffer preset",
+                                    style    = NSType.bodyMedium(),
+                                    color    = NSColors.text,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                BufferSegmentedPicker(
+                                    selected = bufferPreset,
+                                    onSelect = { settingsViewModel.setBufferPreset(it) },
+                                )
+                            }
+                            SettingsDivider()
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        horizontal = dimens.spacing.md,
+                                        vertical   = dimens.spacing.sm,
+                                    ),
+                            ) {
+                                RowIcon(background = COLOR_AMBER, tint = TINT_AMBER, icon = PhosphorIcons.Regular.Play)
+                                Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(text = "Hardware decode", style = NSType.bodyMedium(), color = NSColors.text)
+                                    Text(text = "Always on (ExoPlayer)", style = NSType.caption(), color = NSColors.text3)
+                                }
+                                NSToggle(checked = hwDecode, onCheckedChange = {}, enabled = false)
+                            }
+                        }
+                    }
+                }
+
+                SettingsSection.PROXY -> {
+                    item {
+                        SettingsSection(label = "Proxy") {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        horizontal = dimens.spacing.md,
+                                        vertical   = dimens.spacing.sm,
+                                    ),
+                            ) {
+                                RowIcon(background = COLOR_RED, tint = TINT_RED, icon = PhosphorIcons.Regular.FileLock)
+                                Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(text = "Enable proxy", style = NSType.bodyMedium(), color = NSColors.text)
+                                    Text(text = "Inject Referer / User-Agent", style = NSType.caption(), color = NSColors.text3)
+                                }
+                                NSToggle(checked = proxyEnabled, onCheckedChange = { onProxyEnabled(it) })
+                            }
+                        }
+                    }
+                }
+            }
+            item { Spacer(modifier = Modifier.height(80.dp)) }
+        }
+    }
+
+    // ── Dialogs ───────────────────────────────────────────────────────────────
+    SettingsDialogs(
+        settingsViewModel   = settingsViewModel,
+        playlistViewModel   = playlistViewModel,
+        showAddSource       = showAddSource,
+        onShowAddSource     = onShowAddSource,
+        showServerUrlDialog = showServerUrlDialog,
+        onShowServerUrl     = onShowServerUrl,
+        urlInput            = urlInput,
+        onUrlInput          = onUrlInput,
+        showEpgUrlDialog    = showEpgUrlDialog,
+        onShowEpgUrl        = onShowEpgUrl,
+        epgInput            = epgInput,
+        onEpgInput          = onEpgInput,
+        editingSourceEpg    = editingSourceEpg,
+        onEditingSourceEpg  = onEditingSourceEpg,
+        sources             = sources,
+    )
+}
+
+// ── Single column (phone) ─────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsSingleColumn(
+    settingsViewModel: SettingsViewModel,
+    playlistViewModel: PlaylistViewModel,
+    showAddSource: Boolean,
+    onShowAddSource: (Boolean) -> Unit,
+    showServerUrlDialog: Boolean,
+    onShowServerUrl: (Boolean) -> Unit,
+    urlInput: String,
+    onUrlInput: (String) -> Unit,
+    showEpgUrlDialog: Boolean,
+    onShowEpgUrl: (Boolean) -> Unit,
+    epgInput: String,
+    onEpgInput: (String) -> Unit,
+    editingSourceEpg: Pair<String, String?>?,
+    onEditingSourceEpg: (Pair<String, String?>?) -> Unit,
+    snackbarHostState: SnackbarHostState,
+    scope: kotlinx.coroutines.CoroutineScope,
+    proxyEnabled: Boolean,
+    onProxyEnabled: (Boolean) -> Unit,
+    hwDecode: Boolean,
+) {
+    val dimens       = NSDimens.current
+    val serverUrl    by settingsViewModel.serverUrl.collectAsState()
+    val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
+    val sources      by playlistViewModel.sources.collectAsState()
+
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
+    ) {
+        item { ServerHealthCard(serverUrl = serverUrl) }
+
+        item {
+            SettingsSection(label = "Server") {
+                SettingsIconRow(
+                    iconBackground = COLOR_BLUE,
+                    iconTint       = TINT_BLUE,
+                    icon           = PhosphorIcons.Regular.Database,
+                    title          = "Server URL",
+                    subtitle       = serverUrl.removePrefix("http://"),
+                    onClick        = { onShowServerUrl(true) },
+                )
+                SettingsDivider()
+                SettingsIconRow(
+                    iconBackground = COLOR_GREEN,
+                    iconTint       = TINT_GREEN,
+                    icon           = PhosphorIcons.Regular.Cpu,
+                    title          = "Trigger probe",
+                    subtitle       = "Re-validate all stream links",
+                    onClick        = {
+                        settingsViewModel.triggerProbe { success ->
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    if (success) "Probe started successfully"
+                                    else "Probe failed — check server"
+                                )
+                            }
+                        }
+                    },
+                )
+            }
+        }
+
+        item {
+            SettingsSection(label = "Playlist Sources") {
+                sources.forEachIndexed { index, source ->
+                    if (index > 0) SettingsDivider()
+                    SourceRow(
+                        name         = source.name,
+                        url          = source.url,
+                        epgUrl       = source.epgUrl,
+                        refreshHours = source.refreshIntervalHours,
+                        isHealthy    = true,
+                        onEpgEdit    = { epg -> onEditingSourceEpg(source.id to epg) },
+                        onRefresh    = { playlistViewModel.loadAll() },
+                        onDelete     = {
+                            playlistViewModel.removeSource(source.id)
+                            playlistViewModel.loadAll()
+                        },
+                    )
+                }
+                SettingsDivider()
+                AddSourceRow(onClick = { onShowAddSource(true) })
+            }
+        }
+
+        item {
+            SettingsSection(label = "Playback") {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+                ) {
+                    RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.GearSix)
+                    Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                    Text(
+                        text     = "Buffer preset",
+                        style    = NSType.bodyMedium(),
+                        color    = NSColors.text,
+                        modifier = Modifier.weight(1f),
+                    )
+                    BufferSegmentedPicker(
+                        selected = bufferPreset,
+                        onSelect = { settingsViewModel.setBufferPreset(it) },
+                    )
+                }
+                SettingsDivider()
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+                ) {
+                    RowIcon(background = COLOR_AMBER, tint = TINT_AMBER, icon = PhosphorIcons.Regular.Play)
+                    Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "Hardware decode", style = NSType.bodyMedium(), color = NSColors.text)
+                        Text(text = "Always on (ExoPlayer)", style = NSType.caption(), color = NSColors.text3)
+                    }
+                    NSToggle(checked = hwDecode, onCheckedChange = {}, enabled = false)
+                }
+            }
+        }
+
+        item {
+            SettingsSection(label = "Proxy") {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+                ) {
+                    RowIcon(background = COLOR_RED, tint = TINT_RED, icon = PhosphorIcons.Regular.FileLock)
+                    Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "Enable proxy", style = NSType.bodyMedium(), color = NSColors.text)
+                        Text(text = "Inject Referer / User-Agent", style = NSType.caption(), color = NSColors.text3)
+                    }
+                    NSToggle(checked = proxyEnabled, onCheckedChange = { onProxyEnabled(it) })
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(80.dp)) }
+    }
+
+    SettingsDialogs(
+        settingsViewModel   = settingsViewModel,
+        playlistViewModel   = playlistViewModel,
+        showAddSource       = showAddSource,
+        onShowAddSource     = onShowAddSource,
+        showServerUrlDialog = showServerUrlDialog,
+        onShowServerUrl     = onShowServerUrl,
+        urlInput            = urlInput,
+        onUrlInput          = onUrlInput,
+        showEpgUrlDialog    = showEpgUrlDialog,
+        onShowEpgUrl        = onShowEpgUrl,
+        epgInput            = epgInput,
+        onEpgInput          = onEpgInput,
+        editingSourceEpg    = editingSourceEpg,
+        onEditingSourceEpg  = onEditingSourceEpg,
+        sources             = sources,
+    )
+}
+
+// ── Shared dialogs ────────────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsDialogs(
+    settingsViewModel: SettingsViewModel,
+    playlistViewModel: PlaylistViewModel,
+    showAddSource: Boolean,
+    onShowAddSource: (Boolean) -> Unit,
+    showServerUrlDialog: Boolean,
+    onShowServerUrl: (Boolean) -> Unit,
+    urlInput: String,
+    onUrlInput: (String) -> Unit,
+    showEpgUrlDialog: Boolean,
+    onShowEpgUrl: (Boolean) -> Unit,
+    epgInput: String,
+    onEpgInput: (String) -> Unit,
+    editingSourceEpg: Pair<String, String?>?,
+    onEditingSourceEpg: (Pair<String, String?>?) -> Unit,
+    sources: List<com.nativestream.android.domain.model.PlaylistSource>,
+) {
+    val dimens = NSDimens.current
+
+    if (showAddSource) {
+        AddSourceSheet(
+            onDone            = { onShowAddSource(false) },
+            playlistViewModel = playlistViewModel,
+        )
+    }
+
+    if (showServerUrlDialog) {
+        AlertDialog(
+            onDismissRequest = { onShowServerUrl(false) },
+            containerColor   = NSColors.surface2,
+            title = { Text("Server URL", style = NSType.heading(), color = NSColors.text) },
+            text  = {
+                NSTextField(
+                    value         = urlInput,
+                    onValueChange = { onUrlInput(it) },
+                    placeholder   = "http://192.168.1.x:8888",
+                    modifier      = settingsFieldModifier(),
+                )
+            },
+            confirmButton = {
+                Text(
+                    "Save",
+                    style    = NSType.captionMedium(),
+                    color    = NSColors.accent,
+                    modifier = Modifier
+                        .clickable {
+                            settingsViewModel.setServerUrl(urlInput)
+                            onShowServerUrl(false)
+                        }
+                        .padding(8.dp),
+                )
+            },
+            dismissButton = {
+                Text(
+                    "Cancel",
+                    style    = NSType.captionMedium(),
+                    color    = NSColors.text3,
+                    modifier = Modifier.clickable { onShowServerUrl(false) }.padding(8.dp),
+                )
+            },
+        )
+    }
+
+    if (showEpgUrlDialog) {
+        val epgUrl by settingsViewModel.epgUrl.collectAsState()
+        AlertDialog(
+            onDismissRequest = { onShowEpgUrl(false) },
+            containerColor   = NSColors.surface2,
+            title = { Text("EPG URL", style = NSType.heading(), color = NSColors.text) },
+            text  = {
+                NSTextField(
+                    value         = epgInput.ifEmpty { epgUrl ?: "" },
+                    onValueChange = { onEpgInput(it) },
+                    placeholder   = "http://.../epg.xml",
+                    modifier      = settingsFieldModifier(),
+                )
+            },
+            confirmButton = {
+                Text(
+                    "Save",
+                    style    = NSType.captionMedium(),
+                    color    = NSColors.accent,
+                    modifier = Modifier
+                        .clickable {
+                            settingsViewModel.setEpgUrl(epgInput)
+                            onShowEpgUrl(false)
+                        }
+                        .padding(8.dp),
+                )
+            },
+            dismissButton = {
+                Text(
+                    "Cancel",
+                    style    = NSType.captionMedium(),
+                    color    = NSColors.text3,
+                    modifier = Modifier.clickable { onShowEpgUrl(false) }.padding(8.dp),
+                )
+            },
+        )
+    }
+
+    editingSourceEpg?.let { (sourceId, currentEpg) ->
+        var localEpgInput by remember { mutableStateOf(currentEpg ?: "") }
+        AlertDialog(
+            onDismissRequest = { onEditingSourceEpg(null) },
+            containerColor   = NSColors.surface2,
+            title = { Text("EPG URL", style = NSType.heading(), color = NSColors.text) },
+            text  = {
+                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.sm)) {
+                    Text(
+                        "Link an EPG source to this playlist.",
+                        style = NSType.caption(),
+                        color = NSColors.text3,
+                    )
+                    NSTextField(
+                        value         = localEpgInput,
+                        onValueChange = { localEpgInput = it },
+                        placeholder   = "http://.../epg.xml",
+                        modifier      = settingsFieldModifier(),
+                    )
+                }
+            },
+            confirmButton = {
+                Text(
+                    "Save",
+                    style    = NSType.captionMedium(),
+                    color    = NSColors.accent,
+                    modifier = Modifier
+                        .clickable {
+                            val updated = sources.find { it.id == sourceId }
+                                ?.copy(epgUrl = localEpgInput.trim().ifEmpty { null })
+                            updated?.let { playlistViewModel.updateSource(it) }
+                            onEditingSourceEpg(null)
+                        }
+                        .padding(8.dp),
+                )
+            },
+            dismissButton = {
+                Text(
+                    "Clear",
+                    style    = NSType.captionMedium(),
+                    color    = NSColors.text3,
+                    modifier = Modifier
+                        .clickable {
+                            val updated = sources.find { it.id == sourceId }?.copy(epgUrl = null)
+                            updated?.let { playlistViewModel.updateSource(it) }
+                            onEditingSourceEpg(null)
+                        }
+                        .padding(8.dp),
+                )
+            },
+        )
+    }
+}
 // ── Server health card ────────────────────────────────────────────────────────
 
 @Composable
