@@ -16,6 +16,7 @@ import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.PlaylistSource
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -28,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Named
 
 private const val TAG = "PlaylistViewModel"
 private const val FALLBACK_REFRESH_INTERVAL_MS = 3_600_000L // 1 hour
@@ -37,6 +39,7 @@ class PlaylistViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val m3uParser: M3uParser,
     private val settingsDataStore: SettingsDataStore,
+    @Named("io") private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
 
     // ── Public state ──────────────────────────────────────────────────────────
@@ -96,7 +99,7 @@ class PlaylistViewModel @Inject constructor(
     }
 
     /** Fetch channels from all configured sources in parallel on background thread pools. */
-    private suspend fun fetchAllSourcesInParallel(): List<Channel> = withContext(Dispatchers.IO) {
+    private suspend fun fetchAllSourcesInParallel(): List<Channel> = withContext(ioDispatcher) {
         _sources.value.map { source ->
             async {
                 try {
