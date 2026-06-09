@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -134,7 +134,7 @@ private fun PlayURLContent(
         ) {
             Icon(
                 imageVector        = if (showHeaders) Icons.Default.KeyboardArrowDown
-                                     else Icons.Default.KeyboardArrowRight,
+                                     else Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Toggle headers",
                 tint               = NSColors.text3,
                 modifier           = Modifier.padding(0.dp),

@@ -28,7 +28,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -336,7 +336,7 @@ private fun PlayerTabletopLayout(
                     )
                 }
                 ControlButton(
-                    icon               = Icons.Default.ArrowBack,
+                    icon               = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     onClick            = onDismiss,
                     size               = 36.dp,
