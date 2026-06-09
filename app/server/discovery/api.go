@@ -2,6 +2,7 @@
 package discovery
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -18,8 +19,8 @@ func (e *Engine) handleStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *Engine) handleTriggerRun(w http.ResponseWriter, r *http.Request) {
-	e.TriggerRun(r.Context())
-	discoveryWriteJSON(w, http.StatusOK, map[string]string{"status": "triggered"})
+    e.TriggerRun(context.Background())
+    discoveryWriteJSON(w, http.StatusOK, map[string]string{"status": "triggered"})
 }
 
 func (e *Engine) handleUnmatched(w http.ResponseWriter, r *http.Request) {

@@ -1,4 +1,4 @@
-// proxy/proxy.go — NS-141
+// proxy/proxy.go
 // Transparent HLS proxy: forwards stream requests with injected headers.
 
 package proxy
@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"os"
+	"fmt"
 
 	"github.com/fredrick-karuri/nativestream/server/store"
 )
@@ -39,7 +41,7 @@ func New(cfg Config, s *store.Store) *Proxy {
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
-	// 🟢 INTERCEPT STABLE DETERMINISTIC CHUNKS
+	// INTERCEPT STABLE DETERMINISTIC CHUNKS
 	if strings.Contains(path, "/proxy/seg/") {
 		startIdx := strings.Index(path, "/proxy/seg/") + 11
 		endIdx := strings.LastIndex(path, ".ts")
@@ -49,20 +51,20 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		segID := path[startIdx:endIdx]
 
-		targetURLVal, exists := p.segmentCache.Load(segID)
+		val, exists := p.segmentCache.Load(segID)
 		if !exists {
 			http.Error(w, "segment token expired from proxy reference", http.StatusGone)
 			return
 		}
-		targetURL := targetURLVal.(string)
+		seg := val.(cachedSegment)
 
-		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, targetURL, nil)
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, seg.TargetURL, nil)
 		if err != nil {
 			http.Error(w, "bad target build", http.StatusBadRequest)
 			return
 		}
-
 		injectHeaders(req, r, p.cfg)
+		InjectFromMap(req, seg.Headers)
 
 		resp, err := p.client.Do(req)
 		if err != nil {
@@ -110,6 +112,8 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	injectHeaders(req, r, p.cfg)
+	InjectFromMap(req, ch.ActiveLink.Headers)
+	fmt.Fprintf(os.Stderr, "[proxy] url=%s headers=%v\n", targetURL, req.Header)
 
 	resp, err := p.client.Do(req)
 	if err != nil {
@@ -133,7 +137,8 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if isPlaylist {
 		body, _ := io.ReadAll(resp.Body)
-		rewritten := p.rewritePlaylist(string(body), targetURL, channelID)
+
+		rewritten := p.rewritePlaylist(string(body), targetURL, channelID, ch.ActiveLink.Headers)
 		w.Write([]byte(rewritten))
 	} else {
 		io.Copy(w, resp.Body)
@@ -142,17 +147,23 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func copyResponseHeaders(w http.ResponseWriter, resp *http.Response) {
 	for k, vals := range resp.Header {
+		if strings.EqualFold(k, "content-length") {
+			continue
+		}
 		for _, v := range vals {
 			w.Header().Add(k, v)
 		}
 	}
 }
 
-// 🟢 REPAIRED HELPER: Explicitly stores mapping via the deterministic hash key
-func (p *Proxy) cacheTargetURL(key, targetURL string) {
-	p.segmentCache.Store(key, targetURL)
-	
-	// Evict keys safely after 8 minutes
+//  Explicitly stores mapping via the deterministic hash key
+type cachedSegment struct {
+	TargetURL string
+	Headers   map[string]string
+}
+
+func (p *Proxy) cacheSegment(key, targetURL string, headers map[string]string) {
+	p.segmentCache.Store(key, cachedSegment{TargetURL: targetURL, Headers: headers})
 	go func(id string) {
 		t := time.NewTimer(8 * time.Minute)
 		<-t.C

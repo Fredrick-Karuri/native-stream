@@ -1,4 +1,4 @@
-// discovery/engine.go — NS-202, NS-221, NS-222
+// discovery/engine.go
 // Orchestrates crawlers → extractor → matcher → validator pipeline.
 // Match-aware: escalates crawl priority for channels with imminent kickoffs.
 
@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync"
 	"time"
+	"strings"
 
 	"github.com/fredrick-karuri/nativestream/server/validator"
 )
@@ -30,6 +31,7 @@ type Config struct {
 type Engine struct {
 	cfg       Config
 	crawlers  []Crawler
+	directFetchers []DirectFetcher
 	extractor *LinkExtractor
 	matcher   *ChannelMatcher
 	validator *validator.Validator
@@ -64,6 +66,13 @@ func NewEngine(
 		e.sourceStates[c.Name()] = &SourceState{Name: c.Name()}
 	}
 	return e
+}
+
+func (e *Engine) WithDirectFetchers(fetchers []DirectFetcher) {
+	e.directFetchers = fetchers
+	for _, f := range fetchers {
+		e.sourceStates[f.Name()] = &SourceState{Name: f.Name()}
+	}
 }
 
 // Run starts the discovery loop. Blocks until ctx is cancelled.
@@ -168,9 +177,24 @@ func (e *Engine) runCycle(ctx context.Context) {
 	e.foundToday += len(candidates)
 	e.mu.Unlock()
 
-	// 4. Match to channels and submit to validator
+		// 4. Match to channels and submit to validator
 	for i := range candidates {
-		channelID := e.matcher.Match(&candidates[i])
+		var channelID string
+
+		// Express Lane Bypass [NS-305]: Identify if the item comes from your local script
+		if candidates[i].SourceURL == "/Users/fredrickkaruri/.config/nativestream/run_scraper.sh" {
+			// Auto-generate a clean, distinct database channel token key mapping on the fly
+			cleanName := candidates[i].ContextText
+			if cleanName == "" {
+				cleanName = "direct-stream-track"
+			}
+			cleanName = strNormalize(cleanName)
+			channelID = "direct-" + cleanName
+		} else {
+			// Default public loop fallback path
+			channelID = e.matcher.Match(&candidates[i])
+		}
+
 		if channelID == "" {
 			e.mu.Lock()
 			e.unmatched = append(e.unmatched, candidates[i])
@@ -180,14 +204,81 @@ func (e *Engine) runCycle(ctx context.Context) {
 			e.mu.Unlock()
 			continue
 		}
+
 		candidates[i].ChannelID = channelID
+		
+		// Submit to the active Validator probers with your custom headers attached!
 		e.validator.Submit(validator.Candidate{
 			URL:       candidates[i].URL,
 			ChannelID: channelID,
 			SourceURL: candidates[i].SourceURL,
+			Headers:   candidates[i].Headers, // FIX: Pass headers forward into validation engine context
 		})
 	}
+
+
+	// Direct fetchers — pre-resolved candidates, skip extractor
+	for _, df := range e.directFetchers {
+		direct, err := df.FetchDirect(ctx)
+
+		e.mu.Lock()
+		st := e.sourceStates[df.Name()]
+		if err != nil {
+			st.LastError = err.Error()
+			fmt.Fprintf(os.Stderr, "[discovery/%s] fetch error: %v\n", df.Name(), err)
+			e.mu.Unlock()
+			continue
+		}
+		st.LastFetch = time.Now()
+		st.LinksFound += len(direct)
+		st.LastError = ""
+		e.mu.Unlock()
+
+		for i := range direct {
+			channelID := e.matcher.Match(&CandidateLink{
+				URL:         direct[i].URL,
+				ContextText: direct[i].ChannelName + " " + direct[i].GroupTitle,
+				SourceURL:   direct[i].SourceURL,
+			})
+
+			// with this:
+			if channelID == "" {
+				if direct[i].ChannelName != "" {
+					newID := e.matcher.AutoRegister(direct[i])
+					fmt.Fprintf(os.Stderr, "[engine] AutoRegister name=%s id=%s\n", direct[i].ChannelName, newID)
+
+					if newID != "" {
+						channelID = newID
+					} else {
+						// fallback: still track as unmatched
+						e.mu.Lock()
+						e.unmatched = append(e.unmatched, CandidateLink{
+							URL:         direct[i].URL,
+							ContextText: direct[i].ChannelName,
+							SourceURL:   direct[i].SourceURL,
+						})
+						if len(e.unmatched) > 200 {
+							e.unmatched = e.unmatched[len(e.unmatched)-200:]
+						}
+						e.mu.Unlock()
+						continue
+					}
+				} else {
+					continue
+				}
+			}
+			direct[i].ChannelID = channelID
+			e.validator.Submit(validator.Candidate{
+				URL:       direct[i].URL,
+				ChannelID: channelID,
+				SourceURL: direct[i].SourceURL,
+				Headers:   direct[i].Headers,
+			})
+		}
+	}
+
 }
+
 
 func (e *Engine) fetchAll(ctx context.Context) []RawItem {
 	var (
@@ -239,4 +330,29 @@ func deduplicate(links []CandidateLink) []CandidateLink {
 		}
 	}
 	return out
+}
+
+func strNormalize(s string) string {
+	s = jsonNormalizeLower(s)
+	var out []rune
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+			out = append(out, r)
+		} else if r == ' ' || r == '|' || r == '_' {
+			out = append(out, '-')
+		}
+	}
+	return string(out)
+}
+
+func jsonNormalizeLower(s string) string {
+	var sb strings.Builder
+	for _, r := range s {
+		if r >= 'A' && r <= 'Z' {
+			sb.WriteRune(r + 32)
+		} else {
+			sb.WriteRune(r)
+		}
+	}
+	return sb.String()
 }

@@ -1,4 +1,4 @@
-// playlist/generator.go — NS-122
+// playlist/generator.go
 // Generates M3U playlist output from healthy store channels.
 
 package playlist
@@ -24,9 +24,14 @@ func Generate(channels []*store.Channel, cfg Config) string {
 		if ch.ActiveLink == nil {
 			continue
 		}
+		// Local-script channels always proxy — real URL must not appear in output
+		localScript := ch.ActiveLink.SourceURL != "" &&
+			!strings.HasPrefix(ch.ActiveLink.SourceURL, "http")
+
 
 		streamURL := ch.ActiveLink.URL
-		if cfg.ProxyEnabled {
+
+		if cfg.ProxyEnabled || localScript {
 			streamURL = fmt.Sprintf("%s/stream/%s/proxy", cfg.ServerAddr, ch.ID)
 		}
 

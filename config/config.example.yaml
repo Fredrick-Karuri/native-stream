@@ -32,9 +32,8 @@ proxy:
   referer: ""
   user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
 
-# ── Phase 3: Discovery (added in V3) ─────────────────────────────────────────
 discovery:
-  enabled: false      # Enable in Phase 3
+  enabled: true     
   default_interval: 30m
   priority_interval: 5m   # Used for channels with match in <2h
 
@@ -58,6 +57,11 @@ discovery:
   direct_m3u:
     enabled: false
     urls: []          # Add stable M3U URLs here
+    
+  local_script:
+    enabled: false
+    # path: ./crawlers/local_scraper.py
+    # path: /etc/nativestream/plugins/scraper.py
 
 # ── Seed playlist ─────────────────────────────────────────────────────────────
 # On first run, import an existing .m3u file to populate the channel store.

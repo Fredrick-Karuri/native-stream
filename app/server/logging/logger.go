@@ -1,4 +1,4 @@
-// logging/logger.go — NS-302
+// logging/logger.go
 // Structured logging setup using stdlib log/slog (Go 1.21+).
 
 package logging

@@ -43,14 +43,7 @@ final class PlayerViewModel:NSObject {
         error = nil
         retryCount = 0
         currentChannel = channel
-
-        if let detail = try? await APIClient.shared.getChannel(id: channel.id),
-           let activeURL = detail.activeLink.flatMap({ URL(string: $0.url) }) {
-            startPlayback(url: activeURL)
-        } else {
-            // Fall back to the URL embedded in the channel model
-            startPlayback(url: channel.streamURL)
-        }
+        startPlayback(url: channel.streamURL)
     }
 
     /// FX-018: Play any URL directly without persisting a channel.
@@ -78,6 +71,7 @@ final class PlayerViewModel:NSObject {
     /// FX-017: Uses AVURLAsset when headers are present so streams requiring
     /// Referer/User-Agent or custom tokens play without buffering failures.
     private func startPlayback(url: URL, headers: [String: String] = [:]) {
+        print("[player] url=\(url) headers=\(headers)")
         let item: AVPlayerItem
  
         if headers.isEmpty {
@@ -118,6 +112,8 @@ final class PlayerViewModel:NSObject {
                     for await status in item.publisher(for: \.status).values {
                         guard !Task.isCancelled else { return }
                         if status == .failed {
+                            print("[player] error=\(item.error?.localizedDescription ?? "unknown")")
+                            print("[player] error detail=\(String(describing: item.error))")
                             await self.handleFailure(underlyingError: item.error)
                             return
                         }

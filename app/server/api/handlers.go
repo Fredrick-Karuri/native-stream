@@ -1,4 +1,4 @@
-// api/handlers.go — NS-121, NS-122, NS-123, NS-124, NS-125
+// api/handlers.go
 // HTTP API: playlist, EPG, channel management, health, probe endpoints.
 
 package api
@@ -54,6 +54,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Proxy
 	mux.HandleFunc("GET /stream/{id}/proxy/", h.proxy.ServeHTTP)
+	mux.HandleFunc("GET /stream/{id}/proxy", h.proxy.ServeHTTP)
 
 	// Channel management
 	mux.HandleFunc("GET /api/channels", h.handleListChannels)

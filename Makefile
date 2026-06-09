@@ -1,4 +1,5 @@
-.PHONY: build-server run-server clean build-app run-app dev test-server
+.PHONY: build-server run-server clean build-app run-app dev test-server test-android-unit test-android-ui test-android-all
+
 
 VERSION := $(shell cat VERSION)
 
@@ -63,6 +64,20 @@ run-app:
 
 lint-client:
 	swiftlint lint --path app/macos/NativeStreamMac
+
+# ── Android App ───────────────────────────────────────────────────────────────
+ANDROID_DIR := app/android
+
+test-android-unit:
+	@echo "→ Running Android local unit and integration tests..."
+	cd $(ANDROID_DIR) && ./gradlew testDebugUnitTest
+
+test-android-ui:
+	@echo "→ Running Android instrumented Compose UI tests (Requires Emulator/Device)..."
+	cd $(ANDROID_DIR) && ./gradlew connectedDebugAndroidTest
+
+test-android-all: test-android-unit test-android-ui
+
 
 # ── Dev (server + app together) ───────────────────────────────────────────────
 dev:

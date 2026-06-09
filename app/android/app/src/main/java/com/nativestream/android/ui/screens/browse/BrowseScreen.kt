@@ -1,0 +1,626 @@
+// app/src/main/java/com/nativestream/android/ui/screens/browse/BrowseScreen.kt
+//
+// Browse Screen
+// - Top bar: "Browse" title + search icon (mobile style)
+// - Chips: icon-above-label square pills matching design
+// - Grid: real ChannelCard, adaptive 2-column, correct height
+
+package com.nativestream.android.ui.screens.browse
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import com.adamglin.phosphoricons.RegularGroup
+import com.adamglin.phosphoricons.regular.Basketball
+import com.adamglin.phosphoricons.regular.Football
+import com.adamglin.phosphoricons.regular.Cricket
+import com.adamglin.phosphoricons.regular.Golf
+import com.adamglin.phosphoricons.regular.SoccerBall
+import com.adamglin.phosphoricons.regular.Star
+import com.adamglin.phosphoricons.regular.TennisBall
+import com.nativestream.android.domain.model.Channel
+import com.nativestream.android.domain.model.SportCategory
+import com.nativestream.android.ui.components.NSGroupHeader
+import com.nativestream.android.ui.components.NSIconButton
+import com.nativestream.android.ui.components.NSTextField
+import com.nativestream.android.ui.theme.NSColors
+import com.nativestream.android.ui.theme.NSDimens
+import com.nativestream.android.ui.theme.NSType
+import com.nativestream.android.ui.viewmodel.EpgViewModel
+import com.nativestream.android.ui.viewmodel.FavouritesViewModel
+import com.nativestream.android.ui.viewmodel.PlaylistViewModel
+import com.nativestream.android.ui.viewmodel.PlayerViewModel
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import com.nativestream.android.ui.LocalWindowSizeClass
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.lazy.items
+private val Regular = RegularGroup
+
+private val MASTER_PANE_WIDTH = 320.dp
+private data class ChannelSection(val name: String, val channels: List<Channel>)
+
+@Composable
+fun BrowseScreen(
+    playerViewModel: PlayerViewModel,
+    modifier: Modifier = Modifier,
+    playlistViewModel: PlaylistViewModel  = hiltViewModel(),
+    epgViewModel: EpgViewModel            = hiltViewModel(),
+    favouritesViewModel: FavouritesViewModel = hiltViewModel(),
+) {
+    val channels  by playlistViewModel.channels.collectAsState()
+    val isLoading by playlistViewModel.isLoading.collectAsState()
+
+    var showAddChannel by remember { mutableStateOf(false) }
+
+    var selectedGroup by remember { mutableStateOf<String?>(null) }
+    var selectedSport by remember { mutableStateOf<SportCategory?>(null) }
+
+    var searchActive by remember { mutableStateOf(false) }
+    var searchText   by remember { mutableStateOf("") }
+
+    var showFavouritesOnly by remember { mutableStateOf(false) }
+    val favouriteIds by favouritesViewModel.favouriteIds.collectAsState()
+
+    var showPlayUrl by remember { mutableStateOf(false) }
+
+    var selectedChannelId by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedChannel = channels.find { it.id == selectedChannelId }
+
+    // Groups from playlist
+    val groups = remember(channels) {
+        channels.map { it.groupTitle }.distinct().sorted()
+    }
+
+    // Sport sub-chips only when Sports group selected
+    val activeSports = remember(channels, selectedGroup) {
+        if (selectedGroup?.lowercase()?.contains("sport") == true)
+            epgViewModel.activeSports(channels)
+        else emptyList()
+    }
+
+
+    // Filtered channels
+    val filtered = remember(channels, selectedGroup, selectedSport, searchText, showFavouritesOnly, favouriteIds) {
+        channels
+            .filter { if (selectedGroup != null) it.groupTitle == selectedGroup else true }
+            .filter { if (selectedSport != null) {
+                val prog = epgViewModel.currentProgramme(it) ?: epgViewModel.nextProgramme(it)
+                prog != null && epgViewModel.matchesSport(selectedSport!!, prog)
+            } else true }
+            .filter { if (searchText.isNotEmpty())
+                it.name.contains(searchText, ignoreCase = true) else true }
+            .filter { if (showFavouritesOnly) favouriteIds.contains(it.id) else true }
+    }
+
+    val groupedSections = remember(filtered, selectedGroup) {
+        val groups = filtered.groupBy { it.groupTitle }
+        val sorted = groups.keys.sorted().map { ChannelSection(it, groups[it]!!) }
+        if (selectedGroup != null) sorted.filter { it.name == selectedGroup } else sorted
+    }
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = modifier
+            .fillMaxSize()
+            .background(NSColors.bg)
+        ) {
+
+            // ── Top bar — mobile style: title + search icon ───────────────────────
+            BrowseTopBar(
+                searchActive  = searchActive,
+                searchText    = searchText,
+                onSearchClick = { searchActive = true },
+                onSearchChange = { searchText = it },
+                onSearchClose  = { searchActive = false; searchText = "" },
+                onPlayUrl    = { showPlayUrl = true },
+                onAddChannel = { showAddChannel = true },
+            )
+            Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+
+            // ── Sport + group chips ───────────────────────────────────────────────
+            BrowseChipsRow(
+                groups        = groups,
+                selectedGroup = selectedGroup,
+                activeSports  = activeSports,
+                selectedSport = selectedSport,
+                onSelectAll   = { selectedGroup = null; selectedSport = null; showFavouritesOnly = false },
+                onSelectGroup = { selectedGroup = it; selectedSport = null; showFavouritesOnly = false },
+                onSelectSport = { selectedSport = it },
+                showFavouritesOnly  = showFavouritesOnly,
+                onToggleFavourites = { if (!showFavouritesOnly) { showFavouritesOnly = true; selectedGroup = null; selectedSport = null } },
+                )
+            Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+            when {
+                isLoading          -> BrowseLoadingView()
+                filtered.isEmpty() -> BrowseEmptyView(searchText)
+                else -> {
+                    val windowSizeClass = LocalWindowSizeClass.current
+                    val useDetail = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+
+                    if (useDetail) {
+                        BrowseMasterDetail(
+                            sections            = groupedSections,
+                            selectedChannel     = selectedChannel,
+                            onSelectChannel     = { selectedChannel = it },
+                            playerViewModel     = playerViewModel,
+                            epgViewModel        = epgViewModel,
+                            favouritesViewModel = favouritesViewModel,
+                        )
+                    } else {
+                        BrowseGrid(
+                            sections            = groupedSections,
+                            playerViewModel     = playerViewModel,
+                            epgViewModel        = epgViewModel,
+                            favouritesViewModel = favouritesViewModel,
+                        )
+                    }
+                }
+            }
+        }
+
+        if (showPlayUrl) {
+            PlayURLSheet(
+                playerViewModel = playerViewModel,
+                onDismiss = { showPlayUrl = false },
+                onPlay    = { playerViewModel.showPlayer() },
+            )
+        }
+    }
+
+    if (showAddChannel) {
+        AddChannelSheet(
+            onDone            = { showAddChannel = false },
+            playlistViewModel = playlistViewModel,
+        )
+    }
+}
+
+// ── Top bar ───────────────────────────────────────────────────────────────────
+@Composable
+private fun BrowseTopBar(
+    searchActive: Boolean,
+    searchText: String,
+    onSearchClick: () -> Unit,
+    onSearchChange: (String) -> Unit,
+    onSearchClose: () -> Unit,
+    onPlayUrl: () -> Unit,
+    onAddChannel: () -> Unit,
+) {
+    val dimens = NSDimens.current
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(NSColors.surface)
+            .windowInsetsPadding(WindowInsets.displayCutout),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
+        ) {
+            Text(text = "Browse", style = NSType.heading(), color = NSColors.text)
+            Spacer(modifier = Modifier.weight(1f))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NSIconButton(
+                    icon               = Icons.Default.Search,
+                    contentDescription = "Search",
+                    onClick            = onSearchClick,
+                )
+                Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                Box {
+                    NSIconButton(
+                        icon               = Icons.Default.MoreVert,
+                        contentDescription = "More",
+                        onClick            = { menuExpanded = true },
+                    )
+                    DropdownMenu(
+                        expanded         = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        containerColor   = NSColors.surface2,
+                    ) {
+                        DropdownMenuItem(
+                            text    = { Text("Play URL", style = NSType.caption(), color = NSColors.text) },
+                            onClick = { menuExpanded = false; onPlayUrl() },
+                        )
+                        DropdownMenuItem(
+                            text    = { Text("Add Channel", style = NSType.caption(), color = NSColors.text) },
+                            onClick = { menuExpanded = false; onAddChannel() },
+                        )
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = searchActive,
+            enter   = fadeIn() + expandVertically(),
+            exit    = fadeOut() + shrinkVertically(),
+        ) {
+            BrowseSearchBar(
+                searchText     = searchText,
+                onSearchChange = onSearchChange,
+                onSearchClose  = onSearchClose,
+            )
+        }
+    }
+}
+
+// ── Chips — icon above label, square rounded, matching design ─────────────────
+@Composable
+private fun BrowseChipsRow(
+    groups: List<String>,
+    selectedGroup: String?,
+    activeSports: List<SportCategory>,
+    selectedSport: SportCategory?,
+    onSelectAll: () -> Unit,
+    onSelectGroup: (String) -> Unit,
+    onSelectSport: (SportCategory?) -> Unit,
+    showFavouritesOnly: Boolean,
+    onToggleFavourites: () -> Unit,
+) {
+    val dimens = NSDimens.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(NSColors.surface),
+    ) {
+        // Level 1 — groups
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
+        ) {
+            NSChip(
+                label = "All",
+                isActive = selectedGroup == null && !showFavouritesOnly,
+                onClick = onSelectAll
+            )
+            NSChip(
+                label    = "Favourites",
+                isActive = showFavouritesOnly,
+                icon     = Regular.Star,
+                onClick  = onToggleFavourites,
+            )
+            groups.forEach { group ->
+                NSChip(
+                    label    = group,
+                    isActive = selectedGroup == group,
+                    onClick  = { onSelectGroup(group); onSelectSport(null) },
+                )
+            }
+        }
+
+        // Level 2 — sport sub-chips, only when relevant
+        if (activeSports.isNotEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.xs),
+            ) {
+                NSChip(
+                    label   = "All Sports",
+                    isActive = selectedSport == null,
+                    onClick  = { onSelectSport(null) },
+                )
+                activeSports.forEach { sport ->
+                    NSChip(
+                        label    = sport.label,
+                        isActive = selectedSport == sport,
+                        onClick  = { onSelectSport(sport) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+
+// ── Channel grid — real ChannelCard, 2-column ─────────────────────────────────
+@Composable
+private fun BrowseGrid(
+    sections: List<ChannelSection>,
+    playerViewModel: PlayerViewModel,
+    epgViewModel: EpgViewModel,
+    favouritesViewModel: FavouritesViewModel,
+) {
+    val dimens = NSDimens.current
+
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 160.dp),
+        verticalArrangement = Arrangement.spacedBy(dimens.spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
+    ) {
+        sections.forEach { section ->
+            item(
+                key = "header_${section.name}",
+                span = { GridItemSpan(maxLineSpan) },
+            ) {
+                NSGroupHeader(title = section.name, count = section.channels.size)
+            }
+            items(
+                items = section.channels,
+                key   = { it.id },
+            ) { channel ->
+                ChannelCard(
+                    channel             = channel,
+                    playerViewModel     = playerViewModel,
+                    epgViewModel        = epgViewModel,
+                    favouritesViewModel = favouritesViewModel,
+                    onClick             = { playerViewModel.play(channel) },
+                )
+            }
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Spacer(modifier = Modifier.height(80.dp))
+        }
+    }
+}
+
+// ── Loading / empty ───────────────────────────────────────────────────────────
+
+@Composable
+private fun BrowseLoadingView() {
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+        Text(text = "Loading channels…", style = NSType.caption(), color = NSColors.text3)
+    }
+}
+
+@Composable
+private fun BrowseEmptyView(searchText: String) {
+    val dimens = NSDimens.current
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxSize().padding(dimens.spacing.xl),
+    ) {
+        Text(text = "📺", fontSize = 40.sp)
+        Spacer(modifier = Modifier.height(dimens.spacing.md))
+        Text(text = "No channels found", style = NSType.display(), color = NSColors.text)
+        Spacer(modifier = Modifier.height(dimens.spacing.sm))
+        Text(
+            text  = if (searchText.isEmpty()) "Add a playlist source in Settings."
+            else "Try a different search term.",
+            style = NSType.caption(),
+            color = NSColors.text3,
+        )
+    }
+}
+
+@Composable
+fun NSChip(
+    label: String,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+) {
+    val dimens = NSDimens.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.xs),
+        modifier = Modifier
+            .clip(RoundedCornerShape(dimens.radius.pill))
+            .background(if (isActive) NSColors.accentGlow else NSColors.surface2)
+            .border(0.5.dp, if (isActive) NSColors.accentBorder else NSColors.border, RoundedCornerShape(dimens.radius.pill))
+            .clickable(onClick = onClick)
+            .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector        = icon,
+                contentDescription = null,
+                tint               = if (isActive) NSColors.accent2 else NSColors.text3,
+                modifier           = Modifier.size(12.dp),
+            )
+        }
+        Text(
+            text  = label,
+            style = NSType.caption(),
+            color = if (isActive) NSColors.accent2 else NSColors.text3,
+        )
+    }
+}
+
+@Composable
+private fun BrowseSearchBar(
+    searchText: String,
+    onSearchChange: (String) -> Unit,
+    onSearchClose: () -> Unit,
+) {
+    val dimens = NSDimens.current
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(NSColors.surface)
+            .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
+    ) {
+        NSTextField(
+            value         = searchText,
+            onValueChange = onSearchChange,
+            placeholder   = "Search channels…",
+            modifier      = Modifier.weight(1f),
+        )
+        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+        NSIconButton(
+            icon               = Icons.Default.Close,
+            contentDescription = "Close search",
+            onClick            = onSearchClose,
+        )
+    }
+}
+
+// ── Sport icon mapping ────────────────────────────────────────────────────────
+
+private fun SportCategory.chipIcon() = when (this) {
+    SportCategory.FOOTBALL   -> Regular.SoccerBall
+    SportCategory.RUGBY      -> Regular.Football
+    SportCategory.TENNIS     -> Regular.TennisBall
+    SportCategory.BASKETBALL -> Regular.Basketball
+    SportCategory.CRICKET    -> Regular.Cricket
+    SportCategory.GOLF       -> Regular.Golf
+}
+
+
+@Composable
+private fun BrowseMasterDetail(
+    sections: List<ChannelSection>,
+    selectedChannel: Channel?,
+    onSelectChannel: (Channel) -> Unit,
+    playerViewModel: PlayerViewModel,
+    epgViewModel: EpgViewModel,
+    favouritesViewModel: FavouritesViewModel,
+) {
+    val dimens = NSDimens.current
+
+    Row(modifier = Modifier.fillMaxSize()) {
+        // Left pane — single-column channel list
+        LazyColumn(
+            modifier = Modifier
+                .width(MASTER_PANE_WIDTH)
+                .fillMaxHeight()
+                .background(NSColors.surface),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
+        ) {
+            sections.forEach { section ->
+                item(key = "header_${section.name}") {
+                    NSGroupHeader(
+                        title    = section.name,
+                        count    = section.channels.size,
+                        modifier = Modifier.padding(
+                            horizontal = dimens.spacing.md,
+                            vertical   = dimens.spacing.sm,
+                        ),
+                    )
+                }
+                items(section.channels, key = { it.id }) { channel ->
+                    MasterPaneRow(
+                        channel    = channel,
+                        isSelected = selectedChannel?.id == channel.id,
+                        onClick    = { onSelectChannel(channel) },
+                    )
+                }
+            }
+            item { Spacer(modifier = Modifier.height(80.dp)) }
+        }
+
+        // Divider
+        Box(
+            modifier = Modifier
+                .width(0.5.dp)
+                .fillMaxHeight()
+                .background(NSColors.border)
+        )
+
+        // Right pane — detail or empty state
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+        ) {
+            if (selectedChannel != null) {
+                BrowseDetailPane(
+                    channel         = selectedChannel,
+                    epgViewModel    = epgViewModel,
+                    playerViewModel = playerViewModel,
+                )
+            } else {
+                DetailEmptyState()
+            }
+        }
+    }
+}
+
+@Composable
+private fun MasterPaneRow(
+    channel: Channel,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    val dimens = NSDimens.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(if (isSelected) NSColors.accentGlow else NSColors.surface)
+            .clickable(onClick = onClick)
+            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+    ) {
+        Text(
+            text     = channel.name,
+            style    = NSType.caption(),
+            color    = if (isSelected) NSColors.accent2 else NSColors.text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun DetailEmptyState() {
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+        Text(
+            text  = "Select a channel",
+            style = NSType.caption(),
+            color = NSColors.text3,
+        )
+    }
+}

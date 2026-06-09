@@ -1,0 +1,76 @@
+name: macOS Release
+
+on:
+  push:
+    tags:
+      - 'macos/v*'
+
+jobs:
+  release:
+    name: Build & Publish macOS App
+    runs-on: macos-14
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract Version from Tag
+        id: parse_tag
+        run: |
+          RAW_TAG=${{ github.ref_name }}
+          VERSION=${RAW_TAG#macos/v}
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${RAW_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app
+
+      - name: Compile Production App
+        working-directory: app/macos
+        run: |
+          xcodebuild \
+            -project NativeStreamMac.xcodeproj \
+            -scheme NativeStreamMac \
+            -configuration Release \
+            -destination "platform=macOS,arch=arm64" \
+            -derivedDataPath DerivedData \
+            build \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+
+      - name: Package App to ZIP Archive
+        run: |
+          mkdir -p dist
+          # Navigate to Xcode build outputs and compress the executable bundle
+          cd app/macos/DerivedData/Build/Products/Release
+          zip -r ../../../../../dist/NativeStream-macOS-arm64.zip NativeStreamMac.app
+
+      - name: Generate Scoped Changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 --match "macos/v*" "${{ github.ref_name }}^" 2>/dev/null || echo "")
+          RANGE=${PREV_TAG:+$PREV_TAG..}HEAD
+          CHANGELOG=$(git log ${RANGE:-HEAD} --pretty=format:"- %s (%h)" --no-merges -- app/macos/ | head -50)
+          
+          echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.parse_tag.outputs.tag }}
+          name: macOS Client v${{ steps.parse_tag.outputs.version }}
+          body: |
+            ## macOS Updates
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Installation
+            Download the ZIP archive below, extract it, and copy the application into your `/Applications` directory.
+          files: dist/NativeStream-macOS-arm64.zip
+          draft: false
+          prerelease: false

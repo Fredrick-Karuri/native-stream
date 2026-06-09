@@ -1,4 +1,4 @@
-// cmd/main.go — Phase 4: hardened with slog, circuit breaker, graceful shutdown.
+// cmd/main.go — hardened with slog, circuit breaker, graceful shutdown.
 
 package main
 
@@ -123,6 +123,14 @@ func main() {
 		}
 	}
 
+	// DirectFetchers — pre-resolved candidates, bypass extractor
+	var directFetchers []discovery.DirectFetcher
+	if cfg.Discovery.LocalScriptPath != "" {
+		lsc := crawlers.NewLocalScriptCrawler(cfg.Discovery.LocalScriptPath)
+		directFetchers = append(directFetchers, lsc)
+		slog.Info("direct fetcher enabled", "name", "local-script-crawler", "path", cfg.Discovery.LocalScriptPath)
+	}
+
 	matcher := discovery.NewMatcher(s)
 	discEngine := discovery.NewEngine(discovery.Config{
 		Enabled:          cfg.Discovery.Enabled,
@@ -130,8 +138,15 @@ func main() {
 		PriorityInterval: cfg.Discovery.PriorityInterval,
 	}, crawlerList, matcher, v)
 
+	discEngine.WithDirectFetchers(directFetchers) 
+
 	// ── API ────────────────────────────────────────────────────────────────────
-	serverAddr := fmt.Sprintf("http://%s", cfg.Server.Addr())
+
+	playbackHost := cfg.Server.Host
+	if playbackHost == "0.0.0.0" {
+		playbackHost = "127.0.0.1"
+	}
+	serverAddr := fmt.Sprintf("http://%s:%d", playbackHost, cfg.Server.Port)
 	h := api.New(s, e, px, v, proxyCfg, serverAddr)
 
 	mux := http.NewServeMux()

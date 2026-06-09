@@ -14,17 +14,10 @@ final class PlaylistViewModel {
     var sources: [PlaylistSource] = []
     var isLoading: Bool = false
     var error: AppError? = nil
-    var detectedEPGURL: URL? = nil
 
     // MARK: - Computed
-
-    var groups: [String: [Channel]] {
-        Dictionary(grouping: channels, by: \.groupTitle)
-    }
-
-    var sortedGroupNames: [String] {
-        groups.keys.sorted()
-    }
+    private(set) var groups: [String: [Channel]] = [:]
+    private(set) var sortedGroupNames: [String] = []
 
     // MARK: - Dependencies
 
@@ -47,10 +40,10 @@ final class PlaylistViewModel {
 
         var allChannels: [Channel] = []
 
-        await withTaskGroup(of: (channels: [Channel], epgURL: URL?).self) { group in
+        await withTaskGroup(of: (channels: [Channel], epgURL: URL?, sourceID: UUID).self) { group in
             for source in sources {
                 group.addTask { [weak self] in
-                    guard let self else { return ([], nil) }
+                    guard let self else { return ([], nil, source.id) }
                     do {
                         let data: Data
                         if source.url.host == "localhost" || source.url.host == "127.0.0.1" {
@@ -62,22 +55,28 @@ final class PlaylistViewModel {
                         for warning in result.warnings {
                             print("⚠️ [M3U] Line \(warning.line): \(warning.reason)")
                         }
-                        return (result.channels, result.epgURL)
+                        return (result.channels, result.epgURL, source.id)
                     } catch {
                         await MainActor.run {
                             self.error = error as? AppError ?? .playlistFetchFailed(url: source.url, underlying: error)
                         }
-                        return ([], nil)
+                        return ([], nil, source.id)
                     }
                 }
             }
             for await fetched in group {
                 allChannels.append(contentsOf: fetched.channels)
-                if detectedEPGURL == nil { detectedEPGURL = fetched.epgURL }
+                if let epgURL = fetched.epgURL,
+                   let idx = sources.firstIndex(where: { $0.id == fetched.sourceID }),
+                   sources[idx].epgURLString.isEmpty {
+                    sources[idx].epgURLString = epgURL.absoluteString
+                }
             }
         }
 
         channels = allChannels
+        groups = Dictionary(grouping: channels, by: \.groupTitle)
+        sortedGroupNames = groups.keys.sorted()
         isLoading = false
         let now = Date()
         sources = sources.map { var s = $0; s.lastFetched = now; return s }
