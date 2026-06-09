@@ -1,4 +1,4 @@
-# CI/CD Architecture Documentation
+# CI/CD Architecture & Release Documentation
 
 This directory contains the GitHub Actions automation workflows for the NativeStream monorepo. The pipelines are structured with strict component isolation to allow the server, macOS client, and Android client to build, test, and release independently.
 
@@ -29,7 +29,7 @@ These workflows run automatically on `push` and `pull_request` triggers matching
   * Execution: Runs formatting checks (`go vet`), executes unit tests with race detection, tracks code coverage statistics, and runs non-production compilation checks.
 * **macOS CI (`ci-macos.yml`)**
   * Trigger: Changes inside `app/macos/**`
-  * Execution: Executes on a macOS runner, selects the targeted Xcode toolchain version, compiles the application schema in `Release` configuration, and executes the XCTest suite.
+  * Execution: Executes on a macOS runner, selects the targeted Xcode toolchain version, compiles the application schema inside `app/macos/NativeStream/` in `Release` configuration, and executes the XCTest suite.
 * **Android CI (`ci-android.yml`)**
   * Trigger: Changes inside `app/android/**`
   * Execution: Boots an environment with JDK 17, initializes aggressive dependency caching via the Gradle action tool, executes code analysis/linting rules, runs local unit tests, and archives the compiled debug verification APK.
@@ -45,26 +45,43 @@ Releases are decoupled across components and are strictly event-driven. They onl
 
 ---
 
-## 🚀 How to Publish a Component Release
+## 🚀 How to Publish a Component Release (`release.sh`)
 
-To deploy updates, do not use global root version files. Instead, push the respective scoped tag pattern directly from your terminal workspace.
+To make deploying updates painless, use the centralized root automation tool **`./release.sh`**. 
 
-### Deploying a Server Update
+This script reads your internal configuration configurations (`VERSION` file, Gradle configurations, or Xcode target settings), handles the code math, auto-increments your tracking build configurations/numbers, commits the configuration updates, creates the scoped Git tag, and pushes to remote repositories automatically.
+
+### Command Anatomy
 ```bash
-git tag server/v1.0.0
-git push origin server/v1.0.0
+./release.sh [component] [bump-type]
+```
+* **Components**: `server` | `android` | `macos`
+* **Bump Types**: `patch` | `minor` | `major` | `current`
+
+### Examples
+
+#### 📱 Deploying an Android Client Update
+Increments the `versionCode` integer by `+1`, upgrades your semantic `versionName` patch block (e.g., `1.0.0` ➡️ `1.0.1`), commits the file change, creates an `android/v1.0.1` tag, and pushes to GitHub:
+```bash
+./release.sh android patch
 ```
 
-### Deploying a macOS Client Update
+#### 🖥 Deploying a macOS Client Update
+Increments the internal project build integer (`CURRENT_PROJECT_VERSION`), increments your user-facing semantic version string (`MARKETING_VERSION`), commits the configuration modifications inside your Xcode project target file, maps an asset tag, and pushes:
 ```bash
-git tag macos/v1.0.0
-git push origin macos/v1.0.0
+./release.sh macos minor
 ```
 
-### Deploying an Android Client Update
+#### 💾 Deploying a Server Update
+Bumps the flat `app/server/VERSION` configuration file by an increment layer and triggers the respective delivery flow pipelines:
 ```bash
-git tag android/v1.0.0
-git push origin android/v1.0.0
+./release.sh server patch
+```
+
+#### 🔍 Dry-Running / Tagging the Current State
+Reads your system configuration file exactly as it stands right now, skips editing any files or committing code modifications, and creates/pushes the exact tag matching your current settings:
+```bash
+./release.sh android current
 ```
 
 ---
