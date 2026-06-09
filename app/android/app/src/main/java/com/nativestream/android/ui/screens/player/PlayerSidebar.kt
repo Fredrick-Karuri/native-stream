@@ -45,13 +45,47 @@ import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 
-private val SIDEBAR_WIDTH      = 240.dp
 private val TAB_INDICATOR_H    = 1.5.dp
 private val SCHEDULE_HOURS     = 12
 
 enum class SidebarTab { ON_NOW, SCHEDULE }
 
-// ── Sidebar container ─────────────────────────────────────────────────────────
+@Composable
+fun PlayerSidebarContent(
+    playerViewModel: PlayerViewModel,
+    epgViewModel: EpgViewModel,
+    modifier: Modifier = Modifier,
+) {
+    val activeChannel by playerViewModel.activeChannel.collectAsState()
+    var selectedTab   by remember { mutableStateOf(SidebarTab.ON_NOW) }
+
+    Box(
+        modifier = modifier
+            .width(NSDimens.current.player.sidebarWidth)  // 230dp token
+            .fillMaxHeight()
+            .background(Color(0xFF0E0E0E))
+            .border(
+                width = 0.5.dp,
+                color = Color.White.copy(alpha = 0.07f),
+                shape = RoundedCornerShape(0.dp),
+            ),
+    ) {
+        Column {
+            SidebarTabBar(selectedTab = selectedTab, onSelectTab = { selectedTab = it })
+            when (selectedTab) {
+                SidebarTab.ON_NOW   -> OnNowTab(
+                    currentChannel  = activeChannel,
+                    playerViewModel = playerViewModel,
+                    epgViewModel    = epgViewModel,
+                )
+                SidebarTab.SCHEDULE -> ScheduleTab(
+                    channel      = activeChannel,
+                    epgViewModel = epgViewModel,
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun PlayerSidebar(
@@ -60,47 +94,16 @@ fun PlayerSidebar(
     epgViewModel: EpgViewModel,
     modifier: Modifier = Modifier,
 ) {
-    val activeChannel by playerViewModel.activeChannel.collectAsState()
-    var selectedTab   by remember { mutableStateOf(SidebarTab.ON_NOW) }
-
     AnimatedVisibility(
         visible  = isVisible,
         enter    = slideInHorizontally { it },
         exit     = slideOutHorizontally { it },
         modifier = modifier,
     ) {
-        Box(
-            modifier = Modifier
-                .width(SIDEBAR_WIDTH)
-                .fillMaxHeight()
-                .background(Color(0xFF0E0E0E))
-                .border(
-                    width = 0.5.dp,
-                    color = Color.White.copy(alpha = 0.07f),
-                    shape = RoundedCornerShape(0.dp),
-                ),
-        ) {
-            Column {
-                // Tab bar
-                SidebarTabBar(
-                    selectedTab      = selectedTab,
-                    onSelectTab      = { selectedTab = it },
-                )
-
-                // Tab content
-                when (selectedTab) {
-                    SidebarTab.ON_NOW   -> OnNowTab(
-                        currentChannel  = activeChannel,
-                        playerViewModel = playerViewModel,
-                        epgViewModel    = epgViewModel,
-                    )
-                    SidebarTab.SCHEDULE -> ScheduleTab(
-                        channel         = activeChannel,
-                        epgViewModel    = epgViewModel,
-                    )
-                }
-            }
-        }
+        PlayerSidebarContent(
+            playerViewModel = playerViewModel,
+            epgViewModel    = epgViewModel,
+        )
     }
 }
 

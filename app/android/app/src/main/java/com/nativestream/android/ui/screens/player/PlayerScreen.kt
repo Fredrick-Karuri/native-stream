@@ -29,7 +29,8 @@ import androidx.media3.ui.PlayerView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
@@ -173,11 +174,21 @@ fun PlayerScreen(
 
         // ── Collapsible sidebar ───────────────────────────────────────────────
         if (epgViewModel != null) {
-            PlayerSidebar(
-                isVisible       = sidebarVisible,
-                playerViewModel = playerViewModel,
-                epgViewModel    = epgViewModel,
-            )
+            val windowSizeClass = LocalWindowSizeClass.current
+            val persistSidebar  = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+
+            if (persistSidebar) {
+                PlayerSidebarContent(
+                    playerViewModel = playerViewModel,
+                    epgViewModel    = epgViewModel,
+                )
+            } else {
+                PlayerSidebar(
+                    isVisible       = sidebarVisible,
+                    playerViewModel = playerViewModel,
+                    epgViewModel    = epgViewModel,
+                )
+            }
         }
     }
 }

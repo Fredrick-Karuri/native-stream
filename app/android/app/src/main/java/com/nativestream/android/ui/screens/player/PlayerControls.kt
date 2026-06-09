@@ -27,7 +27,9 @@ import com.adamglin.phosphoricons.regular.ArrowsOut
 import com.adamglin.phosphoricons.regular.ArrowsIn
 import com.adamglin.phosphoricons.regular.SkipBack
 import com.adamglin.phosphoricons.regular.SkipForward
-
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import com.nativestream.android.ui.LocalWindowSizeClass
+import androidx.compose.ui.unit.Dp
 import com.adamglin.PhosphorIcons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -58,8 +60,6 @@ import com.nativestream.android.ui.theme.NSGradients
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 
-private val CTRL_PRIMARY_SIZE   = 44.dp
-private val CTRL_SECONDARY_SIZE = 36.dp
 private val CTRL_ICON_SIZE      = 18.dp
 private val CTRL_RADIUS         = 50   // percent — circular
 private val LIVE_BADGE_RADIUS   = 4.dp
@@ -84,6 +84,12 @@ fun PlayerControlsOverlay(
     channel: Channel?,
     programme: Programme?,
 ) {
+    val windowSizeClass = LocalWindowSizeClass.current
+    val isExpanded      = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+    val iconSize = if (isExpanded) 22.dp else CTRL_ICON_SIZE
+
+    val primarySize   = if (isExpanded) 52.dp else 44.dp
+    val secondarySize = if (isExpanded) 44.dp else 36.dp
     val controlsVisible by playerViewModel.controlsVisible.collectAsState()
     val isPlaying       by playerViewModel.isPlaying.collectAsState()
     val isMuted         by playerViewModel.isMuted.collectAsState()
@@ -113,7 +119,7 @@ fun PlayerControlsOverlay(
                         icon               = Icons.Default.ArrowBack,
                         contentDescription = "Back",
                         onClick            = onBack,
-                        size               = CTRL_SECONDARY_SIZE,
+                        size               = secondarySize,
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
@@ -137,7 +143,7 @@ fun PlayerControlsOverlay(
                         icon               = Icons.Default.Close,
                         contentDescription = "Stop",
                         onClick            = { playerViewModel.stop(); onBack() },
-                        size               = CTRL_SECONDARY_SIZE,
+                        size               = secondarySize,
                     )
                 }
             }
@@ -161,7 +167,7 @@ fun PlayerControlsOverlay(
                         icon               = PhosphorIcons.Regular.SkipBack,
                         contentDescription = "Previous channel",
                         onClick            = onPreviousChannel,
-                        size               = CTRL_SECONDARY_SIZE,
+                        size               = secondarySize,
                     )
                     ControlButton(
                         icon               = ImageVector.vectorResource(
@@ -169,14 +175,14 @@ fun PlayerControlsOverlay(
                         ),
                         contentDescription = if (isPlaying) "Pause" else "Play",
                         onClick            = { playerViewModel.togglePlayback() },
-                        size               = CTRL_PRIMARY_SIZE,
+                        size               = primarySize,
                         isPrimary          = true,
                     )
                     ControlButton(
                         icon               = PhosphorIcons.Regular.SkipForward,
                         contentDescription = "Next channel",
                         onClick            = onNextChannel,
-                        size               = CTRL_SECONDARY_SIZE,
+                        size               = secondarySize,
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     ControlButton(
@@ -185,27 +191,27 @@ fun PlayerControlsOverlay(
                         ),
                         contentDescription = if (isMuted) "Unmute" else "Mute",
                         onClick            = { playerViewModel.toggleMute() },
-                        size               = CTRL_SECONDARY_SIZE,
+                        size               = secondarySize,
                     )
                     if (isCastAvailable){
                         ControlButton(
                             icon               = PhosphorIcons.Regular.Screencast,
                             contentDescription = "Cast",
                             onClick            = onCast,
-                            size               = CTRL_SECONDARY_SIZE,
+                            size               = secondarySize,
                         )
                     }
                     ControlButton(
                         icon               = PhosphorIcons.Regular.PictureInPicture,
                         contentDescription = "Picture in picture",
                         onClick            = onPip,
-                        size               = CTRL_SECONDARY_SIZE,
+                        size               = secondarySize,
                     )
                     ControlButton(
                         icon               = ImageVector.vectorResource(R.drawable.ic_sidebar),
                         contentDescription = "Toggle channel list",
                         onClick            = onToggleSidebar,
-                        size               = CTRL_SECONDARY_SIZE,
+                        size               = secondarySize,
                     )
                     ControlButton(
                         icon               = if (resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FILL)
@@ -213,7 +219,7 @@ fun PlayerControlsOverlay(
                         else PhosphorIcons.Regular.ArrowsOut,
                         contentDescription = "Toggle fill",
                         onClick            = onToggleResize,
-                        size               = CTRL_SECONDARY_SIZE,
+                        size               = secondarySize,
                     )
                 }
             }
@@ -228,8 +234,9 @@ private fun ControlButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    size: androidx.compose.ui.unit.Dp,
+    size: Dp,
     isPrimary: Boolean = false,
+    iconSize: Dp = CTRL_ICON_SIZE,
 ) {
     val background = if (isPrimary) NSColors.accent else Color.White.copy(alpha = 0.12f)
     val tint       = if (isPrimary) NSColors.bg     else Color.White.copy(alpha = 0.85f)
@@ -245,7 +252,7 @@ private fun ControlButton(
             imageVector        = icon,
             contentDescription = contentDescription,
             tint               = tint,
-            modifier           = Modifier.size(CTRL_ICON_SIZE),
+            modifier           = Modifier.size(iconSize),
         )
     }
 }
