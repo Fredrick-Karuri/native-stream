@@ -41,6 +41,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import com.nativestream.android.ui.foldable.rememberFoldPosture
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
@@ -58,6 +59,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
 
     val windowSizeClass = LocalWindowSizeClass.current
     val useRail = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+    val foldPosture = rememberFoldPosture()
 
     val onDestinationSelected: (AppDestination) -> Unit = { destination ->
         navController.navigate(destination.route) {
@@ -83,6 +85,17 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
+            .then(
+                if (foldPosture.isBook && foldPosture.hingeBounds != null) {
+                    // Book posture: vertical hinge — pad horizontally to avoid bisecting content
+                    Modifier.windowInsetsPadding(
+                        WindowInsets(
+                            left  = foldPosture.hingeBounds.width.toInt(),
+                            right = 0,
+                        )
+                    )
+                } else Modifier
+            ),
     ) {
         Row(modifier = Modifier.fillMaxSize()) {
             if (useRail) {

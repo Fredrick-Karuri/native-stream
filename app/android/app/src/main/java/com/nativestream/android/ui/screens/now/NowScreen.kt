@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,6 +48,7 @@ import com.adamglin.phosphoricons.Regular
 import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.NSGroupHeader
 import com.nativestream.android.ui.components.NSPulseDot
+import com.nativestream.android.ui.foldable.rememberFoldPosture
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -213,12 +215,18 @@ private fun NowContentTwoColumn(
     onSelect: (com.nativestream.android.domain.model.Channel) -> Unit,
 ) {
     val dimens = NSDimens.current
+    val foldPosture = rememberFoldPosture()
+    val columnSpacing = if (foldPosture.isBook && foldPosture.hingeBounds != null) {
+        with(LocalDensity.current) { foldPosture.hingeBounds.width.toDp() }
+    } else {
+        dimens.spacing.lg
+    }
 
     Row(
         modifier = Modifier
             .fillMaxSize()
             .padding(dimens.spacing.lg),
-        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(columnSpacing),
     ) {
         // Left — Matches live
         LazyColumn(

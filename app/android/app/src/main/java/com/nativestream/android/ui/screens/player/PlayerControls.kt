@@ -230,7 +230,7 @@ fun PlayerControlsOverlay(
 // ── Control button ────────────────────────────────────────────────────────────
 
 @Composable
-private fun ControlButton(
+fun ControlButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
