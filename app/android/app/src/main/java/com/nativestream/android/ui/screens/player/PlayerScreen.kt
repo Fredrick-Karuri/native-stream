@@ -238,21 +238,11 @@ private fun PlayerStandardLayout(
 
         // ── Collapsible sidebar ───────────────────────────────────────────────
         if (epgViewModel != null) {
-            val windowSizeClass = LocalWindowSizeClass.current
-            val persistSidebar  = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
-
-            if (persistSidebar) {
-                PlayerSidebarContent(
-                    playerViewModel = playerViewModel,
-                    epgViewModel    = epgViewModel,
-                )
-            } else {
-                PlayerSidebar(
-                    isVisible       = sidebarVisible,
-                    playerViewModel = playerViewModel,
-                    epgViewModel    = epgViewModel,
-                )
-            }
+            PlayerSidebar(
+                isVisible       = sidebarVisible,
+                playerViewModel = playerViewModel,
+                epgViewModel    = epgViewModel,
+            )
         }
     }
 }
