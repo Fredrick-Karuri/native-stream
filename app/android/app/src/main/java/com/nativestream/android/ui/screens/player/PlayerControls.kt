@@ -45,6 +45,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.filled.Close
 import androidx.media3.ui.AspectRatioFrameLayout
 import com.adamglin.phosphoricons.Regular

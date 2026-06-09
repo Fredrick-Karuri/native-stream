@@ -20,6 +20,8 @@ import com.nativestream.android.ui.theme.NSTheme
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.nativestream.android.ui.LocalWindowSizeClass
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -29,6 +31,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
 
         setContent {
             val windowSizeClass = calculateWindowSizeClass(this)
