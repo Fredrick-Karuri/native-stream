@@ -101,12 +101,13 @@ jobs:
           CHANGELOG=$(git log ${RANGE} \
             --pretty=format:"- %s (%h)" \
             --no-merges \
-            -- app/server/ app/macos/ \
+            -- app/server/ \
             | head -50)
 
           echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
           echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
+
 
       - name: Create Git tag
         if: steps.tag_check.outputs.exists == 'false'
