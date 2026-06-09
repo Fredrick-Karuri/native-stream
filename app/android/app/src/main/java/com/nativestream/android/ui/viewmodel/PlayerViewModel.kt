@@ -234,6 +234,8 @@ class PlayerViewModel @Inject constructor(
     @OptIn(UnstableApi::class)
     private fun loadStream(channel: Channel) {
         val p = _player ?: return
+        p.stop()
+        p.clearMediaItems()
         val headersJson = if (channel.streamHeaders.isNotEmpty())
             JSONObject(channel.streamHeaders).toString()
         else ""

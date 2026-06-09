@@ -23,9 +23,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -172,15 +174,31 @@ private fun OnNowTab(
         withEpg.ifEmpty { allChannels }
     }
 
-    val sortedChannels = remember(filteredChannels, currentChannel) {
+    val sortedChannels = remember(filteredChannels) {
         filteredChannels.sortedWith(compareBy(
-            { it.id != currentChannel?.id },                           // playing first
-            { epgViewModel.currentProgramme(it) == null },             // live second
-            { epgViewModel.nextProgramme(it) == null },                // upcoming third
+            { epgViewModel.currentProgramme(it) == null },
+            { epgViewModel.nextProgramme(it) == null },
         ))
     }
+    val listState = rememberLazyListState()
+    val activeIndex = remember(sortedChannels, currentChannel) {
+        sortedChannels.indexOfFirst { it.id == currentChannel?.id }
+    }
 
-    LazyColumn(modifier = Modifier.fillMaxHeight().padding(NSDimens.current.spacing.sm)) {
+    LaunchedEffect(activeIndex) {
+        if (activeIndex >= 0) {
+            val visibleItems = listState.layoutInfo.visibleItemsInfo
+            val isVisible = visibleItems.any { it.index == activeIndex }
+            if (!isVisible) listState.scrollToItem(activeIndex)
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = Modifier
+            .fillMaxHeight()
+            .padding(NSDimens.current.spacing.sm)
+    ) {
         items(sortedChannels, key = { it.id }) { channel ->
             PlayerSidebarRow(
                 channel         = channel,
