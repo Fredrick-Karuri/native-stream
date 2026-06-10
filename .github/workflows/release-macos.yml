@@ -36,7 +36,7 @@ jobs:
         run: |
           xcodebuild \
             -project NativeStream.xcodeproj \
-            -scheme NativeStreamMac \
+            -scheme NativeStream \        
             -configuration Release \
             -destination "platform=macOS,arch=arm64" \
             -derivedDataPath DerivedData \
@@ -51,7 +51,7 @@ jobs:
         run: |
           mkdir -p dist
           cd app/macos/NativeStream/DerivedData/Build/Products/Release
-          zip -r ../../../../../dist/NativeStream-macOS-arm64.zip NativeStreamMac.app
+          zip -r ../../../../../dist/NativeStream-macOS-arm64.zip NativeStream.app
 
       - name: Generate Scoped Changelog
         id: changelog
