@@ -1,6 +1,5 @@
-package com.nativestream.android.ui.screens.settings
+package com.nativestream.android.ui.components
 
-// AddSourceSheet.kt
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

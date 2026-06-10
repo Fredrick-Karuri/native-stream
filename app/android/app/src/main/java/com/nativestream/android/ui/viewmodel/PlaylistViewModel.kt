@@ -151,10 +151,12 @@ class PlaylistViewModel @Inject constructor(
                     result.warnings.forEach { w ->
                         Log.w(TAG, "M3U line ${w.lineNumber}: ${w.reason}")
                     }
-                    if (result.epgUrl != null) {
-                        settingsDataStore.setEpgUrl(result.epgUrl)
-                        updateSource(source.copy(epgUrl = result.epgUrl))
-                    }
+                    val updatedSource = source.copy(
+                        channelCount = taggedChannels.size,
+                        epgUrl       = result.epgUrl ?: source.epgUrl,
+                    )
+                    settingsDataStore.updateSource(updatedSource)
+                    if (result.epgUrl != null) settingsDataStore.setEpgUrl(result.epgUrl)
                     taggedChannels
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to load source ${source.name}", e)

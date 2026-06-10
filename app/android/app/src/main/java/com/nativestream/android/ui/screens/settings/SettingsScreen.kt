@@ -66,6 +66,7 @@ import com.adamglin.phosphoricons.regular.Play
 import com.adamglin.phosphoricons.regular.Trash
 import com.nativestream.android.data.local.BufferPreset
 import com.nativestream.android.ui.LocalWindowSizeClass
+import com.nativestream.android.ui.components.AddSourceSheet
 import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens

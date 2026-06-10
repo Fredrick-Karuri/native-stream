@@ -29,7 +29,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.nativestream.android.domain.model.PlaylistSource
 import com.nativestream.android.ui.components.NSIconButton
+import com.nativestream.android.ui.components.NSSourcePill
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -43,6 +45,8 @@ fun BrowseTopBar(
     onSearchClose: () -> Unit,
     onPlayUrl: () -> Unit,
     onAddChannel: () -> Unit,
+    selectedSource: PlaylistSource?,
+    onSourceClick: () -> Unit,
 ) {
     val dimens = NSDimens.current
     var menuExpanded by remember { mutableStateOf(false) }
@@ -60,6 +64,11 @@ fun BrowseTopBar(
                 .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
         ) {
             Text(text = "Browse", style = NSType.heading(), color = NSColors.text)
+            Spacer(modifier = Modifier.width(dimens.spacing.md))
+            NSSourcePill(
+                source  = selectedSource,
+                onClick = onSourceClick,
+            )
             Spacer(modifier = Modifier.weight(1f))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 NSIconButton(

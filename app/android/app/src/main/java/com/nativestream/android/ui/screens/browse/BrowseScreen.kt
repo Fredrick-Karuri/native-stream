@@ -67,12 +67,11 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import com.nativestream.android.ui.LocalWindowSizeClass
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.LaunchedEffect
-import com.nativestream.android.ui.components.NSSourcePill
 import com.nativestream.android.ui.components.NSSourcePickerSheet
 import com.nativestream.android.domain.model.PlaylistSource
 import com.nativestream.android.domain.model.isAll
+import com.nativestream.android.ui.components.AddSourceSheet
 import com.nativestream.android.ui.components.NSChip
 
 private val Regular = RegularGroup
@@ -113,6 +112,8 @@ fun BrowseScreen(
 
     var selectedSubGroup by remember { mutableStateOf<String?>(null) }
     val subGroups        by playlistViewModel.subGroups.collectAsState()
+
+    var showAddSource by remember { mutableStateOf(false) }
 
     // Deselect channel if it no longer belongs to the newly selected source
     LaunchedEffect(selectedSource) {
@@ -161,13 +162,15 @@ fun BrowseScreen(
 
             // ── Top bar — mobile style: title + search icon ───────────────────────
             BrowseTopBar(
-                searchActive  = searchActive,
-                searchText    = searchText,
-                onSearchClick = { searchActive = true },
+                searchActive   = searchActive,
+                searchText     = searchText,
+                onSearchClick  = { searchActive = true },
                 onSearchChange = { searchText = it },
                 onSearchClose  = { searchActive = false; searchText = "" },
-                onPlayUrl    = { showPlayUrl = true },
-                onAddChannel = { showAddChannel = true },
+                onPlayUrl      = { showPlayUrl = true },
+                onAddChannel   = { showAddChannel = true },
+                selectedSource = selectedSource,
+                onSourceClick  = { showSourcePicker = true },
             )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
@@ -239,12 +242,18 @@ fun BrowseScreen(
                 onPlay    = { playerViewModel.showPlayer() },
             )
         }
+        if (showAddSource) {
+            AddSourceSheet(
+                onDone            = { showAddSource = false },
+                playlistViewModel = playlistViewModel,
+            )
+        }
         if (showSourcePicker) {
             NSSourcePickerSheet(
                 sources        = sources,
                 selectedSource = selectedSource,
                 onSelectSource = { playlistViewModel.selectSource(it) },
-                onAddPlaylist  = { showSourcePicker = false; showAddChannel = true },
+                onAddPlaylist  = { showSourcePicker = false; showAddSource = true },
                 onDismiss      = { showSourcePicker = false },
             )
         }
@@ -287,35 +296,12 @@ private fun BrowseFilterRow(
             .background(NSColors.surface),
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = dimens.spacing.sm),
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
         ) {
-            // Anchored pill — does not scroll
-            NSSourcePill(
-                source  = selectedSource,
-                onClick = onPillClick,
-                modifier = Modifier.padding(start = dimens.spacing.lg),
-            )
-
-            // Divider
-            VerticalDivider(
-                thickness = 0.5.dp,
-                color     = NSColors.border2,
-                modifier  = Modifier
-                    .height(18.dp)
-                    .padding(horizontal = dimens.spacing.sm),
-            )
-
-            // Scrollable group chips
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
-                modifier = Modifier
-                    .weight(1f)
-                    .horizontalScroll(rememberScrollState())
-                    .padding(end = dimens.spacing.lg),
-            ) {
                 NSChip(
                     label    = "All",
                     isActive = selectedGroup == null && !showFavouritesOnly,
@@ -383,7 +369,6 @@ private fun BrowseFilterRow(
             }
         }
     }
-}
 
 // ── Loading / empty ───────────────────────────────────────────────────────────
 
