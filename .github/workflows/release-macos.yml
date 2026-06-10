@@ -30,10 +30,10 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_15.4.app
 
       - name: Compile Production App
-        working-directory: app/macos
+        working-directory: app/macos/NativeStream
         run: |
           xcodebuild \
-            -project NativeStreamMac.xcodeproj \
+            -project NativeStream.xcodeproj \
             -scheme NativeStreamMac \
             -configuration Release \
             -destination "platform=macOS,arch=arm64" \
@@ -48,8 +48,7 @@ jobs:
       - name: Package App to ZIP Archive
         run: |
           mkdir -p dist
-          # Navigate to Xcode build outputs and compress the executable bundle
-          cd app/macos/DerivedData/Build/Products/Release
+          cd app/macos/NativeStream/DerivedData/Build/Products/Release
           zip -r ../../../../../dist/NativeStream-macOS-arm64.zip NativeStreamMac.app
 
       - name: Generate Scoped Changelog
