@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"time"
+	"path/filepath"
 
 	"github.com/fredrick-karuri/nativestream/server/discovery"
 )
@@ -46,7 +47,14 @@ func (c *LocalScriptCrawler) FetchDirect(ctx context.Context) ([]discovery.Direc
 	execCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 
-	cmd := exec.CommandContext(execCtx, "/bin/bash", c.ScriptPath)
+	var interpreter string
+	switch filepath.Ext(c.ScriptPath) {
+	case ".py":
+		interpreter = "python3"
+	default:
+		interpreter = "/bin/bash"
+	}
+	cmd := exec.CommandContext(execCtx, interpreter, c.ScriptPath)
 	cmd.Env = os.Environ()
 	out, err := cmd.Output()
 

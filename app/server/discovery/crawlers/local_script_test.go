@@ -149,8 +149,8 @@ func writePythonStub(t *testing.T, dir string) string {
 			"headers":      map[string]string{"User-Agent": "TestAgent/1.0"},
 		},
 	})
+	script := "#!/usr/bin/env python3\nimport sys\nprint('" + string(payload) + "')\n"
 
-	script := "import sys\nprint('" + string(payload) + "')\n"
 	path := filepath.Join(dir, "stub_scraper.py")
 	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
 		t.Fatalf("writePythonStub: %v", err)
