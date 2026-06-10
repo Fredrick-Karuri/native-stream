@@ -36,7 +36,7 @@ jobs:
         run: |
           xcodebuild \
             -project NativeStream.xcodeproj \
-            -scheme NativeStream \        
+            -scheme NativeStream \
             -configuration Release \
             -destination "platform=macOS,arch=arm64" \
             -derivedDataPath DerivedData \
@@ -45,13 +45,13 @@ jobs:
             | xcpretty
 
       - name: Find build output
-        run: find app/macos/DerivedData -name "*.app" 2>/dev/null || echo "No .app found"
+        run: find app/macos/NativeStream/DerivedData -name "*.app" 2>/dev/null || echo "No .app found"
 
       - name: Package App to ZIP Archive
         run: |
           mkdir -p dist
-          cd app/macos/NativeStream/DerivedData/Build/Products/Release
-          zip -r ../../../../../dist/NativeStream-macOS-arm64.zip NativeStream.app
+          zip -r dist/NativeStream-macOS-arm64.zip \
+            app/macos/NativeStream/DerivedData/Build/Products/Release/NativeStream.app
 
       - name: Generate Scoped Changelog
         id: changelog
@@ -59,7 +59,7 @@ jobs:
           PREV_TAG=$(git describe --tags --abbrev=0 --match "macos/v*" "${{ github.ref_name }}^" 2>/dev/null || echo "")
           RANGE=${PREV_TAG:+$PREV_TAG..}HEAD
           CHANGELOG=$(git log ${RANGE:-HEAD} --pretty=format:"- %s (%h)" --no-merges -- app/macos/ | head -50)
-          
+
           echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
           echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
