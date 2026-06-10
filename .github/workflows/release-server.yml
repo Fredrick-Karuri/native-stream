@@ -23,7 +23,7 @@ jobs:
         run: |
           # Input tag looks like: refs/tags/server/v1.2.3
           # Strips down to: 1.2.3
-          RAW_TAG=${{ github.ref_ref }}
+          RAW_TAG=${{ github.ref_name }}
           TAG_NAME=${RAW_TAG##*/}
           VERSION=${TAG_NAME#server/v}
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
