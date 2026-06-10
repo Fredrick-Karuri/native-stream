@@ -1,193 +1,141 @@
 # NativeStream
 
-A self-healing, live sports TV client. Hardware-decoded HLS playback, auto-discovering stream links, EPG guide, PiP, and AirPlay — no emulators, no browser wrappers.
+[![Server CI](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-server.yml/badge.svg)](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-server.yml)
+[![Mac Client CI](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-macos.yml/badge.svg)](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-macos.yml)
+[![Android Client CI](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-android.yml/badge.svg)](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-android.yml)
+[![Release](https://img.shields.io/github/v/release/fredrick-karuri/nativestream)](https://github.com/fredrick-karuri/nativestream/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Architecture
+**A native sports viewing platform that unifies fragmented sports content into a reliable experience across devices.**
 
-```
-NativeStream Mac (Swift/SwiftUI)
-    ↕ localhost:8888
-StreamServer (Go)
-  ├── Channel Store (in-memory + JSON snapshot)
-  ├── Validator (20-worker probe pool, self-healing)
-  ├── Discovery Engine
-  │   ├── Gist Crawler      (community M3U playlists)
-  │   ├── Reddit Crawler    (subreddit posts)
-  │   ├── Telegram Crawler  (public channels)
-  │   └── DirectM3U Crawler (stable M3U URLs)
-  ├── EPG Engine (ESPN + football-data.org → XMLTV)
-  └── HLS Proxy (optional header injection)
-```
+NativeStream combines a content platform with native applications for Mac and Android. It manages content ingestion, stream reliability, metadata, and playback experience, allowing fans to enjoy sports seamlessly across their devices.
 
-## Prerequisites
+---
 
-| | Version |
-|---|---|
-| macOS | 14 (Sonoma)+ |
-| Xcode | 15+ |
-| Go | 1.22+ |
+# The Problem
 
-## Quick Start
+Sports content is fragmented across different sources, platforms, and devices. Fans frequently deal with unreliable streams, inconsistent playback experiences, missing schedules, and media players that were never designed around live sports.
 
-```bash
-git clone https://github.com/yourname/nativestream.git
-cd nativestream
-./scripts/install.sh      # creates ~/.config/nativestream/config.yaml
-make build-server
-make run-server           # starts at http://127.0.0.1:8888
-```
+| Challenge                     | Impact                                                             |
+| ----------------------------- | ------------------------------------------------------------------ |
+| Fragmented content ecosystems | Fans constantly switch between apps, links, and platforms          |
+| Unreliable streams            | Streams fail, expire, or degrade during important moments          |
+| Generic media players         | No sports context, schedules, live indicators, or match awareness  |
+| Device fragmentation          | The experience differs across mobile, desktop, and TV environments |
 
-Open `app/macos/NativeStream.xcodeproj` → ⌘R
+---
 
-## First Channel
+# The Solution
 
-```bash# NativeStream
+NativeStream creates a unified sports viewing experience by separating the complexity of content delivery from the fan experience.
 
-Native macOS live sports TV — hardware-decoded HLS playback with auto-discovering stream links.
+The platform handles:
 
-## Two parts
+* Content ingestion and organization
+* Stream validation and reliability management
+* Metadata and electronic programme guides (EPG)
+* Cross-device synchronization and native playback experiences
 
-**NativeStream Mac** — SwiftUI app. Channel browser, EPG guide, PiP, AirPlay, Now Playing.  
-**NativeStream Server** — Go binary on localhost. Finds stream links, validates them, self-heals dead ones.
+---
 
-## Quick start
-
-```bash
-# 1. Clone
-git clone https://github.com/yourname/nativestream.git
-cd nativestream
-
-# 2. Start server
-make build-server && make run-server
-
-# 3. Add a channel
-curl -X POST http://localhost:8888/api/channels \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Sky Sports 1","group_title":"Football","keywords":["sky","skysports"],"stream_url":"https://your-stream.m3u8"}'
-
-# 4. Open Mac app
-open app/macos/NativeStreamMac.xcodeproj  # then ⌘R
-```
-
-## Documentation
-
-| Doc | Contents |
-|---|---|
-| [`docs/product.md`](docs/product.md) | What it is, goals, design principles |
-| [`docs/system-design.md`](docs/system-design.md) | Full architecture, components, data flows, API |
-| [`docs/server.md`](docs/server.md) | Server setup, config, API usage, troubleshooting |
-| [`docs/mac-client.md`](docs/mac-client.md) | Mac app setup, features, shortcuts, troubleshooting |
-
-## Performance targets
-
-| Metric | Target |
-|---|---|
-| Boot to live video | < 2s |
-| CPU at 1080p/60fps | < 10% (M1) |
-| RAM steady-state | < 200 MB app + < 30 MB server |
-
-## Prerequisites
-
-- macOS 14 (Sonoma)+, Apple Silicon recommended
-- Go 1.22+ (server)
-- Xcode 15+ (Mac app)
-curl -X POST http://localhost:8888/api/channels \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Sky Sports 1",
-    "group_title": "Football",
-    "tvg_id": "SkySports1",
-    "keywords": ["sky","skysports","sky1","skysports1"],
-    "stream_url": "https://your-found-stream.m3u8"
-  }'
-```
-
-Then in the Mac app: Settings → Sources → `http://localhost:8888/playlist.m3u`
-
-## Enabling Auto-Discovery
-
-Edit `~/.config/nativestream/config.yaml`:
-
-```yaml
-discovery_enabled: true
-```
-
-Add sources — any combination of Gist IDs, subreddits, Telegram channels, or direct M3U URLs — and the server will find and validate stream links automatically, replacing dead ones before you notice.
-
-## Development
-
-```bash
-make build-server           # compile Go server
-make run-server             # run locally
-make test-server            # go test -race ./...
-make install-service        # register as launchd service
-make clean
-```
-
-## Distribution
-
-```bash
-# Server — build release binaries
-VERSION=4.0.0 ./scripts/brew-release.sh
-
-# Mac app — build notarised DMG
-APPLE_ID=you@example.com TEAM_ID=XXXXXXXXXX ./scripts/release.sh
-```
-
-## API Reference
-
-| Endpoint | Description |
-|---|---|
-| `GET /playlist.m3u` | M3U of all healthy channels |
-| `GET /epg.xml` | XMLTV TV guide (48h) |
-| `GET /api/health` | Server status |
-| `POST /api/channels` | Add a channel |
-| `PUT /api/channels/:id` | Update stream URL |
-| `POST /api/probe` | Trigger immediate health check |
-| `GET /api/discovery/status` | Discovery engine status |
-| `POST /api/discovery/run` | Trigger immediate discovery cycle |
-| `GET /api/discovery/unmatched` | Unmatched candidate links |
-
-## Performance Targets
-
-| Metric | Target |
-|---|---|
-| Boot to live video | < 2s |
-| CPU at 1080p/60fps | < 10% (M1) |
-| RAM steady-state | < 200 MB |
-| Server memory | < 30 MB |
-| Playlist response | < 5ms |
-
-## Project Structure
+# How It Works
 
 ```
-nativestream/
-├── app/
-│   ├── server/           Go backend
-│   │   ├── api/          HTTP handlers + middleware
-│   │   ├── config/       Configuration loader
-│   │   ├── discovery/    Engine, crawlers, extractor, matcher
-│   │   ├── epg/          XMLTV generation + priority escalation
-│   │   ├── logging/      slog setup
-│   │   ├── playlist/     M3U generator
-│   │   ├── proxy/        HLS transparent proxy
-│   │   ├── service/      launchd install/uninstall
-│   │   ├── shutdown/     Graceful shutdown handler
-│   │   ├── store/        Channel store + snapshots
-│   │   └── validator/    Link scoring + self-healing
-│   └── macos/            Swift/SwiftUI Mac app
-│       ├── App/          Entry point, ContentView
-│       ├── Core/         Models, Parsers, Services
-│       ├── ViewModels/   Observable state
-│       └── Views/        Sidebar, Player, EPG grid, Settings
-├── config/               Example config
-├── homebrew/             Homebrew formula
-└── scripts/              Build, install, release, test notes
+                  Content Sources
+                         │
+                         ▼
+              ┌─────────────────────┐
+              │     NativeStream     │
+              │                     │
+              │ Content Ingestion   │
+              │ Validation          │
+              │ Stream Management   │
+              │ Metadata & EPG      │
+              │ Quality Selection   │
+              └──────────┬──────────┘
+                         │
+          ┌──────────────┴──────────────┐
+          ▼                             ▼
+      Native macOS                  Native Android
+   SwiftUI · AVFoundation        Compose · ExoPlayer
+   PiP · AirPlay                 PiP · Chromecast
 ```
 
-## Commit Convention
+---
 
-```
-NS-{ticket-id}: description
-# e.g. NS-211: implement GitHub Gist crawler with conditional fetch
-```
+# Features
+
+## Content Platform
+
+* Ingests and manages multiple content sources
+* Monitors stream health and maintains reliable playback paths
+* Automatically selects the best available streams based on quality and availability
+* Provides metadata, schedules, and EPG information
+* Exposes APIs for content management and client applications
+* Can run locally, privately, or in cloud environments
+
+## Native macOS Application
+
+* Sports-focused channel browsing
+* Live indicators and programme information
+* Match Day experience with schedules and live events
+* TV Guide with timeline navigation
+* Full-screen player with native controls
+* Picture-in-Picture
+* AirPlay support
+* Now Playing integration and media keys
+
+## Native Android Application
+
+* Mobile-first browsing experience
+* Optimized landscape video player
+* Picture-in-Picture support
+* Chromecast support
+* Shared content experience with the desktop application
+
+---
+
+# Platforms
+
+Current platforms:
+
+* macOS (SwiftUI + AVFoundation)
+* Android (Kotlin + Jetpack Compose)
+
+Future expansion:
+
+* Smart TV experiences
+* Additional connected devices
+
+---
+
+# Architecture
+
+NativeStream is built around a modular architecture:
+
+* Go-based content platform
+* Native platform-specific clients
+* Shared content and metadata model
+* Standard streaming protocols and APIs
+
+This design allows new clients and content sources to integrate without changing the overall user experience.
+
+---
+
+# Vision
+
+Sports media is increasingly fragmented. NativeStream aims to provide a consistent layer between sports content and fans, enabling a richer, more accessible viewing experience regardless of where the content originates.
+
+The architecture supports future opportunities such as curated content partnerships, specialized sports channels, and localized sports experiences.
+
+---
+
+# Development & Self Hosting
+
+NativeStream can be self-hosted and extended by developers.
+
+---
+
+# License
+
+MIT — see `LICENSE`.
