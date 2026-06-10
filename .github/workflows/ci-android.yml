@@ -39,7 +39,12 @@ jobs:
       - name: Run Code Linting Verification
         working-directory: app/android
         run: ./gradlew lintDebug
-
+      - name: Upload Lint Report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/android/app/build/reports/lint-results-debug.html
       - name: Run Local Unit Tests
         working-directory: app/android
         run: ./gradlew testDebugUnitTest
