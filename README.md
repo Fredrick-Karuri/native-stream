@@ -3,7 +3,9 @@
 [![Server CI](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-server.yml/badge.svg)](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-server.yml)
 [![Mac Client CI](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-macos.yml/badge.svg)](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-macos.yml)
 [![Android Client CI](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-android.yml/badge.svg)](https://github.com/fredrick-karuri/nativestream/actions/workflows/ci-android.yml)
-[![Release](https://img.shields.io/github/v/release/fredrick-karuri/nativestream)](https://github.com/fredrick-karuri/nativestream/releases)
+[![Server Release](https://img.shields.io/github/v/tag/fredrick-karuri/nativestream?filter=server%2Fv*&label=server)](https://github.com/fredrick-karuri/nativestream/releases?q=server)
+[![Android Release](https://img.shields.io/github/v/tag/fredrick-karuri/nativestream?filter=android%2Fv*&label=android)](https://github.com/fredrick-karuri/nativestream/releases?q=android)
+[![macOS Release](https://img.shields.io/github/v/tag/fredrick-karuri/nativestream?filter=macos%2Fv*&label=macos)](https://github.com/fredrick-karuri/nativestream/releases?q=macos)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **A native sports viewing platform that unifies fragmented sports content into a reliable experience across devices.**
