@@ -28,3 +28,7 @@
 -keep class dagger.hilt.** { *; }
 -keep @dagger.hilt.android.HiltAndroidApp class * { *; }
 -keep @dagger.hilt.android.AndroidEntryPoint class * { *; }
+
+# Ktor JVM-only debug detector — not available on Android
+-dontwarn java.lang.management.ManagementFactory
+-dontwarn java.lang.management.RuntimeMXBean
