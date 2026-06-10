@@ -136,6 +136,7 @@ fun OnboardingScreen(
                                         PlaylistSource(
                                             id                   = UUID.randomUUID().toString(),
                                             name                 = "StreamServer",
+                                            colorHex = PlaylistSource.COLOR_BLUE,
                                             url                  = "$serverUrl/playlist.m3u",
                                             refreshIntervalHours = DEFAULT_REFRESH_HOURS,
                                         )
@@ -159,6 +160,7 @@ fun OnboardingScreen(
                                 PlaylistSource(
                                     id                   = UUID.randomUUID().toString(),
                                     name                 = playlistUrlInput.substringAfterLast("/").ifEmpty { "Playlist" },
+                                    colorHex = PlaylistSource.COLOR_GREEN,
                                     url                  = playlistUrlInput.trim(),
                                     refreshIntervalHours = DEFAULT_REFRESH_HOURS,
                                 )

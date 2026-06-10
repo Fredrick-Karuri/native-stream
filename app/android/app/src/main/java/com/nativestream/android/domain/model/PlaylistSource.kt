@@ -1,5 +1,3 @@
-// app/src/main/java/com/nativestream/android/domain/model/PlaylistSource.kt
-
 package com.nativestream.android.domain.model
 
 import kotlinx.serialization.Serializable
@@ -17,6 +15,10 @@ data class PlaylistSource(
 ) {
     companion object {
         private const val DEFAULT_REFRESH_INTERVAL_HOURS = 6
+
+        const val COLOR_BLUE  = "#0EA5E9"   // accent
+        const val COLOR_GREEN = "#10B981"   // green
+        const val COLOR_AMBER = "#F59E0B"   // amber
 
         /** Sentinel — represents the merged view of all sources. */
         val AllSources = PlaylistSource(

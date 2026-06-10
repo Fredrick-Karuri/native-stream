@@ -104,10 +104,16 @@ class PlaylistViewModel @Inject constructor(
     private var autoRefreshJob: Job? = null
 
     init {
-        // Restore persisted source selection
+        viewModelScope.launch {
+            settingsDataStore.sources.collect { stored ->
+                _sources.value = stored
+                if (stored.isNotEmpty()) loadAll()
+            }
+        }
         viewModelScope.launch {
             val savedId = settingsDataStore.selectedSourceId.first()
             if (savedId.isNotEmpty()) {
+                _sources.first { it.isNotEmpty() } // wait for sources to populate
                 _selectedSource.value = _sources.value.find { it.id == savedId }
             }
         }
@@ -141,16 +147,15 @@ class PlaylistViewModel @Inject constructor(
                 try {
                     val bytes = fetchSourceBytes(source)
                     val result = m3uParser.parse(bytes)
-                    result.channels.map { it.copy(sourceId = source.id) }
+                    val taggedChannels = result.channels.map { it.copy(sourceId = source.id) }
                     result.warnings.forEach { w ->
                         Log.w(TAG, "M3U line ${w.lineNumber}: ${w.reason}")
                     }
-                    // If the playlist advertised an EPG URL and the source has none, save it
                     if (result.epgUrl != null) {
                         settingsDataStore.setEpgUrl(result.epgUrl)
                         updateSource(source.copy(epgUrl = result.epgUrl))
                     }
-                    result.channels
+                    taggedChannels
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to load source ${source.name}", e)
                     // Safe UI string update from background context

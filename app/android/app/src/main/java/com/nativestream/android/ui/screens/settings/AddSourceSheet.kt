@@ -79,6 +79,7 @@ fun AddSourceSheet(
                             PlaylistSource(
                                 id = UUID.randomUUID().toString(),
                                 name = name.trim(),
+                                colorHex = PlaylistSource.COLOR_BLUE,
                                 url = url.trim(),
                                 epgUrl               = epgUrl.trim().ifEmpty { null },
                                 refreshIntervalHours = refresh.toIntOrNull() ?: 6,

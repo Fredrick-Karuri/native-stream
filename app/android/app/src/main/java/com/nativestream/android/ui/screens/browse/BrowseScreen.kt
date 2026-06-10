@@ -68,6 +68,7 @@ import com.nativestream.android.ui.LocalWindowSizeClass
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.LaunchedEffect
 import com.nativestream.android.ui.components.NSSourcePill
 import com.nativestream.android.ui.components.NSSourcePickerSheet
 import com.nativestream.android.domain.model.PlaylistSource
@@ -114,10 +115,11 @@ fun BrowseScreen(
     val subGroups        by playlistViewModel.subGroups.collectAsState()
 
     // Deselect channel if it no longer belongs to the newly selected source
-    androidx.compose.runtime.LaunchedEffect(selectedSource) {
+    LaunchedEffect(selectedSource) {
+        val source = selectedSource
         val current = channels.find { it.id == selectedChannelId }
-        if (current != null && selectedSource != null && !selectedSource.isAll) {
-            if (current.sourceId != selectedSource.id) selectedChannelId = null
+        if (current != null && source != null && !source.isAll) {
+            if (current.sourceId != source.id) selectedChannelId = null
         }
     }
 
@@ -415,7 +417,7 @@ private fun BrowseEmptyView(searchText: String) {
 
 
 @Composable
-private fun BrowseSearchBar(
+fun BrowseSearchBar(
     searchText: String,
     onSearchChange: (String) -> Unit,
     onSearchClose: () -> Unit,
@@ -463,7 +465,6 @@ private fun BrowseMasterDetail(
     playerViewModel: PlayerViewModel,
     epgViewModel: EpgViewModel,
     favouritesViewModel: FavouritesViewModel,
-    // filter state passed down
     sources: List<PlaylistSource>,
     selectedSource: PlaylistSource?,
     groups: List<String>,
