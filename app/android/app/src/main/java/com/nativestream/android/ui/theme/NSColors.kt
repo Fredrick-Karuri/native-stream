@@ -1,8 +1,8 @@
 // app/src/main/java/com/nativestream/android/ui/theme/NSColors.kt
 //
-// NS Design System — Colour tokens (AND-002)
+// NS Design System — Colour tokens
 // Single source of truth for every colour used in the app.
-// Mirrors DesignSystem.swift exactly — never use hardcoded hex values elsewhere.
+// - never use hardcoded hex values elsewhere.
 //
 // Usage:  NSColors.bg, NSColors.accent, NSColors.live …
 

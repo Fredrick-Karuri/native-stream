@@ -8,6 +8,8 @@
 package com.nativestream.android.ui.viewmodel
 
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nativestream.android.data.local.SettingsDataStore
@@ -15,6 +17,7 @@ import com.nativestream.android.data.parser.M3uParser
 import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.PlaylistSource
+import com.nativestream.android.domain.model.isAll
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -30,6 +33,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Named
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 
 private const val TAG = "PlaylistViewModel"
 private const val FALLBACK_REFRESH_INTERVAL_MS = 3_600_000L // 1 hour
@@ -56,6 +63,21 @@ class PlaylistViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val _selectedSource = MutableStateFlow<PlaylistSource?>(null)
+    val selectedSource: StateFlow<PlaylistSource?> = _selectedSource.asStateFlow()
+
+    val filteredChannels: StateFlow<List<Channel>> = combine(
+        _channels,
+        _selectedSource,
+    ) { channels, source ->
+        if (source == null) channels
+        else channels.filter { it.sourceId == source.id }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList(),
+    )
+
     // ── Computed ──────────────────────────────────────────────────────────────
 
     val groups: Map<String, List<Channel>>
@@ -64,15 +86,29 @@ class PlaylistViewModel @Inject constructor(
     val sortedGroupNames: List<String>
         get() = groups.keys.sorted()
 
+    val subGroups: StateFlow<List<String>> = combine(
+        _channels,
+        _selectedSource,
+    ) { channels, source ->
+        val sourceChannels = if (source == null || source.isAll) channels
+        else channels.filter { it.sourceId == source.id }
+        sourceChannels.map { it.subGroupTitle }.filter { it.isNotEmpty() }.distinct().sorted()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList(),
+    )
+
     // ── Auto-refresh ──────────────────────────────────────────────────────────
 
     private var autoRefreshJob: Job? = null
 
     init {
+        // Restore persisted source selection
         viewModelScope.launch {
-            settingsDataStore.sources.collect { stored ->
-                _sources.value = stored
-                if (stored.isNotEmpty()) loadAll()
+            val savedId = settingsDataStore.selectedSourceId.first()
+            if (savedId.isNotEmpty()) {
+                _selectedSource.value = _sources.value.find { it.id == savedId }
             }
         }
     }
@@ -105,6 +141,7 @@ class PlaylistViewModel @Inject constructor(
                 try {
                     val bytes = fetchSourceBytes(source)
                     val result = m3uParser.parse(bytes)
+                    result.channels.map { it.copy(sourceId = source.id) }
                     result.warnings.forEach { w ->
                         Log.w(TAG, "M3U line ${w.lineNumber}: ${w.reason}")
                     }
@@ -177,6 +214,13 @@ class PlaylistViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         stopAutoRefresh()
+    }
+
+    fun selectSource(source: PlaylistSource?) {
+        _selectedSource.value = source
+        viewModelScope.launch {
+            settingsDataStore.setSelectedSourceId(source?.id ?: "")
+        }
     }
 
 

@@ -1,12 +1,13 @@
 // app/src/main/java/com/nativestream/android/ui/components/NSComponents.kt
 //
-// NS Design System — Shared UI components (AND-009)
+// NS Design System — Shared UI components
 // NSLiveBadge, NSProgressBar, NSIconButton — reused across mini player,
-// channel cards, and programme rows. Mirrors Swift counterparts.
+// channel cards, and programme rows.
 
 package com.nativestream.android.ui.components
 
 import androidx.compose.foundation.background
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
+import androidx.compose.ui.graphics.Color
+
 
 private val LIVE_BADGE_HORIZONTAL_PADDING = 5.dp
 private val LIVE_BADGE_VERTICAL_PADDING   = 2.dp

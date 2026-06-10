@@ -25,6 +25,9 @@ import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import java.text.SimpleDateFormat
+import com.nativestream.android.domain.model.PlaylistSource
+import com.nativestream.android.domain.model.isAll
+import com.nativestream.android.ui.components.NSSourceBadge
 import java.util.*
 
 @Composable
@@ -32,11 +35,18 @@ fun BrowseDetailPane(
     channel: Channel,
     epgViewModel: EpgViewModel,
     playerViewModel: PlayerViewModel,
+    sources: List<PlaylistSource> = emptyList(),
+    selectedSource: PlaylistSource? = null,
     modifier: Modifier = Modifier,
 ) {
     val dimens = NSDimens.current
-    val programme = epgViewModel.currentProgramme(channel)
-    val schedule  = epgViewModel.schedule(channel)
+    val programme   = epgViewModel.currentProgramme(channel)
+    val schedule    = epgViewModel.schedule(channel)
+    val badgeSource = remember(channel.sourceId, selectedSource, sources) {
+        if (selectedSource == null || selectedSource.isAll)
+            sources.find { it.id == channel.sourceId }
+        else null
+    }
 
     LazyColumn(
         modifier = modifier
@@ -53,6 +63,9 @@ fun BrowseDetailPane(
                     style = NSType.heading(),
                     color = NSColors.text,
                 )
+                badgeSource?.let {
+                    NSSourceBadge(source = it)
+                }
                 if (programme != null) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

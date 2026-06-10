@@ -16,6 +16,8 @@ data class Channel(
     val logoUrl: String?,           // serialised as String; convert to Uri at use-site
     val streamUrl: String,          // serialised as String; convert to Uri at use-site
     val streamHeaders: Map<String, String>,
+    val sourceId: String = "",   // populated by M3uParser via PlaylistViewModel
+    val subGroupTitle: String = "",   // e.g. league name within a group
 ) {
     companion object {
         private const val FALLBACK_GROUP = "Uncategorised"

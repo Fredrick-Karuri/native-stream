@@ -31,6 +31,7 @@ private object Keys {
     val BUFFER_PRESET        = stringPreferencesKey("buffer_preset")
     val ONBOARDING_COMPLETE  = booleanPreferencesKey("onboarding_complete")
     val PLAYLIST_SOURCES     = stringPreferencesKey("playlist_sources")
+    val SELECTED_SOURCE_ID = stringPreferencesKey("selected_source_id")
 }
 
 private object Defaults {
@@ -48,6 +49,9 @@ class SettingsDataStore @Inject constructor(
 
     val serverUrl: Flow<String> = store.data.map { prefs ->
         prefs[Keys.SERVER_URL] ?: Defaults.SERVER_URL
+    }
+    val selectedSourceId: Flow<String> = store.data.map { prefs ->
+        prefs[Keys.SELECTED_SOURCE_ID] ?: ""
     }
 
     suspend fun setServerUrl(url: String) {
@@ -141,6 +145,9 @@ class SettingsDataStore @Inject constructor(
                 current.map { if (it.id == source.id) source else it }
             )
         }
+    }
+    suspend fun setSelectedSourceId(id: String) {
+        store.edit { it[Keys.SELECTED_SOURCE_ID] = id }
     }
 }
 

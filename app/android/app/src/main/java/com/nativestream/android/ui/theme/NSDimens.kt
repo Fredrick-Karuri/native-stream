@@ -1,7 +1,6 @@
 // app/src/main/java/com/nativestream/android/ui/theme/NSDimens.kt
 //
-// NS Design System — Spacing, radius, and component sizing tokens (AND-002)
-// Mirrors all NS.Spacing / NS.Radius / NS.* sizing enums from DesignSystem.swift.
+// NS Design System — Spacing, radius, and component sizing tokens
 // Every dp value multiplies by NSScale.current — no hardcoded numbers in view code.
 //
 // Usage (inside Compose):
