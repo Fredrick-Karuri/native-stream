@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,6 +75,7 @@ fun OnboardingScreen(
     var epgUrlInput      by remember { mutableStateOf("") }
 
     val serverUrl by settingsViewModel.serverUrl.collectAsState()
+    LaunchedEffect(Unit) { settingsViewModel.startDiscovery() }
 
     val stepIndex = when (step) {
         OnboardingStep.SERVER_CHECK  -> 0
@@ -119,24 +121,44 @@ fun OnboardingScreen(
         ) { currentStep ->
             when (currentStep) {
                 OnboardingStep.SERVER_CHECK -> ServerCheckStep(
-                    serverUrl    = serverUrl,
-                    isChecking   = isChecking,
-                    checkError   = checkError,
+                    serverUrl         = serverUrl,
+                    isChecking        = isChecking,
+                    checkError        = checkError,
+                    scanning          = settingsViewModel.scanning.collectAsState().value,
+                    discoveredUrl     = settingsViewModel.discoveredUrl.collectAsState().value,
                     onServerUrlChange = { settingsViewModel.setServerUrl(it) },
-                    onSkip       = { step = OnboardingStep.CHANNEL_SETUP },
-                    onCheck      = {
+                    onScan            = { settingsViewModel.startDiscovery() },
+                    onConfirmDiscovered = { url ->
+                        settingsViewModel.confirmDiscoveredUrl(url)
                         scope.launch {
-                            isChecking  = true
-                            checkError  = null
+                            if (playlistViewModel.sources.value.isEmpty()) {
+                                playlistViewModel.addSource(
+                                    PlaylistSource(
+                                        id                   = UUID.randomUUID().toString(),
+                                        name                 = "StreamServer",
+                                        colorHex             = PlaylistSource.COLOR_BLUE,
+                                        url                  = "$url/playlist.m3u",
+                                        refreshIntervalHours = DEFAULT_REFRESH_HOURS,
+                                    )
+                                )
+                            }
+                            step = OnboardingStep.CHANNEL_SETUP
+                        }
+                    },
+                    onSkip            = { step = OnboardingStep.CHANNEL_SETUP },
+                    onCheck           = {
+                        scope.launch {
+                            isChecking = true
+                            checkError = null
                             val reachable = checkServerReachable(serverUrl)
-                            isChecking  = false
+                            isChecking = false
                             if (reachable) {
                                 if (playlistViewModel.sources.value.isEmpty()) {
                                     playlistViewModel.addSource(
                                         PlaylistSource(
                                             id                   = UUID.randomUUID().toString(),
                                             name                 = "StreamServer",
-                                            colorHex = PlaylistSource.COLOR_BLUE,
+                                            colorHex             = PlaylistSource.COLOR_BLUE,
                                             url                  = "$serverUrl/playlist.m3u",
                                             refreshIntervalHours = DEFAULT_REFRESH_HOURS,
                                         )
@@ -201,34 +223,66 @@ private fun ServerCheckStep(
     serverUrl: String,
     isChecking: Boolean,
     checkError: String?,
+    scanning: Boolean,
+    discoveredUrl: String?,
     onServerUrlChange: (String) -> Unit,
+    onScan: () -> Unit,
+    onConfirmDiscovered: (String) -> Unit,
     onSkip: () -> Unit,
     onCheck: () -> Unit,
 ) {
-    val dimens = NSDimens.current
     StepContainer {
         StepIcon("🖥")
         Text(text = "Welcome to NativeStream", style = NSType.display(), color = NSColors.text)
-        Text(
-            text  = "Enter the LAN IP address of your NativeStream server.\nMake sure StreamServer is running.",
-            style = NSType.body(),
-            color = NSColors.text3,
-        )
-        NSTextField(
-            value         = serverUrl,
-            onValueChange = onServerUrlChange,
-            placeholder   = "http://192.168.1.42:8888",
-        )
-        checkError?.let {
-            Text(text = it, style = NSType.monoSmall(), color = NSColors.live)
+
+        if (discoveredUrl != null) {
+            // Server found via mDNS
+            Text(
+                text  = "Server found on your network!",
+                style = NSType.body(),
+                color = NSColors.text3,
+            )
+            Text(
+                text  = discoveredUrl,
+                style = NSType.monoSmall(),
+                color = NSColors.accent,
+            )
+            StepButtons(
+                skipLabel      = "Enter manually",
+                primaryLabel   = "Use this server",
+                primaryEnabled = true,
+                onSkip         = onSkip,
+                onPrimary      = { onConfirmDiscovered(discoveredUrl) },
+            )
+        } else {
+            Text(
+                text  = "Scanning your network for NativeStream server…\nOr enter the LAN IP manually.",
+                style = NSType.body(),
+                color = NSColors.text3,
+            )
+            NSTextField(
+                value         = serverUrl,
+                onValueChange = onServerUrlChange,
+                placeholder   = "http://192.168.1.42:8888",
+            )
+            checkError?.let {
+                Text(text = it, style = NSType.monoSmall(), color = NSColors.live)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.md)) {
+                SheetActionButton(
+                    label   = if (scanning) "Scanning…" else "Scan network",
+                    isPrimary = false,
+                    enabled = !scanning,
+                    onClick = onScan,
+                )
+                SheetActionButton(
+                    label   = if (isChecking) "Checking…" else "Check Connection",
+                    isPrimary = true,
+                    enabled = !isChecking,
+                    onClick = onCheck,
+                )
+            }
         }
-        StepButtons(
-            skipLabel    = "Skip",
-            primaryLabel = if (isChecking) "Checking…" else "Check Connection",
-            primaryEnabled = !isChecking,
-            onSkip       = onSkip,
-            onPrimary    = onCheck,
-        )
     }
 }
 

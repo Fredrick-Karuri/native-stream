@@ -33,6 +33,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.MiniPlayer
+import com.nativestream.android.ui.components.ServerUnreachableBanner
 import com.nativestream.android.ui.foldable.rememberFoldPosture
 import com.nativestream.android.ui.screens.browse.BrowseScreen
 import com.nativestream.android.ui.screens.now.NowScreen
@@ -70,6 +71,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             restoreState    = true
         }
     }
+    val serverReachable by settingsViewModel.serverReachable.collectAsState()
 
     if (isLoading) return
 
@@ -80,6 +82,11 @@ fun AppNavHost(modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) {
         playerViewModel.connectToService()
+    }
+    LaunchedEffect(settingsViewModel.discoveredUrl) {
+        settingsViewModel.discoveredUrl.collect { url ->
+            if (url != null) settingsViewModel.confirmDiscoveredUrl(url)
+        }
     }
 
     // Outer Box — true window bounds, no inset padding.
@@ -102,57 +109,62 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                     } else Modifier
                 ),
         ) {
-            Row(modifier = Modifier.fillMaxSize()) {
-                if (useRail && !isPlayerVisible) {
-                    NSNavRail(
-                        navController         = navController,
-                        destinations          = bottomNavDestinations,
-                        onDestinationSelected = onDestinationSelected,
-                    )
+            Column(modifier = Modifier.fillMaxSize()) {
+                AnimatedVisibility(visible = !serverReachable) {
+                    ServerUnreachableBanner(onScan = { settingsViewModel.startDiscovery() })
                 }
-                Column(modifier = Modifier.weight(1f)) {
-                    NavHost(
-                        navController    = navController,
-                        startDestination = AppDestination.Now.route,
-                        modifier         = Modifier.weight(1f),
-                    ) {
-                        composable(AppDestination.Now.route) {
-                            NowScreen(
-                                playerViewModel   = playerViewModel,
-                                playlistViewModel = playlistViewModel,
-                                epgViewModel      = epgViewModel,
-                            )
-                        }
-                        composable(AppDestination.Browse.route) {
-                            BrowseScreen(
-                                playerViewModel   = playerViewModel,
-                                playlistViewModel = playlistViewModel,
-                            )
-                        }
-                        composable(AppDestination.Settings.route) {
-                            SettingsScreen()
-                        }
-                    }
-
-                    AnimatedVisibility(
-                        visible = hasActiveChannel && !isPlayerVisible,
-                        enter   = slideInVertically { it },
-                        exit    = slideOutVertically { it },
-                    ) {
-                        MiniPlayer(
-                            playerViewModel = playerViewModel,
-                            epgViewModel    = epgViewModel,
-                            onExpand        = { playerViewModel.showPlayer() },
-                            onClose         = { playerViewModel.stop() },
-                        )
-                    }
-
-                    if (!useRail && !isPlayerVisible) {
-                        NSBottomNavBar(
-                            navController         = navController,
-                            destinations          = bottomNavDestinations,
+                Row(modifier = Modifier.weight(1f)) {
+                    if (useRail && !isPlayerVisible) {
+                        NSNavRail(
+                            navController = navController,
+                            destinations = bottomNavDestinations,
                             onDestinationSelected = onDestinationSelected,
                         )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        NavHost(
+                            navController = navController,
+                            startDestination = AppDestination.Now.route,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            composable(AppDestination.Now.route) {
+                                NowScreen(
+                                    playerViewModel = playerViewModel,
+                                    playlistViewModel = playlistViewModel,
+                                    epgViewModel = epgViewModel,
+                                )
+                            }
+                            composable(AppDestination.Browse.route) {
+                                BrowseScreen(
+                                    playerViewModel = playerViewModel,
+                                    playlistViewModel = playlistViewModel,
+                                )
+                            }
+                            composable(AppDestination.Settings.route) {
+                                SettingsScreen()
+                            }
+                        }
+
+                        AnimatedVisibility(
+                            visible = hasActiveChannel && !isPlayerVisible,
+                            enter = slideInVertically { it },
+                            exit = slideOutVertically { it },
+                        ) {
+                            MiniPlayer(
+                                playerViewModel = playerViewModel,
+                                epgViewModel = epgViewModel,
+                                onExpand = { playerViewModel.showPlayer() },
+                                onClose = { playerViewModel.stop() },
+                            )
+                        }
+
+                        if (!useRail && !isPlayerVisible) {
+                            NSBottomNavBar(
+                                navController = navController,
+                                destinations = bottomNavDestinations,
+                                onDestinationSelected = onDestinationSelected,
+                            )
+                        }
                     }
                 }
             }
@@ -179,3 +191,4 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         }
     }
 }
+

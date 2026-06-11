@@ -17,14 +17,24 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import android.util.Log
+import com.nativestream.android.data.remote.ServerDiscoveryService
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withTimeout
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val apiClient: ApiClient,
+    private val discoveryService: ServerDiscoveryService,
 ) : ViewModel() {
+
+    init {
+        viewModelScope.launch {
+            settingsDataStore.serverUrl.first().let { apiClient.setBaseUrl(it) }
+        }
+    }
 
     val serverUrl: StateFlow<String> = settingsDataStore.serverUrl
         .stateIn(viewModelScope, SharingStarted.Eagerly, "http://192.168.1.42:8888")
@@ -42,12 +52,36 @@ class SettingsViewModel @Inject constructor(
         .map { false }
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
+    val discoveredUrl: StateFlow<String?> = discoveryService.discoveredUrl
+    val scanning: StateFlow<Boolean> = discoveryService.scanning
+
+    private val _serverReachable = MutableStateFlow<Boolean>(true)
+    val serverReachable: StateFlow<Boolean> = _serverReachable
+
+    fun startDiscovery() = discoveryService.scan()
+
+    fun confirmDiscoveredUrl(url: String) {
+        viewModelScope.launch {
+            settingsDataStore.setServerUrl(url)
+            apiClient.setBaseUrl(url)
+        }
+    }
+
     fun setServerUrl(url: String) {
         viewModelScope.launch {
             settingsDataStore.setServerUrl(url)
             apiClient.setBaseUrl(url)
         }
     }
+
+    fun checkHealth() {
+        viewModelScope.launch {
+            _serverReachable.value = runCatching {
+                withTimeout(2_000) { apiClient.health(); true }
+            }.getOrDefault(false)
+        }
+    }
+
 
     fun setEpgUrl(url: String) {
         viewModelScope.launch { settingsDataStore.setEpgUrl(url) }

@@ -82,8 +82,6 @@ fun SettingsScreen(
 ) {
     val dimens = NSDimens.current
     val serverUrl    by settingsViewModel.serverUrl.collectAsState()
-    val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
-    val sources      by playlistViewModel.sources.collectAsState()
 
     var proxyEnabled by remember { mutableStateOf(false) }
     var hwDecode     by remember { mutableStateOf(true) }
@@ -170,7 +168,3 @@ fun SettingsScreen(
         }
     }
 }
-
-
-// ── Standard icon row with chevron ────────────────────────────────────────────
-
