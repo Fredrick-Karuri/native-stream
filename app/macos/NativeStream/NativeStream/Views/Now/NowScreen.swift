@@ -2,6 +2,7 @@
 // Screen 1: EPG-first home. Shows live matches, live on air, and starting soon.
 
 import SwiftUI
+import Combine
 
 struct NowScreen: View {
 
@@ -27,6 +28,7 @@ struct NowScreen: View {
 
     private var liveCount: Int { liveMatches.count + liveOnAir.count }
     private var soonCount: Int { startingSoon.count }
+    private let clockTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     // MARK: - Body
 
@@ -38,7 +40,8 @@ struct NowScreen: View {
         }
         .background(NS.bg)
         .task(id: playlistVM.channels.count) { recompute() }
-        .task(id: epgVM.isAvailable) { recompute() }
+        .task(id: epgVM.stores.count) { recompute() }
+        .onReceive(clockTick) { _ in recompute() }
     }
     
     private func recompute() {
