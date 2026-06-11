@@ -21,9 +21,12 @@ import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 
 @Composable
-fun ServerHealthCard(serverUrl: String) {
+fun ServerHealthCard(
+    serverUrl: String,
+    serverReachable: Boolean,
+) {
     val dimens    = NSDimens.current
-    val connected = serverUrl.isNotBlank()
+    val connected = serverReachable
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier

@@ -59,6 +59,7 @@ fun SettingsSingleColumn(
     val serverUrl    by settingsViewModel.serverUrl.collectAsState()
     val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
     val sources      by playlistViewModel.sources.collectAsState()
+    val serverReachable by settingsViewModel.serverReachable.collectAsState()
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
@@ -66,7 +67,7 @@ fun SettingsSingleColumn(
             .fillMaxSize()
             .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
     ) {
-        item { ServerHealthCard(serverUrl = serverUrl) }
+        item { ServerHealthCard(serverUrl = serverUrl, serverReachable = serverReachable) }
 
         item {
             SettingsSection(label = "Server") {

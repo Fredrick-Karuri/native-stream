@@ -71,6 +71,7 @@ fun SettingsTwoPane(
     val sources      by playlistViewModel.sources.collectAsState()
 
     var selectedSection by rememberSaveable { mutableStateOf(SettingsSection.SERVER) }
+    val serverReachable by settingsViewModel.serverReachable.collectAsState()
 
     Row(modifier = Modifier.fillMaxSize()) {
 
@@ -120,7 +121,7 @@ fun SettingsTwoPane(
         ) {
             when (selectedSection) {
                 SettingsSection.SERVER -> {
-                    item { ServerHealthCard(serverUrl = serverUrl) }
+                    item { ServerHealthCard(serverUrl = serverUrl, serverReachable = serverReachable) }
                     item {
                         SettingsSection(label = "Server") {
                             SettingsIconRow(
