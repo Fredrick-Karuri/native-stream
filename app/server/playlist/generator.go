@@ -21,15 +21,20 @@ func Generate(channels []*store.Channel, cfg Config) string {
 	sb.WriteString("#EXTM3U\n")
 
 	for _, ch := range channels {
-		if ch.ActiveLink == nil {
+		streamURL := ""
+		localScript := false
+
+		if ch.ActiveLink != nil {
+			localScript = ch.ActiveLink.SourceURL != "" &&
+				!strings.HasPrefix(ch.ActiveLink.SourceURL, "http")
+			streamURL = ch.ActiveLink.URL
+		} else if len(ch.Candidates) > 0 {
+			streamURL = ch.Candidates[0].URL
+		}
+
+		if streamURL == "" {
 			continue
 		}
-		// Local-script channels always proxy — real URL must not appear in output
-		localScript := ch.ActiveLink.SourceURL != "" &&
-			!strings.HasPrefix(ch.ActiveLink.SourceURL, "http")
-
-
-		streamURL := ch.ActiveLink.URL
 
 		if cfg.ProxyEnabled || localScript {
 			streamURL = fmt.Sprintf("%s/stream/%s/proxy", cfg.ServerAddr, ch.ID)

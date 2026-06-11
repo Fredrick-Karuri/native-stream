@@ -76,7 +76,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 // ── Playlist ──────────────────────────────────────────────────────────────────
 
 func (h *Handler) handlePlaylist(w http.ResponseWriter, r *http.Request) {
-	channels := h.store.HealthyChannels()
+	channels := h.store.ChannelsWithLink()
 	cfg := playlist.Config{
 		ProxyEnabled: h.proxyCfg.Enabled,
 		ServerAddr:   h.serverAddr,

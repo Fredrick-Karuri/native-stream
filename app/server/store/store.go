@@ -108,6 +108,20 @@ func (s *Store) HealthyChannels() []*Channel {
 	return out
 }
 
+func (s *Store) ChannelsWithLink() []*Channel {
+    s.mu.RLock()
+    defer s.mu.RUnlock()
+    var out []*Channel
+    for _, ch := range s.channels {
+        if ch.ActiveLink != nil || len(ch.Candidates) > 0 {
+            cp := *ch
+            out = append(out, &cp)
+        }
+    }
+    sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+    return out
+}
+
 func (s *Store) Add(ch *Channel) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
