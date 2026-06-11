@@ -50,6 +50,7 @@ turbine = "1.1.0"
 #Icons
 
 phosphor = "1.0.0"
+foundation = "1.11.2"
 
 [libraries]
 # AndroidX Core
@@ -115,6 +116,7 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 
 
 

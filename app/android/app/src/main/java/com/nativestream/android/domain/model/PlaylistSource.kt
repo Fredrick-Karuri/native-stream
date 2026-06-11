@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 data class PlaylistSource(
     val id: String,
     val name: String,
-    val colorHex: String,
+    val colorHex: String = COLOR_BLUE,
     val url: String,
     val channelCount: Int = 0,
     val epgUrl: String? = null,
