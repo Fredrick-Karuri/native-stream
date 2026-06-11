@@ -27,9 +27,11 @@ struct BrowserScreen: View {
         }
         .background(NS.bg)
         .sheet(isPresented: $showAddChannel) {
-            AddChannelSheet {
+            AddChannelSheet { newChannel in
                 showAddChannel = false
-                Task { await playlistVM.loadAll() }
+                if let newChannel {
+                    playlistVM.insert(newChannel)
+                }
             }
             .environment(channelManager)
         }

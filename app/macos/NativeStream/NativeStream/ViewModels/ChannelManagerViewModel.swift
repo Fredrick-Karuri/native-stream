@@ -35,7 +35,7 @@ final class ChannelManagerViewModel {
         logoURL: String = "",
         streamURL: String,
         keywords: [String]
-    ) async {
+    ) async -> Channel? {
         isLoading = true
         defer { isLoading = false }
         let req = CreateChannelRequest(
@@ -43,12 +43,22 @@ final class ChannelManagerViewModel {
             tvgID: tvgID, logoURL: logoURL,
             streamURL: streamURL, keywords: keywords
         )
+        
         do {
-            let _ = try await APIClient.shared.createChannel(req)
-            await loadChannels()
+            let response = try await APIClient.shared.createChannel(req)
+            let resolvedURL = URL(string: streamURL)!
+            return Channel(
+                tvgId: response.tvgID,
+                name: response.name,
+                groupTitle: response.groupTitle,
+                logoURL: URL(string: response.logoURL),
+                streamURL: resolvedURL
+            )
         } catch {
             self.error = error.localizedDescription
+            return nil
         }
+        
     }
 
     func updateStreamURL(channelID: String, url: String) async {

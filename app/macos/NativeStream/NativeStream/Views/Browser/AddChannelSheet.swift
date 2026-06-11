@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AddChannelSheet: View {
-    let onDone: () -> Void
+    let onDone: (Channel?) -> Void
 
     @Environment(ChannelManagerViewModel.self) private var channelManager
 
@@ -38,7 +38,7 @@ struct AddChannelSheet: View {
 
             HStack {
                 Spacer()
-                Button("Cancel") { onDone() }
+                Button("Cancel") { onDone(nil) }
                     .font(NS.Font.captionMed)
                     .foregroundStyle(NS.text2)
                     .buttonStyle(.plain)
@@ -81,7 +81,8 @@ struct AddChannelSheet: View {
         isLoading = true
         error = nil
         let keywords = [name.lowercased().replacingOccurrences(of: " ", with: "")]
-        await channelManager.addChannel(
+        
+        let newChannel = await channelManager.addChannel(
             name: name,
             groupTitle: groupTitle.isEmpty ? "General" : groupTitle,
             tvgID: tvgID,
@@ -89,11 +90,12 @@ struct AddChannelSheet: View {
             streamURL: streamURL,
             keywords: keywords
         )
-        if channelManager.error == nil {
-            onDone()
+        if let newChannel {
+            onDone(newChannel)
         } else {
             error = channelManager.error
         }
+        
         isLoading = false
     }
 }

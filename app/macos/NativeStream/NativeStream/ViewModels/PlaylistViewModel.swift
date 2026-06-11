@@ -82,6 +82,13 @@ final class PlaylistViewModel {
         sources = sources.map { var s = $0; s.lastFetched = now; return s }
         saveSourcesToDisk()
     }
+    
+    // add after loadAll()
+    func insert(_ channel: Channel) {
+        channels.append(channel)
+        groups = Dictionary(grouping: channels, by: \.groupTitle)
+        sortedGroupNames = groups.keys.sorted()
+    }
  
     /// Refresh a single source and merge changes.
     func refresh(source: PlaylistSource) async {
