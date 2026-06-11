@@ -12,8 +12,18 @@ final class EPGViewModel {
     var isAvailable: Bool = true
     var epgURL: URL? = nil
 
-//    private let parser = EPGParser()
     private let settingsKey = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+    
+    private static let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.urlCache = URLCache(
+            memoryCapacity: 10 * 1024 * 1024,
+            diskCapacity:   50 * 1024 * 1024,
+            diskPath:       "nativestream_epg_cache"
+        )
+        config.requestCachePolicy = .useProtocolCachePolicy
+        return URLSession(configuration: config)
+    }()
 
     // MARK: - Load
 
@@ -72,7 +82,8 @@ final class EPGViewModel {
 
     private nonisolated static func fetchAndParse(url: URL, parser: EPGParser) async throws -> EPGStore {
         let normalized = normalizeEPGURL(url)
-        let (data, response) = try await URLSession.shared.data(from: normalized)
+        let (data, response) = try await EPGViewModel.session.data(from: normalized)
+
         guard let http = response as? HTTPURLResponse,
               (200...299).contains(http.statusCode) else {
             throw AppError.epgFetchFailed(underlying: URLError(.badServerResponse))

@@ -6,13 +6,20 @@ import SwiftUI
 @main
 struct NativeStreamApp: App {
 
-    @State private var playlistVM     = PlaylistViewModel()
+    
     @State private var epgVM          = EPGViewModel()
     @State private var playerVM       = PlayerViewModel()
-    @State private var settings       = SettingsStore()
     @State private var favourites     = FavouritesManager()
     @State private var serverHealth   = ServerHealthViewModel()
     @State private var channelManager = ChannelManagerViewModel()
+    @State private var playlistVM: PlaylistViewModel
+    @State private var settings: SettingsStore
+    
+    init() {
+        let s = SettingsStore()
+        _settings    = State(initialValue: s)
+        _playlistVM  = State(initialValue: PlaylistViewModel(settings: s))
+    }
 
     var body: some Scene {
         WindowGroup {
@@ -33,7 +40,7 @@ struct NativeStreamApp: App {
                         .environment(channelManager)
                 }
             }
-            // ── No .task here — AppShell.loadAll() owns startup loading ──
+            
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)

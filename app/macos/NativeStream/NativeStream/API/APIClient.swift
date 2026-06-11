@@ -32,6 +32,12 @@ actor APIClient {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest  = 10
         config.timeoutIntervalForResource = 30
+        config.urlCache = URLCache(
+            memoryCapacity: 10 * 1024 * 1024,  // 10 MB
+            diskCapacity:   50 * 1024 * 1024,  // 50 MB
+            diskPath:       "nativestream_api_cache"
+        )
+        config.requestCachePolicy = .useProtocolCachePolicy
         self.session = URLSession(configuration: config)
     }
 
@@ -133,7 +139,9 @@ actor APIClient {
 
     private func rawGet(_ path: String) async throws -> Data {
         let url = try resolve(path)
-        let req = URLRequest(url: url)
+        var req = URLRequest(url: url)
+        req.cachePolicy = .useProtocolCachePolicy
+        req.setValue("max-age=7200, public", forHTTPHeaderField: "Cache-Control")
         return try await execute(req)
     }
 

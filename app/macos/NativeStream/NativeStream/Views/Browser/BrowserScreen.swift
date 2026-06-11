@@ -5,18 +5,19 @@
 import SwiftUI
 
 struct BrowserScreen: View {
-
+    
     @Environment(PlaylistViewModel.self) private var playlistVM
     @Environment(EPGViewModel.self)      private var epgVM
     @Environment(ChannelManagerViewModel.self) private var channelManager
-
+    
     let onSelectChannel: (Channel) -> Void
-
+    
     @State private var searchText  = ""
     @State private var gridWidth: CGFloat = 700
     @State private var showAddChannel = false
     @State private var selectedGroup: String? = nil
-
+    @State private var groupedSections: [ChannelSection] = []
+    
     var body: some View {
         VStack(spacing: 0) {
             topBar
@@ -35,63 +36,66 @@ struct BrowserScreen: View {
             }
             .environment(channelManager)
         }
+        .task(id: playlistVM.channels.count) { recomputeSections() }
+        .onChange(of: searchText)    { recomputeSections() }
+        .onChange(of: selectedGroup) { recomputeSections() }
     }
-
+    
     // MARK: - Top bar
-private var topBar: some View {
-    HStack {
-        Text("All Channels")
-            .font(NS.Font.heading)
-            .foregroundStyle(NS.text)
-        Spacer()
-
-        // Centered search
-        HStack(spacing: NS.Spacing.xs) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: NS.Help.inlineIconSize))
-                .foregroundStyle(NS.text3)
-            TextField("Search channels…", text: $searchText)
-                .font(NS.Font.caption)
+    private var topBar: some View {
+        HStack {
+            Text("All Channels")
+                .font(NS.Font.heading)
                 .foregroundStyle(NS.text)
-                .textFieldStyle(.plain)
-                .frame(width: NS.Browser.searchWidth)
-                .onChange(of: searchText) { selectedGroup = nil }
-        }
-        .padding(.horizontal, NS.Spacing.md)
-        .frame(height: NS.Help.searchHeight)
-        .background(NS.surface2)
-        .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
-        .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2, lineWidth: 0.5))
-
-        Spacer()
-
-        Text("\(filtered.count) channels")
-            .font(NS.Font.caption)
-            .foregroundStyle(NS.text3)
-
-        // Visible Add Channel button
-        Button {
-            showAddChannel = true
-        } label: {
+            Spacer()
+            
+            // Centered search
             HStack(spacing: NS.Spacing.xs) {
-                Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .semibold))
-                Text("Add Channel")
-                    .font(NS.Font.captionMed)
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: NS.Help.inlineIconSize))
+                    .foregroundStyle(NS.text3)
+                TextField("Search channels…", text: $searchText)
+                    .font(NS.Font.caption)
+                    .foregroundStyle(NS.text)
+                    .textFieldStyle(.plain)
+                    .frame(width: NS.Browser.searchWidth)
+                    .onChange(of: searchText) { selectedGroup = nil }
             }
-            .foregroundStyle(NS.accent)
             .padding(.horizontal, NS.Spacing.md)
             .frame(height: NS.Help.searchHeight)
-            .background(NS.accentGlow)
+            .background(NS.surface2)
             .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.accentBorder, lineWidth: 0.5))
+            .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2, lineWidth: 0.5))
+            
+            Spacer()
+            
+            Text("\(filtered.count) channels")
+                .font(NS.Font.caption)
+                .foregroundStyle(NS.text3)
+            
+            // Visible Add Channel button
+            Button {
+                showAddChannel = true
+            } label: {
+                HStack(spacing: NS.Spacing.xs) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("Add Channel")
+                        .font(NS.Font.captionMed)
+                }
+                .foregroundStyle(NS.accent)
+                .padding(.horizontal, NS.Spacing.md)
+                .frame(height: NS.Help.searchHeight)
+                .background(NS.accentGlow)
+                .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
+                .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.accentBorder, lineWidth: 0.5))
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, NS.Spacing.xl)
+        .padding(.vertical, NS.Spacing.md)
+        .background(NS.surface)
     }
-    .padding(.horizontal, NS.Spacing.xl)
-    .padding(.vertical, NS.Spacing.md)
-    .background(NS.surface)
-}
     
     private var groupChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -110,9 +114,9 @@ private var topBar: some View {
         }
         .background(NS.surface)
     }
-
+    
     // MARK: - Content
-
+    
     @ViewBuilder
     private var channelContent: some View {
         if playlistVM.isLoading {
@@ -135,12 +139,12 @@ private var topBar: some View {
             }
         }
     }
-
+    
     @ViewBuilder
     private func channelGrid(_ channels: [Channel]) -> some View {
         let columns = max(1, Int(gridWidth / NS.CardSize.minWidth))
         let grid = Array(repeating: GridItem(.flexible(), spacing: NS.Spacing.sm), count: columns)
-
+        
         LazyVGrid(columns: grid, spacing: NS.Spacing.sm) {
             ForEach(channels) { channel in
                 ChannelCard(channel: channel) { onSelectChannel(channel) }
@@ -155,9 +159,9 @@ private var topBar: some View {
             }
         )
     }
-
+    
     // MARK: - Empty / loading
-
+    
     private var loadingView: some View {
         VStack(spacing: NS.Spacing.md) {
             ProgressView().scaleEffect(0.8)
@@ -165,7 +169,7 @@ private var topBar: some View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-
+    
     private var emptyView: some View {
         VStack(spacing: NS.Spacing.md) {
             Text("📺").font(.system(size: NS.Browser.emptyEmojiSize))
@@ -173,13 +177,13 @@ private var topBar: some View {
             Text(searchText.isEmpty
                  ? "Add a playlist source in Settings."
                  : "Try a different search term.")
-                .font(NS.Font.caption).foregroundStyle(NS.text3)
+            .font(NS.Font.caption).foregroundStyle(NS.text3)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-
+    
     // MARK: - Filtering & grouping
-
+    
     private var filtered: [Channel] {
         guard !searchText.isEmpty else { return playlistVM.channels }
         return playlistVM.channels.filter {
@@ -187,13 +191,12 @@ private var topBar: some View {
             $0.groupTitle.localizedCaseInsensitiveContains(searchText)
         }
     }
-
+    
     private struct ChannelSection { let name: String; let channels: [Channel] }
-
-    private var groupedSections: [ChannelSection] {
+    
+    private func recomputeSections() {
         let groups = Dictionary(grouping: filtered, by: \.groupTitle)
         let sorted = groups.keys.sorted().map { ChannelSection(name: $0, channels: groups[$0]!) }
-        guard let selected = selectedGroup else { return sorted }
-        return sorted.filter { $0.name == selected }
+        groupedSections = selectedGroup == nil ? sorted : sorted.filter { $0.name == selectedGroup }
     }
 }
