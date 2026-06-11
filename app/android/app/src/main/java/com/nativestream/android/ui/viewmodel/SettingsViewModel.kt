@@ -77,7 +77,7 @@ class SettingsViewModel @Inject constructor(
     fun checkHealth() {
         viewModelScope.launch {
             _serverReachable.value = runCatching {
-                withTimeout(2_000) { apiClient.health(); true }
+                withTimeout(5_000) { apiClient.health(); true }
             }.getOrDefault(false)
         }
     }

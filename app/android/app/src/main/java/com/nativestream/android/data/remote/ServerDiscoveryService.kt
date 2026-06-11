@@ -15,7 +15,7 @@ import javax.inject.Singleton
 
 private const val TAG = "ServerDiscovery"
 private const val SERVICE_TYPE = "_nativestream._tcp"
-private const val HEALTH_TIMEOUT_MS = 2_000L
+private const val HEALTH_TIMEOUT_MS = 5_000L
 
 @Singleton
 class ServerDiscoveryService @Inject constructor(
