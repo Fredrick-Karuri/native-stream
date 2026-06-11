@@ -24,6 +24,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +83,7 @@ fun SettingsScreen(
 ) {
     val dimens = NSDimens.current
     val serverUrl    by settingsViewModel.serverUrl.collectAsState()
+    LaunchedEffect(Unit) { settingsViewModel.checkHealth() }
 
     var proxyEnabled by remember { mutableStateOf(false) }
     var hwDecode     by remember { mutableStateOf(true) }
@@ -100,6 +102,11 @@ fun SettingsScreen(
 
     val windowSizeClass = LocalWindowSizeClass.current
     val useSidebar = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+    val discoveredUrl by settingsViewModel.discoveredUrl.collectAsState()
+    LaunchedEffect(discoveredUrl) {
+        discoveredUrl?.let { settingsViewModel.confirmDiscoveredUrl(it) }
+    }
+
 
     Scaffold(
         snackbarHost   = { SnackbarHost(snackbarHostState) },

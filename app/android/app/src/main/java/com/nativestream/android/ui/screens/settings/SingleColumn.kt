@@ -67,7 +67,13 @@ fun SettingsSingleColumn(
             .fillMaxSize()
             .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
     ) {
-        item { ServerHealthCard(serverUrl = serverUrl, serverReachable = serverReachable) }
+        item {
+            ServerHealthCard(
+                serverUrl       = serverUrl,
+                serverReachable = serverReachable,
+                onScan          = { settingsViewModel.startDiscovery() },
+            )
+        }
 
         item {
             SettingsSection(label = "Server") {

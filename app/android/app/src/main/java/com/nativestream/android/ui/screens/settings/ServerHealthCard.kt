@@ -2,6 +2,7 @@ package com.nativestream.android.ui.screens.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,9 +25,9 @@ import com.nativestream.android.ui.theme.NSType
 fun ServerHealthCard(
     serverUrl: String,
     serverReachable: Boolean,
+    onScan: () -> Unit = {},
 ) {
-    val dimens    = NSDimens.current
-    val connected = serverReachable
+    val dimens = NSDimens.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -36,11 +37,11 @@ fun ServerHealthCard(
             .border(0.5.dp, NSColors.border, RoundedCornerShape(dimens.radius.xl))
             .padding(dimens.spacing.md),
     ) {
-        NSHealthDot(score = if (connected) 1.0 else 0.0)
+        NSHealthDot(score = if (serverReachable) 1.0 else 0.0)
         Spacer(modifier = Modifier.width(dimens.spacing.sm))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text  = if (connected) "Server connected" else "Server unreachable",
+                text  = if (serverReachable) "Server connected" else "Server unreachable",
                 style = NSType.bodyMedium(),
                 color = NSColors.text,
             )
@@ -50,6 +51,14 @@ fun ServerHealthCard(
                 color    = NSColors.text3,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (!serverReachable) {
+            Text(
+                text     = "Scan again",
+                style    = NSType.bodyMedium(),
+                color    = NSColors.accent,
+                modifier = Modifier.clickable { onScan() },
             )
         }
     }

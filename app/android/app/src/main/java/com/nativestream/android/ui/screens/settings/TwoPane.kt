@@ -121,7 +121,13 @@ fun SettingsTwoPane(
         ) {
             when (selectedSection) {
                 SettingsSection.SERVER -> {
-                    item { ServerHealthCard(serverUrl = serverUrl, serverReachable = serverReachable) }
+                    item {
+                        ServerHealthCard(
+                            serverUrl       = serverUrl,
+                            serverReachable = serverReachable,
+                            onScan          = { settingsViewModel.startDiscovery() },
+                        )
+                    }
                     item {
                         SettingsSection(label = "Server") {
                             SettingsIconRow(

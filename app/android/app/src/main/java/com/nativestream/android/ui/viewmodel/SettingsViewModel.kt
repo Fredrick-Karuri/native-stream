@@ -64,6 +64,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.setServerUrl(url)
             apiClient.setBaseUrl(url)
+            checkHealth()
         }
     }
 

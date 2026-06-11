@@ -33,7 +33,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.MiniPlayer
-import com.nativestream.android.ui.components.ServerUnreachableBanner
 import com.nativestream.android.ui.foldable.rememberFoldPosture
 import com.nativestream.android.ui.screens.browse.BrowseScreen
 import com.nativestream.android.ui.screens.now.NowScreen
@@ -71,8 +70,6 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             restoreState    = true
         }
     }
-    val serverReachable by settingsViewModel.serverReachable.collectAsState()
-
     if (isLoading) return
 
     if (!onboardingComplete) {
@@ -109,11 +106,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                     } else Modifier
                 ),
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                AnimatedVisibility(visible = !serverReachable) {
-                    ServerUnreachableBanner(onScan = { settingsViewModel.startDiscovery() })
-                }
-                Row(modifier = Modifier.weight(1f)) {
+            Row(modifier = Modifier.fillMaxSize()) {
                     if (useRail && !isPlayerVisible) {
                         NSNavRail(
                             navController = navController,
@@ -166,7 +159,6 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                             )
                         }
                     }
-                }
             }
         }
 
