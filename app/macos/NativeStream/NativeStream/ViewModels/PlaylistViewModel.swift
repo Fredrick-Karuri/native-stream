@@ -23,11 +23,19 @@ final class PlaylistViewModel {
 
     private let parser = M3UParser()
     private var refreshTask: Task<Void, Never>?
+    private let settings: SettingsStore
 
     // MARK: - Init
 
-    init() {
+    init(settings: SettingsStore) {
+        self.settings = settings
         loadSourcesFromDisk()
+        let cached = loadChannelsFromDisk()
+        if !cached.isEmpty {
+            channels = cached
+            groups = Dictionary(grouping: cached, by: \.groupTitle)
+            sortedGroupNames = groups.keys.sorted()
+        }
     }
 
     // MARK: - Load
@@ -35,7 +43,12 @@ final class PlaylistViewModel {
     /// Fetch channels from all configured sources.
     func loadAll() async {
         guard !isLoading else { return }
-        isLoading = true
+
+        // Serve stale cache immediately if available
+        let hasCache = !channels.isEmpty
+        if !hasCache {
+            isLoading = true
+        }
         error = nil
 
         var allChannels: [Channel] = []
@@ -70,6 +83,9 @@ final class PlaylistViewModel {
                    let idx = sources.firstIndex(where: { $0.id == fetched.sourceID }),
                    sources[idx].epgURLString.isEmpty {
                     sources[idx].epgURLString = epgURL.absoluteString
+                    if settings.epgURLString.isEmpty {
+                        settings.epgURLString = epgURL.absoluteString
+                    }
                 }
             }
         }
@@ -81,6 +97,14 @@ final class PlaylistViewModel {
         let now = Date()
         sources = sources.map { var s = $0; s.lastFetched = now; return s }
         saveSourcesToDisk()
+        saveChannelsToDisk(channels)
+    }
+    
+    // add after loadAll()
+    func insert(_ channel: Channel) {
+        channels.append(channel)
+        groups = Dictionary(grouping: channels, by: \.groupTitle)
+        sortedGroupNames = groups.keys.sorted()
     }
  
     /// Refresh a single source and merge changes.
@@ -170,6 +194,33 @@ final class PlaylistViewModel {
         } catch {
             print("⚠️ Failed to save playlist sources: \(error)")
         }
+    }
+    
+    
+    private var channelCacheURL: URL {
+        FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("NativeStream/channel_cache.json")
+    }
+
+    private func saveChannelsToDisk(_ channels: [Channel]) {
+        do {
+            try FileManager.default.createDirectory(
+                at: channelCacheURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            let data = try JSONEncoder().encode(channels)
+            try data.write(to: channelCacheURL, options: .atomic)
+        } catch {
+            print("⚠️ Failed to save channel cache: \(error)")
+        }
+    }
+
+    private func loadChannelsFromDisk() -> [Channel] {
+        guard let data = try? Data(contentsOf: channelCacheURL),
+              let loaded = try? JSONDecoder().decode([Channel].self, from: data)
+        else { return [] }
+        return loaded
     }
 
     private func loadSourcesFromDisk() {

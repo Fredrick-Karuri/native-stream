@@ -70,7 +70,6 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             restoreState    = true
         }
     }
-
     if (isLoading) return
 
     if (!onboardingComplete) {
@@ -80,6 +79,11 @@ fun AppNavHost(modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) {
         playerViewModel.connectToService()
+    }
+    LaunchedEffect(settingsViewModel.discoveredUrl) {
+        settingsViewModel.discoveredUrl.collect { url ->
+            if (url != null) settingsViewModel.confirmDiscoveredUrl(url)
+        }
     }
 
     // Outer Box — true window bounds, no inset padding.
@@ -103,58 +107,58 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 ),
         ) {
             Row(modifier = Modifier.fillMaxSize()) {
-                if (useRail && !isPlayerVisible) {
-                    NSNavRail(
-                        navController         = navController,
-                        destinations          = bottomNavDestinations,
-                        onDestinationSelected = onDestinationSelected,
-                    )
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    NavHost(
-                        navController    = navController,
-                        startDestination = AppDestination.Now.route,
-                        modifier         = Modifier.weight(1f),
-                    ) {
-                        composable(AppDestination.Now.route) {
-                            NowScreen(
-                                playerViewModel   = playerViewModel,
-                                playlistViewModel = playlistViewModel,
-                                epgViewModel      = epgViewModel,
-                            )
-                        }
-                        composable(AppDestination.Browse.route) {
-                            BrowseScreen(
-                                playerViewModel   = playerViewModel,
-                                playlistViewModel = playlistViewModel,
-                            )
-                        }
-                        composable(AppDestination.Settings.route) {
-                            SettingsScreen()
-                        }
-                    }
-
-                    AnimatedVisibility(
-                        visible = hasActiveChannel && !isPlayerVisible,
-                        enter   = slideInVertically { it },
-                        exit    = slideOutVertically { it },
-                    ) {
-                        MiniPlayer(
-                            playerViewModel = playerViewModel,
-                            epgViewModel    = epgViewModel,
-                            onExpand        = { playerViewModel.showPlayer() },
-                            onClose         = { playerViewModel.stop() },
-                        )
-                    }
-
-                    if (!useRail && !isPlayerVisible) {
-                        NSBottomNavBar(
-                            navController         = navController,
-                            destinations          = bottomNavDestinations,
+                    if (useRail && !isPlayerVisible) {
+                        NSNavRail(
+                            navController = navController,
+                            destinations = bottomNavDestinations,
                             onDestinationSelected = onDestinationSelected,
                         )
                     }
-                }
+                    Column(modifier = Modifier.weight(1f)) {
+                        NavHost(
+                            navController = navController,
+                            startDestination = AppDestination.Now.route,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            composable(AppDestination.Now.route) {
+                                NowScreen(
+                                    playerViewModel = playerViewModel,
+                                    playlistViewModel = playlistViewModel,
+                                    epgViewModel = epgViewModel,
+                                )
+                            }
+                            composable(AppDestination.Browse.route) {
+                                BrowseScreen(
+                                    playerViewModel = playerViewModel,
+                                    playlistViewModel = playlistViewModel,
+                                )
+                            }
+                            composable(AppDestination.Settings.route) {
+                                SettingsScreen()
+                            }
+                        }
+
+                        AnimatedVisibility(
+                            visible = hasActiveChannel && !isPlayerVisible,
+                            enter = slideInVertically { it },
+                            exit = slideOutVertically { it },
+                        ) {
+                            MiniPlayer(
+                                playerViewModel = playerViewModel,
+                                epgViewModel = epgViewModel,
+                                onExpand = { playerViewModel.showPlayer() },
+                                onClose = { playerViewModel.stop() },
+                            )
+                        }
+
+                        if (!useRail && !isPlayerVisible) {
+                            NSBottomNavBar(
+                                navController = navController,
+                                destinations = bottomNavDestinations,
+                                onDestinationSelected = onDestinationSelected,
+                            )
+                        }
+                    }
             }
         }
 
@@ -179,3 +183,4 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         }
     }
 }
+

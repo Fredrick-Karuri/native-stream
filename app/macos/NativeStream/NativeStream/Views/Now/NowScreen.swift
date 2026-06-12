@@ -2,6 +2,7 @@
 // Screen 1: EPG-first home. Shows live matches, live on air, and starting soon.
 
 import SwiftUI
+import Combine
 
 struct NowScreen: View {
 
@@ -21,35 +22,13 @@ struct NowScreen: View {
     }
 
     /// Channels with a live programme whose title matches a sport keyword.
-private var liveMatches: [(channel: Channel, programme: Programme)] {
-    playlistVM.channels.compactMap { channel in
-        guard let prog = epgVM.currentProgramme(for: channel),
-              isMatch(prog),
-              prog.title.contains(" vs ") else { return nil }
-        return (channel, prog)
-    }
-}
-    /// Channels live but not a sport match — studio shows, PGA coverage, snooker etc.
-    private var liveOnAir: [(channel: Channel, programme: Programme)] {
-        playlistVM.channels.compactMap { channel in
-            guard let prog = epgVM.currentProgramme(for: channel), !isMatch(prog) else { return nil }
-            return (channel, prog)
-        }
-    }
-
-    /// Channels with nothing live but a next programme starting within 2 hours.
-    private var startingSoon: [(channel: Channel, programme: Programme)] {
-        let cutoff = Date().addingTimeInterval(2 * 3600)
-        return playlistVM.channels.compactMap { channel in
-            guard epgVM.currentProgramme(for: channel) == nil,
-                  let next = epgVM.nextProgramme(for: channel),
-                  next.start <= cutoff else { return nil }
-            return (channel, next)
-        }
-    }
+    @State private var liveMatches:  [(channel: Channel, programme: Programme)] = []
+    @State private var liveOnAir:    [(channel: Channel, programme: Programme)] = []
+    @State private var startingSoon: [(channel: Channel, programme: Programme)] = []
 
     private var liveCount: Int { liveMatches.count + liveOnAir.count }
     private var soonCount: Int { startingSoon.count }
+    private let clockTick = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     // MARK: - Body
 
@@ -60,6 +39,28 @@ private var liveMatches: [(channel: Channel, programme: Programme)] {
             scrollContent
         }
         .background(NS.bg)
+        .task(id: playlistVM.channels.count) { recompute() }
+        .task(id: epgVM.stores.count) { recompute() }
+        .onReceive(clockTick) { _ in recompute() }
+    }
+    
+    private func recompute() {
+        let cutoff = Date().addingTimeInterval(2 * 3600)
+        liveMatches = playlistVM.channels.compactMap { channel in
+            guard let prog = epgVM.currentProgramme(for: channel),
+                  isMatch(prog), prog.title.contains(" vs ") else { return nil }
+            return (channel, prog)
+        }
+        liveOnAir = playlistVM.channels.compactMap { channel in
+            guard let prog = epgVM.currentProgramme(for: channel), !isMatch(prog) else { return nil }
+            return (channel, prog)
+        }
+        startingSoon = playlistVM.channels.compactMap { channel in
+            guard epgVM.currentProgramme(for: channel) == nil,
+                  let next = epgVM.nextProgramme(for: channel),
+                  next.start <= cutoff else { return nil }
+            return (channel, next)
+        }
     }
 
     // MARK: - Top bar

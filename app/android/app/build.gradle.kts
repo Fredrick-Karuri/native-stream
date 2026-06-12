@@ -91,6 +91,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.window.layout)
+    implementation(libs.androidx.compose.foundation)
 
     // Compose BOM — version-managed block
     val composeBom = platform(libs.androidx.compose.bom)

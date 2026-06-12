@@ -9,6 +9,7 @@ import android.content.Context
 import com.nativestream.android.data.cast.CastManager
 import com.nativestream.android.data.local.SettingsDataStore
 import com.nativestream.android.data.remote.ApiClient
+import com.nativestream.android.data.remote.ServerDiscoveryService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -35,4 +36,9 @@ object AppModule {
     @Provides @Singleton
     fun provideCastManager(@ApplicationContext context: Context): CastManager =
         CastManager(context)
+    @Provides @Singleton
+    fun provideServerDiscoveryService(
+        @ApplicationContext context: Context,
+        apiClient: ApiClient,
+    ): ServerDiscoveryService = ServerDiscoveryService(context, apiClient)
 }

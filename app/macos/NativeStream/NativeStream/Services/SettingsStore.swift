@@ -1,5 +1,5 @@
-// SettingsStore.swift — FX-015
-// FX-015: Properties are now stored @Observable fields, not computed UserDefaults
+// SettingsStore.swift
+// Properties are now stored @Observable fields, not computed UserDefaults
 // accessors. @Observable tracks mutations correctly so AppShell.onChange(of:)
 // fires when values change from the Settings UI.
 

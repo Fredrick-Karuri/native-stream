@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"os"
 
 	"github.com/fredrick-karuri/nativestream/server/epg"
 	"github.com/fredrick-karuri/nativestream/server/playlist"
@@ -24,7 +25,8 @@ type Handler struct {
 	validator *validator.Validator
 	startTime time.Time
 	proxyCfg  proxy.Config
-	serverAddr string
+	serverAddr  string
+	serverName  string
 }
 
 func New(
@@ -43,6 +45,7 @@ func New(
 		startTime:  time.Now(),
 		proxyCfg:   proxyCfg,
 		serverAddr: serverAddr,
+		serverName: func() string { h, _ := os.Hostname(); return "NativeStream @ " + h }(),
 	}
 }
 
@@ -73,7 +76,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 // ── Playlist ──────────────────────────────────────────────────────────────────
 
 func (h *Handler) handlePlaylist(w http.ResponseWriter, r *http.Request) {
-	channels := h.store.HealthyChannels()
+	channels := h.store.ChannelsWithLink()
 	cfg := playlist.Config{
 		ProxyEnabled: h.proxyCfg.Enabled,
 		ServerAddr:   h.serverAddr,
@@ -232,6 +235,9 @@ func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"channels":     total,
 		"healthy":      healthy,
 		"last_probe":   h.validator.LastProbeTime(),
+		"version":      "4.0",
+		"server_name":  h.serverName,
+		"addr":         h.serverAddr,
 	})
 }
 

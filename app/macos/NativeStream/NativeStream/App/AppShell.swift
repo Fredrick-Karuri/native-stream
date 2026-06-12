@@ -76,11 +76,11 @@ struct AppShell: View {
     // MARK: - Load
 
     private func loadAll() async {
-        await playlistVM.loadAll()  // wait for sources to have epgURLString populated
-        await loadEPG()             // then load EPG with populated sources
+        await playlistVM.loadAll()
         if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
         playlistVM.scheduleAutoRefresh()
-        Task(priority: .background) {          // ← don't block cold start
+        Task(priority: .background) {
+            await loadEPG()
             epgVM.logMatchDiagnostic(for: playlistVM.channels)
         }
     }
@@ -149,11 +149,12 @@ extension Notification.Name {
 }
 
 #Preview {
-    AppShell()
-        .environment(PlaylistViewModel())
+    let s = SettingsStore()
+    return AppShell()
+        .environment(PlaylistViewModel(settings: s))
         .environment(EPGViewModel())
         .environment(PlayerViewModel())
-        .environment(SettingsStore())
+        .environment(s)
         .environment(FavouritesManager())
         .environment(ServerHealthViewModel())
         .environment(ChannelManagerViewModel())

@@ -237,11 +237,6 @@ struct ServerSection: View {
                 Text("Default: http://localhost:8888 — change only if running the server remotely.")
                     .font(NS.Font.monoSm).foregroundStyle(NS.text3)
             }
-            VStack(alignment: .leading, spacing: NS.Spacing.sm) {
-                Text("Quick Start").font(NS.Font.caption).foregroundStyle(NS.text3)
-                NSCodeBlock(code: "make run-server")
-                NSCodeBlock(code: "make install-service")
-            }
         }
     }
 }

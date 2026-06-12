@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"net"
 
+	"github.com/grandcat/zeroconf"
 	"github.com/fredrick-karuri/nativestream/server/api"
 	"github.com/fredrick-karuri/nativestream/server/config"
 	"github.com/fredrick-karuri/nativestream/server/discovery"
@@ -141,12 +143,7 @@ func main() {
 	discEngine.WithDirectFetchers(directFetchers) 
 
 	// ── API ────────────────────────────────────────────────────────────────────
-
-	playbackHost := cfg.Server.Host
-	if playbackHost == "0.0.0.0" {
-		playbackHost = "127.0.0.1"
-	}
-	serverAddr := fmt.Sprintf("http://%s:%d", playbackHost, cfg.Server.Port)
+	serverAddr := fmt.Sprintf("http://%s:%d", getLANIP(), cfg.Server.Port)
 	h := api.New(s, e, px, v, proxyCfg, serverAddr)
 
 	mux := http.NewServeMux()
@@ -182,6 +179,22 @@ func main() {
 
 	slog.Info("all workers started")
 
+	// mDNS advertisement
+	mdnsServer, err := zeroconf.Register(
+		"NativeStream",
+		"_nativestream._tcp",
+		"local.",
+		cfg.Server.Port,
+		[]string{"version=4.0"},
+		nil,
+	)
+	if err != nil {
+		slog.Warn("mDNS registration failed", "err", err)
+	} else {
+		defer mdnsServer.Shutdown()
+		slog.Info("mDNS advertised", "service", "_nativestream._tcp.local")
+	}
+
 	// ── HTTP server ────────────────────────────────────────────────────────────
 	srv := &http.Server{
 		Addr:         cfg.Server.Addr(),
@@ -197,4 +210,16 @@ func main() {
 		slog.Error("server error", "err", err)
 		os.Exit(1)
 	}
+}
+
+func getLANIP() string {
+    addrs, _ := net.InterfaceAddrs()
+    for _, addr := range addrs {
+        if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+            if ipnet.IP.To4() != nil {
+                return ipnet.IP.String()
+            }
+        }
+    }
+    return "127.0.0.1"
 }

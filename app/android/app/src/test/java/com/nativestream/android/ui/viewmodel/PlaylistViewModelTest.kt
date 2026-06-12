@@ -18,7 +18,9 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -109,7 +111,6 @@ class PlaylistViewModelTest {
         viewModel = buildViewModel()
         sourcesFlow.value = listOf(fakeSource)
         advanceUntilIdle()
-
         viewModel.channels.test {
             val channels = awaitItem()
             assertEquals(fakeChannels.size, channels.size)

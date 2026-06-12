@@ -5,6 +5,7 @@
 
 package com.nativestream.android
 
+
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.os.Bundle
@@ -18,16 +19,19 @@ import androidx.compose.ui.Modifier
 import com.nativestream.android.ui.navigation.AppNavHost
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSTheme
+import androidx.activity.viewModels
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.nativestream.android.ui.LocalWindowSizeClass
+import com.nativestream.android.ui.viewmodel.SettingsViewModel
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private val settingsViewModel: SettingsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,4 +60,10 @@ class MainActivity : ComponentActivity() {
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
     }
+
+    override fun onResume() {
+        super.onResume()
+        settingsViewModel.checkHealth()
+    }
+
 }
