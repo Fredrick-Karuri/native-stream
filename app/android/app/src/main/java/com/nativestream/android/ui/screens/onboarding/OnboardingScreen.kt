@@ -21,10 +21,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -37,14 +37,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nativestream.android.domain.model.PlaylistSource
-import com.nativestream.android.ui.components.NSTextField
-import com.nativestream.android.ui.screens.settings.SheetActionButton
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
-import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
@@ -89,7 +87,9 @@ fun OnboardingScreen(
         modifier = modifier
             .fillMaxSize()
             .background(NSColors.bg)
-            .padding(dimens.spacing.xxl),
+            .imePadding()
+            .padding(dimens.spacing.xxl)
+            .verticalScroll(rememberScrollState()),
     ) {
         // ── Step pills ────────────────────────────────────────────────────────
         Row(
@@ -215,194 +215,6 @@ fun OnboardingScreen(
         Spacer(modifier = Modifier.weight(1f))
     }
 }
-
-// ── Step 1: Server check ──────────────────────────────────────────────────────
-
-@Composable
-private fun ServerCheckStep(
-    serverUrl: String,
-    isChecking: Boolean,
-    checkError: String?,
-    scanning: Boolean,
-    discoveredUrl: String?,
-    onServerUrlChange: (String) -> Unit,
-    onScan: () -> Unit,
-    onConfirmDiscovered: (String) -> Unit,
-    onSkip: () -> Unit,
-    onCheck: () -> Unit,
-) {
-    StepContainer {
-        StepIcon("🖥")
-        Text(text = "Welcome to NativeStream", style = NSType.display(), color = NSColors.text)
-
-        if (discoveredUrl != null) {
-            // Server found via mDNS
-            Text(
-                text  = "Server found on your network!",
-                style = NSType.body(),
-                color = NSColors.text3,
-            )
-            Text(
-                text  = discoveredUrl,
-                style = NSType.monoSmall(),
-                color = NSColors.accent,
-            )
-            StepButtons(
-                skipLabel      = "Enter manually",
-                primaryLabel   = "Use this server",
-                primaryEnabled = true,
-                onSkip         = onSkip,
-                onPrimary      = { onConfirmDiscovered(discoveredUrl) },
-            )
-        } else {
-            Text(
-                text  = "Scanning your network for NativeStream server…\nOr enter the LAN IP manually.",
-                style = NSType.body(),
-                color = NSColors.text3,
-            )
-            NSTextField(
-                value         = serverUrl,
-                onValueChange = onServerUrlChange,
-                placeholder   = "http://192.168.1.42:8888",
-            )
-            checkError?.let {
-                Text(text = it, style = NSType.monoSmall(), color = NSColors.live)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.md)) {
-                SheetActionButton(
-                    label   = if (scanning) "Scanning…" else "Scan network",
-                    isPrimary = false,
-                    enabled = !scanning,
-                    onClick = onScan,
-                )
-                SheetActionButton(
-                    label   = if (isChecking) "Checking…" else "Check Connection",
-                    isPrimary = true,
-                    enabled = !isChecking,
-                    onClick = onCheck,
-                )
-            }
-        }
-    }
-}
-
-// ── Step 2: Channel setup ─────────────────────────────────────────────────────
-
-@Composable
-private fun ChannelSetupStep(
-    playlistUrl: String,
-    onPlaylistUrlChange: (String) -> Unit,
-    onSkip: () -> Unit,
-    onAddAndContinue: () -> Unit,
-) {
-    StepContainer {
-        StepIcon("📋")
-        Text(text = "Add a Playlist Source", style = NSType.display(), color = NSColors.text)
-        Text(
-            text  = "Paste your M3U playlist URL below.\nThis is usually your StreamServer's playlist endpoint.",
-            style = NSType.body(),
-            color = NSColors.text3,
-        )
-        NSTextField(
-            value         = playlistUrl,
-            onValueChange = onPlaylistUrlChange,
-            placeholder   = "http://192.168.1.42:8888/playlist.m3u",
-        )
-        StepButtons(
-            skipLabel      = "Skip",
-            primaryLabel   = "Add & Continue",
-            primaryEnabled = playlistUrl.isNotBlank(),
-            onSkip         = onSkip,
-            onPrimary      = onAddAndContinue,
-        )
-    }
-}
-
-// ── Step 3: EPG setup ─────────────────────────────────────────────────────────
-
-@Composable
-private fun EpgSetupStep(
-    epgUrl: String,
-    onEpgUrlChange: (String) -> Unit,
-    onSkip: () -> Unit,
-    onSaveAndFinish: () -> Unit,
-) {
-    StepContainer {
-        StepIcon("📺")
-        Text(text = "Set Up TV Guide", style = NSType.display(), color = NSColors.text)
-        Text(
-            text  = "Enter your EPG URL so NativeStream can show\nwhat's on and upcoming match times.",
-            style = NSType.body(),
-            color = NSColors.text3,
-        )
-        NSTextField(
-            value         = epgUrl,
-            onValueChange = onEpgUrlChange,
-            placeholder   = "http://192.168.1.42:8888/epg.xml",
-        )
-        Text(
-            text  = "Or use a public source like https://iptv-org.github.io/epg/",
-            style = NSType.monoSmall(),
-            color = NSColors.text3,
-        )
-        StepButtons(
-            skipLabel    = "Skip",
-            primaryLabel = "Save & Finish",
-            primaryEnabled = true,
-            onSkip       = onSkip,
-            onPrimary    = onSaveAndFinish,
-        )
-    }
-}
-
-// ── Step 4: Complete ──────────────────────────────────────────────────────────
-
-@Composable
-private fun CompleteStep(onStartWatching: () -> Unit) {
-    val dimens = NSDimens.current
-    StepContainer {
-        Text(text = "✅", fontSize = 56.sp)
-        Text(text = "You're all set!", style = NSType.display(), color = NSColors.text)
-        Text(
-            text  = "NativeStream is ready. Your channels are loading now.\nSelect any channel to start watching.",
-            style = NSType.body(),
-            color = NSColors.text3,
-        )
-        Spacer(modifier = Modifier.height(dimens.spacing.sm))
-        SheetActionButton(label = "Start Watching", isPrimary = true, enabled = true, onClick = onStartWatching)
-    }
-}
-
-// ── Shared composables ────────────────────────────────────────────────────────
-
-@Composable
-private fun StepContainer(content: @Composable () -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.xl),
-        modifier = Modifier.padding(NSDimens.current.spacing.xxl),
-    ) { content() }
-}
-
-@Composable
-private fun StepIcon(emoji: String) {
-    Text(text = emoji, fontSize = 48.sp)
-}
-
-@Composable
-private fun StepButtons(
-    skipLabel: String,
-    primaryLabel: String,
-    primaryEnabled: Boolean,
-    onSkip: () -> Unit,
-    onPrimary: () -> Unit,
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.md)) {
-        SheetActionButton(label = skipLabel,    isPrimary = false, enabled = true,           onClick = onSkip)
-        SheetActionButton(label = primaryLabel, isPrimary = true,  enabled = primaryEnabled, onClick = onPrimary)
-    }
-}
-
 // ── Network helper ────────────────────────────────────────────────────────────
 
 private suspend fun checkServerReachable(serverUrl: String): Boolean {

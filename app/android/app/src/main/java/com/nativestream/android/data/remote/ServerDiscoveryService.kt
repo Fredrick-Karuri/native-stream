@@ -17,6 +17,8 @@ private const val TAG = "ServerDiscovery"
 private const val SERVICE_TYPE = "_nativestream._tcp"
 private const val HEALTH_TIMEOUT_MS = 5_000L
 
+private const val SCAN_TIMEOUT_MS = 15_000
+
 @Singleton
 class ServerDiscoveryService @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -59,6 +61,13 @@ class ServerDiscoveryService @Inject constructor(
             }
         }
         nsdManager.discoverServices(SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, listener)
+        scope.launch {
+            delay(15_000)
+            if (_scanning.value) {
+                stop()
+                _scanning.value = false
+            }
+        }
     }
 
     fun stop() {

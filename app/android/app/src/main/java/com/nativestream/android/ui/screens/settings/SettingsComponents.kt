@@ -60,30 +60,6 @@ fun NSToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit, enabled: Bool
     )
 }
 
-@Composable
-internal fun SheetActionButton(label: String, isPrimary: Boolean, enabled: Boolean, onClick: () -> Unit) {
-    val dimens      = NSDimens.current
-    val background  = if (isPrimary && enabled) NSColors.accentGlow else NSColors.surface3
-    val borderColor = if (isPrimary && enabled) NSColors.accentBorder else NSColors.border2
-    val textColor   = when {
-        isPrimary && enabled  -> NSColors.accent
-        isPrimary && !enabled -> NSColors.text3
-        else                  -> NSColors.text2
-    }
-    Text(
-        text     = label,
-        style    = NSType.captionMedium(),
-        color    = textColor,
-        modifier = Modifier
-            .clip(RoundedCornerShape(dimens.radius.md))
-            .background(background)
-            .border(0.5.dp, borderColor, RoundedCornerShape(dimens.radius.md))
-            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = dimens.spacing.md, vertical = 6.dp),
-    )
-}
-
-
 
 @Composable
 fun AddSourceRow(onClick: () -> Unit) {
