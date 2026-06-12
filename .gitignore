@@ -37,6 +37,7 @@ app/android/**/*.hprof
 app/android/.gradle/
 app/android/.idea/
 app/android/keystore.jks 
+app/android/.kotlin/
 
 # Private local script — never commit
 crawlers/*.py
