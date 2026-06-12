@@ -39,7 +39,7 @@ import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 
-@Composable
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)@Composable
 fun PlayerTabletopLayout(
     playerViewModel: PlayerViewModel,
     castViewModel: CastViewModel,
