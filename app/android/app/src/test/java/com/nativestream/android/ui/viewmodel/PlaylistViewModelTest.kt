@@ -70,9 +70,9 @@ class PlaylistViewModelTest {
         coEvery { settingsDataStore.setEpgUrl(any()) } returns Unit
         coEvery { settingsDataStore.updateSource(any()) } returns Unit
         coEvery { settingsDataStore.setSelectedSourceId(any()) } returns Unit
-        coEvery { settingsDataStore.addSource(any()) } returns Unit
-        coEvery { settingsDataStore.removeSource(any()) } returns Unit
-        coEvery { apiClient.playlistData() } returns ByteArray(0)
+
+        coEvery { apiClient.fetchRawUrl(any()) } returns ByteArray(0)
+        coEvery { m3uParser.parse(any<ByteArray>()) } returns M3uParseResult(fakeChannels, null, emptyList())
 
         viewModel = PlaylistViewModel(apiClient, m3uParser, settingsDataStore, testDispatcher)
     }
