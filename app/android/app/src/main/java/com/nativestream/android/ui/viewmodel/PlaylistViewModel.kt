@@ -147,7 +147,14 @@ class PlaylistViewModel @Inject constructor(
                 try {
                     val bytes = fetchSourceBytes(source)
                     val result = m3uParser.parse(bytes)
-                    val taggedChannels = result.channels.map { it.copy(sourceId = source.id) }
+                    val taggedChannels = result.channels
+                        .map {
+                            it.copy(
+                                id       = "${source.id}_${it.tvgId.ifEmpty { it.streamUrl }}",
+                                sourceId = source.id,
+                            )
+                        }
+                        .distinctBy { it.id }
                     result.warnings.forEach { w ->
                         Log.w(TAG, "M3U line ${w.lineNumber}: ${w.reason}")
                     }

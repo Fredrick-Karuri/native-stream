@@ -33,8 +33,9 @@ data class Channel(
             logoUrl: String? = null,
             streamUrl: String,
             streamHeaders: Map<String, String> = emptyMap(),
+            sourceId: String = "",
         ): Channel = Channel(
-            id            = tvgId.ifEmpty { streamUrl },
+            id            = "${sourceId}_${tvgId.ifEmpty { streamUrl }}",
             tvgId         = tvgId,
             name          = name,
             groupTitle    = groupTitle,

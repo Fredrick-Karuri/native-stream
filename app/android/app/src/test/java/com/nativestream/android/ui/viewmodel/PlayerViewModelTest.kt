@@ -138,6 +138,27 @@ class PlayerViewModelTest {
         assertFalse(viewModel.controlsVisible.value)
     }
 
+    // ── AND-T014: Channel ID uniqueness ──────────────────────────────────────
+
+    @Test
+    fun `T014 - channels from different sources with same streamUrl have unique ids`() {
+        val url = "http://stream.example.com/bbc1.m3u8"
+        val c1 = Channel.create(tvgId = "", name = "BBC One", streamUrl = url, sourceId = "source-1")
+        val c2 = Channel.create(tvgId = "", name = "BBC One", streamUrl = url, sourceId = "source-2")
+        assertTrue("IDs must be unique across sources", c1.id != c2.id)
+    }
+
+    @Test
+    fun `T014 - channels from same source with same streamUrl are deduplicated`() {
+        val url = "http://stream.example.com/bbc1.m3u8"
+        val channels = listOf(
+            Channel.create(tvgId = "", name = "BBC One", streamUrl = url, sourceId = "source-1"),
+            Channel.create(tvgId = "", name = "BBC One Duplicate", streamUrl = url, sourceId = "source-1"),
+        )
+        val deduped = channels.distinctBy { it.id }
+        assertEquals(1, deduped.size)
+    }
+
     // ── AND-T016: Retry logic ─────────────────────────────────────────────────
 
     @Test

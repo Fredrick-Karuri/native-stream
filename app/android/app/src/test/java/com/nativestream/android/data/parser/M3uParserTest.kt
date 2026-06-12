@@ -86,7 +86,7 @@ class M3uParserTest {
         val channel = parse(m3u).channels.first()
         assertEquals("", channel.tvgId)
         // id falls back to streamUrl per Channel.create()
-        assertEquals("http://stream.example.com/noid.m3u8", channel.id)
+        assertEquals("_http://stream.example.com/noid.m3u8", channel.id)
     }
 
     // =========================================================================

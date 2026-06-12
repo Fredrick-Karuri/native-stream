@@ -15,24 +15,26 @@ class ChannelTest {
     // ── id derivation ─────────────────────────────────────────────────────────
 
     @Test
-    fun `create with non-empty tvgId sets id to tvgId`() {
+    fun `create with non-empty tvgId sets id to sourceId_tvgId`() {
         val channel = Channel.create(
             tvgId     = "bbc.one",
             name      = "BBC One",
             streamUrl = "http://example.com/bbc1.m3u8",
+            sourceId  = "src-1",
         )
-        assertEquals("bbc.one", channel.id)
+        assertEquals("src-1_bbc.one", channel.id)
     }
 
     @Test
-    fun `create with empty tvgId falls back to streamUrl`() {
+    fun `create with empty tvgId falls back to sourceId_streamUrl`() {
         val url     = "http://example.com/fallback.m3u8"
         val channel = Channel.create(
             tvgId     = "",
             name      = "No ID Channel",
             streamUrl = url,
+            sourceId  = "src-1",
         )
-        assertEquals(url, channel.id)
+        assertEquals("src-1_$url", channel.id)
     }
 
     // ── equality ──────────────────────────────────────────────────────────────
