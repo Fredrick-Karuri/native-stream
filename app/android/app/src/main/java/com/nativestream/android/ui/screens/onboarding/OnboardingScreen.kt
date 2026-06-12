@@ -72,7 +72,16 @@ fun OnboardingScreen(
     var playlistUrlInput by remember { mutableStateOf("") }
     var epgUrlInput      by remember { mutableStateOf("") }
 
-    val serverUrl by settingsViewModel.serverUrl.collectAsState()
+    val serverUrlStored  by settingsViewModel.serverUrl.collectAsState()
+    val discoveredUrl    by settingsViewModel.discoveredUrl.collectAsState()
+    var serverUrlInput   by remember { mutableStateOf("") }
+
+    LaunchedEffect(serverUrlStored) {
+        if (serverUrlInput.isBlank()) serverUrlInput = serverUrlStored
+    }
+    LaunchedEffect(discoveredUrl) {
+        discoveredUrl?.let { serverUrlInput = it }
+    }
     LaunchedEffect(Unit) { settingsViewModel.startDiscovery() }
 
     val stepIndex = when (step) {
@@ -121,12 +130,12 @@ fun OnboardingScreen(
         ) { currentStep ->
             when (currentStep) {
                 OnboardingStep.SERVER_CHECK -> ServerCheckStep(
-                    serverUrl         = serverUrl,
+                    serverUrl         = serverUrlInput,
                     isChecking        = isChecking,
                     checkError        = checkError,
                     scanning          = settingsViewModel.scanning.collectAsState().value,
-                    discoveredUrl     = settingsViewModel.discoveredUrl.collectAsState().value,
-                    onServerUrlChange = { settingsViewModel.setServerUrl(it) },
+                    discoveredUrl     = discoveredUrl,
+                    onServerUrlChange = { serverUrlInput = it },
                     onScan            = { settingsViewModel.startDiscovery() },
                     onConfirmDiscovered = { url ->
                         settingsViewModel.confirmDiscoveredUrl(url)
@@ -150,23 +159,24 @@ fun OnboardingScreen(
                         scope.launch {
                             isChecking = true
                             checkError = null
-                            val reachable = checkServerReachable(serverUrl)
+                            val reachable = checkServerReachable(serverUrlInput)
                             isChecking = false
                             if (reachable) {
+                                settingsViewModel.setServerUrl(serverUrlInput)
                                 if (playlistViewModel.sources.value.isEmpty()) {
                                     playlistViewModel.addSource(
                                         PlaylistSource(
                                             id                   = UUID.randomUUID().toString(),
                                             name                 = "StreamServer",
                                             colorHex             = PlaylistSource.COLOR_BLUE,
-                                            url                  = "$serverUrl/playlist.m3u",
+                                            url                  = "$serverUrlInput/playlist.m3u",
                                             refreshIntervalHours = DEFAULT_REFRESH_HOURS,
                                         )
                                     )
                                 }
                                 step = OnboardingStep.CHANNEL_SETUP
                             } else {
-                                checkError = "Could not reach $serverUrl — check the IP and port."
+                                checkError = "Could not reach $serverUrlInput — check the IP and port."
                             }
                         }
                     },

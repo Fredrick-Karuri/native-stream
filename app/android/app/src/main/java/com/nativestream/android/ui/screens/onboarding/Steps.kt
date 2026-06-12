@@ -1,5 +1,6 @@
 package com.nativestream.android.ui.screens.onboarding
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,10 +17,8 @@ import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 
 
-// ── Step 1: Server check ──────────────────────────────────────────────────────
-
 @Composable
- fun ServerCheckStep(
+fun ServerCheckStep(
     serverUrl: String,
     isChecking: Boolean,
     checkError: String?,
@@ -31,56 +30,68 @@ import com.nativestream.android.ui.theme.NSType
     onSkip: () -> Unit,
     onCheck: () -> Unit,
 ) {
+    val isTyping = serverUrl.isNotBlank() && serverUrl != discoveredUrl
+
     StepContainer {
         StepIcon("🖥")
         Text(text = "Welcome to NativeStream", style = NSType.display(), color = NSColors.text)
 
+        // Subtitle — reflects current scan state
         Text(
-            text  = if (scanning) "Scanning your network…\nOr enter the LAN IP manually."
-            else "Enter your server's LAN IP below.",
+            text = when {
+                discoveredUrl != null -> "Auto-detected a server!"
+                scanning              -> "Scanning your network…"
+                else                  -> "Enter your server's LAN IP below."
+            },
             style = NSType.body(),
-            color = NSColors.text3,
+            color = if (discoveredUrl != null) NSColors.accent else NSColors.text3,
         )
-        discoveredUrl?.let { found ->
-            Text(
-                text  = "Found: $found",
-                style = NSType.monoSmall(),
-                color = NSColors.accent,
-            )
-            SheetActionButton(
-                label     = "Use $found",
-                isPrimary = false,
-                enabled   = true,
-                onClick   = { onConfirmDiscovered(found) },
-            )
-        }
+
+        // Input — auto-filled on discovery
         NSTextField(
             value         = serverUrl,
             onValueChange = onServerUrlChange,
             placeholder   = "http://192.168.1.42:8888",
         )
+
         checkError?.let {
             Text(text = it, style = NSType.monoSmall(), color = NSColors.live)
         }
+
+        // Buttons
         Row(
             horizontalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.md),
-            modifier = Modifier.fillMaxWidth(),
+            modifier              = Modifier.fillMaxWidth(),
         ) {
+            // Hide scan button while user is typing — Story 1.2
+            if (!isTyping) {
+                SheetActionButton(
+                    label     = if (scanning) "Scanning…" else "Scan Network",
+                    isPrimary = false,
+                    enabled   = !scanning,
+                    onClick   = onScan,
+                    modifier  = Modifier.weight(1f),
+                )
+            }
             SheetActionButton(
-                label     = if (scanning) "Scanning…" else "Scan network",
-                isPrimary = false,
-                enabled   = !scanning,
-                onClick   = onScan,
-                modifier  = Modifier.weight(1f),
-            )
-            SheetActionButton(
-                label     = if (isChecking) "Checking…" else "Check Connection",
+                label     = if (isChecking) "Connecting…" else "Connect Server",
                 isPrimary = true,
-                enabled   = !isChecking,
-                onClick   = onCheck,
+                enabled   = serverUrl.isNotBlank() && !isChecking,
+                onClick   = if (discoveredUrl != null && !isTyping)
+                { { onConfirmDiscovered(discoveredUrl) } }
+                else
+                    onCheck,
                 modifier  = Modifier.weight(1f),
             )
         }
+
+        // Story 1.3 — escape hatch
+        Text(
+            text  = "Don't know your IP? Configure later",
+            style = NSType.monoSmall(),
+            color = NSColors.text3.copy(alpha = 0.5f),
+            modifier = Modifier.clickable(onClick = onSkip),
+        )
     }
 }
 
