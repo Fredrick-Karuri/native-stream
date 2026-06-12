@@ -64,8 +64,10 @@ class PlaylistViewModelTest {
         settingsDataStore = mockk()
 
         every { settingsDataStore.sources } returns sourcesFlow
+        every { settingsDataStore.selectedSourceId } returns MutableStateFlow("")
         coEvery { settingsDataStore.setEpgUrl(any()) } returns Unit
         coEvery { settingsDataStore.updateSource(any()) } returns Unit
+        coEvery { settingsDataStore.setSelectedSourceId(any()) } returns Unit
 
         coEvery { apiClient.fetchRawUrl(any()) } returns ByteArray(0)
         coEvery { m3uParser.parse(any<ByteArray>()) } returns M3uParseResult(fakeChannels, null, emptyList())
