@@ -39,15 +39,24 @@ jobs:
         working-directory: app/android
         run: chmod +x gradlew
 
-      - name: Build Production Release APK
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/android/keystore.jks
+
+      - name: Build & Sign Release APK
         working-directory: app/android
-        # Builds an unsigned release build ready for local parsing/testing 
+        env:
+          KEYSTORE_PATH: keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
       - name: Prepare Release Assets
         run: |
           mkdir -p dist
-          cp app/android/app/build/outputs/apk/release/app-release-unsigned.apk dist/NativeStream-Android-v${{ steps.parse_tag.outputs.version }}.apk
+          cp app/android/app/build/outputs/apk/release/app-release.apk \
+             dist/NativeStream-Android-v${{ steps.parse_tag.outputs.version }}.apk        
 
       - name: Generate Scoped Changelog
         id: changelog
