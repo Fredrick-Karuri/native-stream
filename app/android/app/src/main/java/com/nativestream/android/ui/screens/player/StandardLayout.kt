@@ -28,7 +28,8 @@ import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 
-
+// new
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun PlayerStandardLayout(
     playerViewModel: PlayerViewModel,
