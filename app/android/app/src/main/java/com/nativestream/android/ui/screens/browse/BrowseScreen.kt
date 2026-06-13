@@ -148,6 +148,7 @@ fun BrowseScreen(
             val isTablet = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
                     && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
             val useDetail = isTablet
+
             if (!useDetail) BrowseFilterRow(
                 sources        = sources,
                 selectedSource = selectedSource,

@@ -12,6 +12,9 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
+import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.NSGroupHeader
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.viewmodel.EpgViewModel
@@ -26,9 +29,13 @@ fun BrowseGrid(
     favouritesViewModel: FavouritesViewModel,
 ) {
     val dimens = NSDimens.current
+    val windowSizeClass = LocalWindowSizeClass.current
+    val isTablet = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+            && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
+    val cardMinSize = if (isTablet) 180.dp else 160.dp
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 180.dp),
+        columns = GridCells.Adaptive(minSize = cardMinSize),
         verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(dimens.spacing.md),
         modifier = Modifier
