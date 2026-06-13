@@ -70,7 +70,7 @@ fun NowScreen(
     LaunchedEffect(Unit) {
         epgViewModel.load()
     }
-    val channels  by playlistViewModel.channels.collectAsState()
+    val channels by playlistViewModel.filteredChannels.collectAsState()
     val isLoading by playlistViewModel.isLoading.collectAsState()
     val epgReady by epgViewModel.isReady.collectAsState()
 

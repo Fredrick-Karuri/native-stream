@@ -60,7 +60,8 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val onboardingComplete by settingsViewModel.onboardingComplete.collectAsState()
 
     val windowSizeClass = LocalWindowSizeClass.current
-    val useRail         = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+    val useRail = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+
     val foldPosture     = rememberFoldPosture()
 
     val onDestinationSelected: (AppDestination) -> Unit = { destination ->

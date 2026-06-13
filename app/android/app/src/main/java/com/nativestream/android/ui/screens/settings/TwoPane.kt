@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.imePadding
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.Cpu
@@ -40,8 +41,6 @@ import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
-
-private val SETTINGS_SIDEBAR_WIDTH = 200.dp
 
 @Composable
 fun SettingsTwoPane(
@@ -78,7 +77,7 @@ fun SettingsTwoPane(
         // ── Left sidebar ──────────────────────────────────────────────────────
         LazyColumn(
             modifier = Modifier
-                .width(SETTINGS_SIDEBAR_WIDTH)
+                .width(NSDimens.current.settings.sidebarWidth)
                 .fillMaxHeight()
                 .background(NSColors.surface),
         ) {
@@ -117,6 +116,7 @@ fun SettingsTwoPane(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
+                .imePadding()
                 .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
         ) {
             when (selectedSection) {

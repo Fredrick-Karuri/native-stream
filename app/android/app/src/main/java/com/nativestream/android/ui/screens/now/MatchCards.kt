@@ -42,6 +42,7 @@ import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 
 private val SMALL_CARD_WIDTH  = 180.dp
+private val HERO_ART_HEIGHT_LANDSCAPE = 180.dp
 private val TEAM_BADGE_RADIUS = 50  // percent — circular
 
 // Score + minute regex — "X – Y  67'" style
@@ -60,7 +61,7 @@ fun MatchHeroCard(
     val dimens = NSDimens.current
     val windowSizeClass = LocalWindowSizeClass.current
     val artHeight = if (windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded) {
-        180.dp
+        HERO_ART_HEIGHT_LANDSCAPE
     } else {
         dimens.match.heroArtHeight
     }

@@ -469,58 +469,83 @@ private fun BrowseMasterDetail(
     val dimens = NSDimens.current
 
     Row(modifier = Modifier.fillMaxSize()) {
-        // Left pane — single-column channel list
-        LazyColumn(
-            modifier = Modifier
-                .width(MASTER_PANE_WIDTH)
-                .fillMaxHeight()
-                .background(NSColors.surface),
-            verticalArrangement = Arrangement.spacedBy(0.dp),
-        ) {
-            sections.forEach { section ->
-                item(key = "header_${section.name}") {
-                    NSGroupHeader(
-                        title    = section.name,
-                        count    = section.channels.size,
-                        modifier = Modifier.padding(
-                            horizontal = dimens.spacing.md,
-                            vertical   = dimens.spacing.sm,
-                        ),
-                    )
-                }
-                items(section.channels, key = { it.id }) { channel ->
-                    MasterPaneRow(
-                        channel    = channel,
-                        isSelected = selectedChannel?.id == channel.id,
-                        onClick    = { onSelectChannel(channel) },
-                    )
-                }
-            }
-            item { Spacer(modifier = Modifier.height(80.dp)) }
-        }
-
-        // Divider
-        Box(
-            modifier = Modifier
-                .width(0.5.dp)
-                .fillMaxHeight()
-                .background(NSColors.border)
-        )
-
-        // Right pane — detail or empty state
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-        ) {
-            if (selectedChannel != null) {
-                BrowseDetailPane(
-                    channel         = selectedChannel,
-                    epgViewModel    = epgViewModel,
-                    playerViewModel = playerViewModel,
+        Row(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .width(MASTER_PANE_WIDTH)
+                    .fillMaxHeight()
+                    .background(NSColors.surface),
+            ) {
+                BrowseFilterRow(
+                    sources = sources,
+                    selectedSource = selectedSource,
+                    groups = groups,
+                    selectedGroup = selectedGroup,
+                    subGroups = subGroups,
+                    selectedSubGroup = selectedSubGroup,
+                    activeSports = activeSports,
+                    selectedSport = selectedSport,
+                    onPillClick = onPillClick,
+                    onSelectAll = onSelectAll,
+                    onSelectGroup = onSelectGroup,
+                    onSelectSubGroup = onSelectSubGroup,
+                    onSelectSport = onSelectSport,
+                    showFavouritesOnly = showFavouritesOnly,
+                    onToggleFavourites = onToggleFavourites,
                 )
-            } else {
-                DetailEmptyState()
+                Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                ) {
+                    sections.forEach { section ->
+                        item(key = "header_${section.name}") {
+                            NSGroupHeader(
+                                title = section.name,
+                                count = section.channels.size,
+                                modifier = Modifier.padding(
+                                    horizontal = dimens.spacing.md,
+                                    vertical = dimens.spacing.sm,
+                                ),
+                            )
+                        }
+                        items(section.channels, key = { it.id }) { channel ->
+                            MasterPaneRow(
+                                channel = channel,
+                                isSelected = selectedChannel?.id == channel.id,
+                                onClick = { onSelectChannel(channel) },
+                            )
+                        }
+                    }
+                    item { Spacer(modifier = Modifier.height(80.dp)) }
+                }
+
+                // Divider
+                Box(
+                    modifier = Modifier
+                        .width(0.5.dp)
+                        .fillMaxHeight()
+                        .background(NSColors.border)
+                )
+
+                // Right pane — detail or empty state
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                ) {
+                    if (selectedChannel != null) {
+                        BrowseDetailPane(
+                            channel         = selectedChannel,
+                            epgViewModel    = epgViewModel,
+                            playerViewModel = playerViewModel,
+                            sources         = sources,
+                            selectedSource  = selectedSource,
+                        )
+                    } else {
+                        DetailEmptyState()
+                    }
+                }
             }
         }
     }
