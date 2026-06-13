@@ -6,7 +6,6 @@
 [![Server Release](https://img.shields.io/github/v/tag/fredrick-karuri/native-stream?filter=server%2Fv*&label=server)](https://github.com/fredrick-karuri/native-stream/releases?q=server)
 [![Android Release](https://img.shields.io/github/v/tag/fredrick-karuri/native-stream?filter=android%2Fv*&label=android)](https://github.com/fredrick-karuri/native-stream/releases?q=android)
 [![macOS Release](https://img.shields.io/github/v/tag/fredrick-karuri/native-stream?filter=macos%2Fv*&label=macos)](https://github.com/fredrick-karuri/native-stream/releases?q=macos)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **A native sports viewing platform that unifies fragmented sports content into a reliable experience across devices.**
 
@@ -129,15 +128,3 @@ This design allows new clients and content sources to integrate without changing
 Sports media is increasingly fragmented. NativeStream aims to provide a consistent layer between sports content and fans, enabling a richer, more accessible viewing experience regardless of where the content originates.
 
 The architecture supports future opportunities such as curated content partnerships, specialized sports channels, and localized sports experiences.
-
----
-
-# Development & Self Hosting
-
-NativeStream can be self-hosted and extended by developers.
-
----
-
-# License
-
-MIT — see `LICENSE`.
