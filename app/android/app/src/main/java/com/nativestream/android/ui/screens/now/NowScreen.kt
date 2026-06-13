@@ -30,6 +30,7 @@ import com.adamglin.phosphoricons.regular.Clock
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,10 +67,6 @@ fun NowScreen(
     playlistViewModel: PlaylistViewModel = hiltViewModel(),
     epgViewModel: EpgViewModel           = hiltViewModel(),
 ) {
-    // Staggered initialization: Trigger EPG loading exactly one frame after structural bar rendering
-    LaunchedEffect(Unit) {
-        epgViewModel.load()
-    }
     val channels by playlistViewModel.filteredChannels.collectAsState()
     val isLoading by playlistViewModel.isLoading.collectAsState()
     val epgReady by epgViewModel.isReady.collectAsState()
@@ -145,7 +142,9 @@ private fun NowContent(
     onSelect: (com.nativestream.android.domain.model.Channel) -> Unit,
 ) {
     val windowSizeClass = LocalWindowSizeClass.current
-    val useColumns = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+    val isTablet = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+            && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
+    val useColumns = isTablet
 
     if (useColumns) {
         NowContentTwoColumn(liveMatches, liveOnAir, startingSoon, onSelect)

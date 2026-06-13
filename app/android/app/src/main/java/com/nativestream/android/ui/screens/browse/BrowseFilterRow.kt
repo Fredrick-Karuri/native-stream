@@ -62,31 +62,54 @@ fun BrowseFilterRow(
                 .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
         ) {
             NSChip(
-                label    = "All",
+                label = "All",
                 isActive = selectedGroup == null && !showFavouritesOnly,
-                onClick  = onSelectAll,
+                onClick = onSelectAll,
             )
             NSChip(
-                label    = "Favourites",
+                label = "Favourites",
                 isActive = showFavouritesOnly,
-                icon     = Regular.Star,
-                onClick  = onToggleFavourites,
+                icon = Regular.Star,
+                onClick = onToggleFavourites,
             )
             groups.forEach { group ->
                 NSChip(
-                    label    = group,
+                    label = group,
                     isActive = selectedGroup == group,
-                    onClick  = { onSelectGroup(group); onSelectSport(null) },
+                    onClick = { onSelectGroup(group); onSelectSport(null) },
                 )
             }
         }
-    }
-    AnimatedVisibility(
-        visible = showSubGroups,
-        enter   = fadeIn() + expandVertically(),
-        exit    = fadeOut() + shrinkVertically(),
-    ) {
-        Column {
+
+        AnimatedVisibility(
+            visible = showSubGroups,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            Column {
+                Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.xs),
+                ) {
+                    NSChip(
+                        label = "All",
+                        isActive = selectedSubGroup == null,
+                        onClick = { onSelectSubGroup(null) })
+                    subGroups.forEach { sub ->
+                        NSChip(
+                            label = sub,
+                            isActive = selectedSubGroup == sub,
+                            onClick = { onSelectSubGroup(sub) })
+                    }
+                }
+            }
+        }
+
+        if (activeSports.isNotEmpty() && !showSubGroups) {
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
@@ -96,34 +119,15 @@ fun BrowseFilterRow(
                     .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.xs),
             ) {
                 NSChip(
-                    label    = "All",
-                    isActive = selectedSubGroup == null,
-                    onClick  = { onSelectSubGroup(null) },
-                )
-                subGroups.forEach { sub ->
+                    label = "All Sports",
+                    isActive = selectedSport == null,
+                    onClick = { onSelectSport(null) })
+                activeSports.forEach { sport ->
                     NSChip(
-                        label    = sub,
-                        isActive = selectedSubGroup == sub,
-                        onClick  = { onSelectSubGroup(sub) },
-                    )
+                        label = sport.label,
+                        isActive = selectedSport == sport,
+                        onClick = { onSelectSport(sport) })
                 }
-            }
-        }
-    }
-
-    // Level 2 — sport sub-chips
-    if (activeSports.isNotEmpty() && !showSubGroups) {
-        Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.xs),
-        ) {
-            NSChip(label = "All Sports", isActive = selectedSport == null, onClick = { onSelectSport(null) })
-            activeSports.forEach { sport ->
-                NSChip(label = sport.label, isActive = selectedSport == sport, onClick = { onSelectSport(sport) })
             }
         }
     }

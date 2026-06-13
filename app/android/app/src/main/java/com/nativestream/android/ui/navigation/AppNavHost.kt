@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,7 +61,9 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val onboardingComplete by settingsViewModel.onboardingComplete.collectAsState()
 
     val windowSizeClass = LocalWindowSizeClass.current
-    val useRail = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+    val isTablet = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+            && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
+    val useRail = isTablet
 
     val foldPosture     = rememberFoldPosture()
 

@@ -57,6 +57,8 @@ fun BrowseMasterDetail(
     onSelectSport: (SportCategory?) -> Unit,
     showFavouritesOnly: Boolean,
     onToggleFavourites: () -> Unit,
+    isEmptyState: Boolean = false,
+    emptySearchText: String = "",
 ) {
     val dimens = NSDimens.current
 
@@ -127,16 +129,16 @@ fun BrowseMasterDetail(
                 .weight(1f)
                 .fillMaxHeight(),
         ) {
-            if (selectedChannel != null) {
-                BrowseDetailPane(
-                    channel        = selectedChannel,
-                    epgViewModel   = epgViewModel,
+            when {
+                isEmptyState -> BrowseEmptyView(emptySearchText)
+                selectedChannel != null -> BrowseDetailPane(
+                    channel         = selectedChannel,
+                    epgViewModel    = epgViewModel,
                     playerViewModel = playerViewModel,
-                    sources        = sources,
-                    selectedSource = selectedSource,
+                    sources         = sources,
+                    selectedSource  = selectedSource,
                 )
-            } else {
-                DetailEmptyState()
+                else -> DetailEmptyState()
             }
         }
     }

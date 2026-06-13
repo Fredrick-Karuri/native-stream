@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -144,7 +145,9 @@ fun BrowseScreen(
 
             // ── Sport + group chips — hidden on Expanded (lives in list pane instead) ──
             val windowSizeClass = LocalWindowSizeClass.current
-            val useDetail = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+            val isTablet = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+                    && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
+            val useDetail = isTablet
             if (!useDetail) BrowseFilterRow(
                 sources        = sources,
                 selectedSource = selectedSource,
@@ -157,49 +160,46 @@ fun BrowseScreen(
                 onSelectAll    = { selectedGroup = null; selectedSport = null; selectedSubGroup = null; showFavouritesOnly = false },
                 onSelectSport  = { selectedSport = it },
                 showFavouritesOnly  = showFavouritesOnly,
-                onToggleFavourites = { showFavouritesOnly = !showFavouritesOnly },
+                onToggleFavourites = { if (!showFavouritesOnly) { showFavouritesOnly = true; selectedGroup = null; selectedSport = null } },
                 subGroups        = subGroups,
                 selectedSubGroup = selectedSubGroup,
                 onSelectSubGroup = { selectedSubGroup = it },
             )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
             when {
-                isLoading          -> BrowseLoadingView()
+                isLoading -> BrowseLoadingView()
+                useDetail -> BrowseMasterDetail(
+                    sections            = groupedSections,
+                    selectedChannel     = selectedChannel,
+                    onSelectChannel     = { selectedChannelId = it.id },
+                    playerViewModel     = playerViewModel,
+                    epgViewModel        = epgViewModel,
+                    favouritesViewModel = favouritesViewModel,
+                    sources             = sources,
+                    selectedSource      = selectedSource,
+                    groups              = groups,
+                    selectedGroup       = selectedGroup,
+                    subGroups           = subGroups,
+                    selectedSubGroup    = selectedSubGroup,
+                    activeSports        = activeSports,
+                    selectedSport       = selectedSport,
+                    onPillClick         = { showSourcePicker = true },
+                    onSelectAll         = { selectedGroup = null; selectedSport = null; selectedSubGroup = null; showFavouritesOnly = false },
+                    onSelectGroup       = { selectedGroup = it; selectedSport = null; selectedSubGroup = null; showFavouritesOnly = false },
+                    onSelectSubGroup    = { selectedSubGroup = it },
+                    onSelectSport       = { selectedSport = it },
+                    showFavouritesOnly  = showFavouritesOnly,
+                    onToggleFavourites = { if (!showFavouritesOnly) { showFavouritesOnly = true; selectedGroup = null; selectedSport = null } },
+                    isEmptyState        = filtered.isEmpty(),
+                    emptySearchText     = searchText,
+                )
                 filtered.isEmpty() -> BrowseEmptyView(searchText)
-                else -> {
-                    if (useDetail) {
-                        BrowseMasterDetail(
-                            sections            = groupedSections,
-                            selectedChannel     = selectedChannel,
-                            onSelectChannel = { selectedChannelId = it.id },
-                            playerViewModel     = playerViewModel,
-                            epgViewModel        = epgViewModel,
-                            favouritesViewModel = favouritesViewModel,
-                            sources             = sources,
-                            selectedSource      = selectedSource,
-                            groups              = groups,
-                            selectedGroup       = selectedGroup,
-                            subGroups           = subGroups,
-                            selectedSubGroup    = selectedSubGroup,
-                            activeSports        = activeSports,
-                            selectedSport       = selectedSport,
-                            onPillClick         = { showSourcePicker = true },
-                            onSelectAll         = { selectedGroup = null; selectedSport = null; selectedSubGroup = null; showFavouritesOnly = false },
-                            onSelectGroup       = { selectedGroup = it; selectedSport = null; selectedSubGroup = null; showFavouritesOnly = false },
-                            onSelectSubGroup    = { selectedSubGroup = it },
-                            onSelectSport       = { selectedSport = it },
-                            showFavouritesOnly  = showFavouritesOnly,
-                            onToggleFavourites = { showFavouritesOnly = !showFavouritesOnly },
-                        )
-                    } else {
-                        BrowseGrid(
-                            sections            = groupedSections,
-                            playerViewModel     = playerViewModel,
-                            epgViewModel        = epgViewModel,
-                            favouritesViewModel = favouritesViewModel,
-                        )
-                    }
-                }
+                else -> BrowseGrid(
+                    sections            = groupedSections,
+                    playerViewModel     = playerViewModel,
+                    epgViewModel        = epgViewModel,
+                    favouritesViewModel = favouritesViewModel,
+                )
             }
         }
 
