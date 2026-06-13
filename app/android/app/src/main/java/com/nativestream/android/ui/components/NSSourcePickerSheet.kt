@@ -61,6 +61,7 @@ fun NSSourcePickerSheet(
         sheetState        = sheetState,
         containerColor    = NSColors.surface,
         dragHandle        = null,
+        sheetMaxWidth     = androidx.compose.ui.unit.Dp.Unspecified,
     ) {
         Column(
             modifier = Modifier

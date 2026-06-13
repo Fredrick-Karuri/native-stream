@@ -22,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -101,7 +102,9 @@ fun SettingsScreen(
     var editingSourceEpg  by remember { mutableStateOf<Pair<String, String?>?>(null) }
 
     val windowSizeClass = LocalWindowSizeClass.current
-    val useSidebar = windowSizeClass.widthSizeClass != WindowWidthSizeClass.Compact
+    val isTablet = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+            && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
+    val useSidebar = isTablet
     val discoveredUrl by settingsViewModel.discoveredUrl.collectAsState()
     LaunchedEffect(discoveredUrl) {
         discoveredUrl?.let { settingsViewModel.confirmDiscoveredUrl(it) }

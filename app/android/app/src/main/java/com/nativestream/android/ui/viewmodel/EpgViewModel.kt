@@ -64,6 +64,9 @@ class EpgViewModel @Inject constructor(
     private val stores = mutableMapOf<String, EpgStore>()
 
     // ── Load ──────────────────────────────────────────────────────────────────
+    init {
+        load()
+    }
 
     fun load() {
         // Prevent redundant simultaneous loads if already active

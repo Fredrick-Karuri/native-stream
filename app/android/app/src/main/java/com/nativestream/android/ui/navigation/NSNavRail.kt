@@ -22,8 +22,8 @@ import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.Television
 import com.adamglin.phosphoricons.regular.GridFour
 import com.adamglin.phosphoricons.regular.GearSix
+import com.nativestream.android.ui.theme.NSDimens
 
-private val RAIL_WIDTH      = 80.dp
 private val RAIL_ICON_SIZE  = 22.dp
 private val RAIL_PILL_W     = 3.dp
 private val RAIL_PILL_H     = 24.dp
@@ -42,7 +42,7 @@ fun NSNavRail(
     Row(modifier = modifier) {
         Column(
             modifier = Modifier
-                .width(RAIL_WIDTH)
+                .width(NSDimens.current.rail.width)
                 .fillMaxHeight()
                 .background(NSColors.surface),
             horizontalAlignment = Alignment.CenterHorizontally,
