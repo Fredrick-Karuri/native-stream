@@ -12,11 +12,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -104,10 +111,13 @@ fun BrowseMasterDetail(
                         )
                     }
                     items(section.channels, key = { it.id }) { channel ->
+                        val favourites by favouritesViewModel.favouriteIds.collectAsState()
                         MasterPaneRow(
-                            channel    = channel,
-                            isSelected = selectedChannel?.id == channel.id,
-                            onClick    = { onSelectChannel(channel) },
+                            channel          = channel,
+                            isSelected       = selectedChannel?.id == channel.id,
+                            isFavourite      = favourites.contains(channel.id),
+                            onFavouriteClick = { favouritesViewModel.toggle(channel) },
+                            onClick          = { onSelectChannel(channel) },
                         )
                     }
                 }
@@ -148,15 +158,18 @@ fun BrowseMasterDetail(
 private fun MasterPaneRow(
     channel: Channel,
     isSelected: Boolean,
+    isFavourite: Boolean,
+    onFavouriteClick: () -> Unit,
     onClick: () -> Unit,
 ) {
     val dimens = NSDimens.current
-    Box(
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .background(if (isSelected) NSColors.accentGlow else NSColors.surface)
             .clickable(onClick = onClick)
-            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
     ) {
         Text(
             text     = channel.name,
@@ -164,6 +177,15 @@ private fun MasterPaneRow(
             color    = if (isSelected) NSColors.accent2 else NSColors.text,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector        = if (isFavourite) Icons.Filled.Star else Icons.Outlined.Star,
+            contentDescription = if (isFavourite) "Remove from favourites" else "Add to favourites",
+            tint               = if (isFavourite) NSColors.amber else NSColors.text3,
+            modifier           = Modifier
+                .size(14.dp)
+                .clickable(onClick = onFavouriteClick),
         )
     }
 }

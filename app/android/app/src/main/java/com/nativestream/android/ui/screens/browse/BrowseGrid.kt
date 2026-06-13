@@ -28,9 +28,9 @@ fun BrowseGrid(
     val dimens = NSDimens.current
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 160.dp),
-        verticalArrangement = Arrangement.spacedBy(dimens.spacing.md),
-        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+        columns = GridCells.Adaptive(minSize = 180.dp),
+        verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.md),
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
