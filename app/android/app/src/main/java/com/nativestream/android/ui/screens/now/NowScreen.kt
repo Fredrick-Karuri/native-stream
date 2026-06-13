@@ -228,12 +228,12 @@ private fun NowContentTwoColumn(
             .padding(dimens.spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(columnSpacing),
     ) {
-        // Left — Matches live
-        LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxHeight(),
-            verticalArrangement = Arrangement.spacedBy(dimens.spacing.md),
-        ) {
-            if (liveMatches.isNotEmpty()) {
+        // Left — Matches live (only shown if content exists)
+        if (liveMatches.isNotEmpty()) {
+            LazyColumn(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(dimens.spacing.md),
+            ) {
                 item {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -251,17 +251,16 @@ private fun NowContentTwoColumn(
                     )
                 }
                 if (liveMatches.size > 1) {
-                    item {
-                        MatchSmallGrid(items = liveMatches.drop(1), onSelectChannel = onSelect)
-                    }
+                    item { MatchSmallGrid(items = liveMatches.drop(1), onSelectChannel = onSelect) }
                 }
+                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
-            item { Spacer(modifier = Modifier.height(80.dp)) }
         }
 
-        // Right — Live on air + Starting soon
+        // Right — Live on air + Starting soon (full width if no matches)
         LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxHeight(),
+            modifier = if (liveMatches.isEmpty()) Modifier.fillMaxSize()
+            else Modifier.weight(1f).fillMaxHeight(),
             verticalArrangement = Arrangement.spacedBy(dimens.spacing.xxl),
         ) {
             if (liveOnAir.isNotEmpty()) {
