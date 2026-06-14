@@ -69,24 +69,17 @@ fun NowScreen(
 ) {
     val channels by playlistViewModel.filteredChannels.collectAsState()
     val isLoading by playlistViewModel.isLoading.collectAsState()
-    val epgReady by epgViewModel.isReady.collectAsState()
 
-    val liveMatches  = remember(channels,epgReady) {
-        NowBuckets.liveMatches(channels) { epgViewModel.currentProgramme(it) }
-    }
-    val liveOnAir = remember(channels, epgReady) {
-        NowBuckets.liveOnAir(channels) { epgViewModel.currentProgramme(it) }
-    }
-    val startingSoon = remember(channels,epgReady) {
-        NowBuckets.startingSoon(
-            channels            = channels,
-            currentProgrammeFor = { epgViewModel.currentProgramme(it) },
-            nextProgrammeFor    = { epgViewModel.nextProgramme(it) },
-        )
-    }
+    val liveMatches  by epgViewModel.liveMatches.collectAsState()
+    val liveOnAir    by epgViewModel.liveOnAir.collectAsState()
+    val startingSoon by epgViewModel.startingSoon.collectAsState()
 
     val liveCount = liveMatches.size + liveOnAir.size
     val soonCount = startingSoon.size
+
+    LaunchedEffect(channels) {
+        epgViewModel.updateChannels(channels)
+    }
 
     Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
         NowTopBar(liveCount = liveCount, soonCount = soonCount)

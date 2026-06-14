@@ -17,6 +17,9 @@ import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.domain.model.SportCategory
+import com.nativestream.android.domain.model.LiveEligibility
+import com.nativestream.android.ui.screens.now.ChannelWithProgramme
+import com.nativestream.android.ui.screens.now.NowBuckets
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.async
@@ -28,15 +31,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import java.io.ByteArrayInputStream
 import java.util.zip.GZIPInputStream
 import javax.inject.Inject
 import javax.inject.Named
 
+
 private const val TAG = "EpgViewModel"
 private const val DEFAULT_SCHEDULE_HOURS = 6
 private const val MS_PER_HOUR = 3_600_000L
+private const val INDEX_REBUILD_INTERVAL_MS = 30_000L
 private const val GITHUB_HOST        = "github.com"
 private const val GITHUB_PREFIX      = "https://github.com/"
 private const val GITHUB_RAW_PREFIX  = "https://raw.githubusercontent.com/"
@@ -62,10 +69,41 @@ class EpgViewModel @Inject constructor(
 
     // Keyed by source id — mirrors Swift stores: [UUID: EPGStore]
     private val stores = mutableMapOf<String, EpgStore>()
+    private val indexRebuildJob: Job? = null
+
+    private val _nowMs = MutableStateFlow(System.currentTimeMillis())
+    val nowMs: StateFlow<Long> = _nowMs.asStateFlow()
+
+    private val _channels = MutableStateFlow<List<com.nativestream.android.domain.model.Channel>>(emptyList())
+
+    // public bucket flows:
+    private val _liveMatches  = MutableStateFlow<List<ChannelWithProgramme>>(emptyList())
+    private val _liveOnAir    = MutableStateFlow<List<ChannelWithProgramme>>(emptyList())
+    private val _startingSoon = MutableStateFlow<List<ChannelWithProgramme>>(emptyList())
+
+    val liveMatches:  StateFlow<List<ChannelWithProgramme>> = _liveMatches.asStateFlow()
+    val liveOnAir:    StateFlow<List<ChannelWithProgramme>> = _liveOnAir.asStateFlow()
+    val startingSoon: StateFlow<List<ChannelWithProgramme>> = _startingSoon.asStateFlow()
+
+
+
 
     // ── Load ──────────────────────────────────────────────────────────────────
     init {
         load()
+        startIndexRebuildTimer()
+    }
+
+    private fun startIndexRebuildTimer() {
+        viewModelScope.launch(ioDispatcher) {
+            while (true) {
+                delay(INDEX_REBUILD_INTERVAL_MS)
+                val nowMs = System.currentTimeMillis()
+                _nowMs.value = nowMs
+                stores.values.forEach { it.rebuildIndex(nowMs) }
+                rebuildBuckets()
+            }
+        }
     }
 
     fun load() {
@@ -85,6 +123,7 @@ class EpgViewModel @Inject constructor(
                 _isAvailable.value = stores.isNotEmpty()
                 _isReady.value = true
                 logLoadSummary()
+                rebuildBuckets()
             } catch (e: Exception) {
                 Log.e(TAG, "EPG load failed", e)
                 _isAvailable.value = false
@@ -204,11 +243,30 @@ class EpgViewModel @Inject constructor(
         return sport.epgKeywords.any { keyword -> lowercaseTitle.contains(keyword) }
     }
 
+    fun updateChannels(channels: List<com.nativestream.android.domain.model.Channel>) {
+        _channels.value = channels
+        rebuildBuckets()
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private fun logLoadSummary() {
         val totalProgrammes = stores.values.sumOf { it.programmeCount }
         val totalChannels   = stores.values.sumOf { it.channelCount }
         Log.i(TAG, "EPG loaded: $totalProgrammes programmes, $totalChannels channels across ${stores.size} store(s)")
+    }
+    private fun rebuildBuckets() {
+        viewModelScope.launch(ioDispatcher) {
+            val channels = _channels.value
+            if (channels.isEmpty() || !_isReady.value) return@launch
+
+            _liveMatches.value  = NowBuckets.liveMatches(channels)  { currentProgramme(it) }
+            _liveOnAir.value    = NowBuckets.liveOnAir(channels)    { currentProgramme(it) }
+            _startingSoon.value = NowBuckets.startingSoon(
+                channels            = channels,
+                currentProgrammeFor = { currentProgramme(it) },
+                nextProgrammeFor    = { nextProgramme(it) },
+            )
+        }
     }
 }

@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.derivedStateOf
 import com.adamglin.phosphoricons.RegularGroup
 import com.adamglin.phosphoricons.regular.Basketball
 import com.adamglin.phosphoricons.regular.Football
@@ -61,14 +62,7 @@ fun BrowseScreen(
 
     var showAddChannel by remember { mutableStateOf(false) }
 
-    var selectedGroup by remember { mutableStateOf<String?>(null) }
-    var selectedSport by remember { mutableStateOf<SportCategory?>(null) }
-
     var searchActive by remember { mutableStateOf(false) }
-    var searchText   by remember { mutableStateOf("") }
-
-    var showFavouritesOnly by remember { mutableStateOf(false) }
-    val favouriteIds by favouritesViewModel.favouriteIds.collectAsState()
 
     var showPlayUrl by remember { mutableStateOf(false) }
 
@@ -79,10 +73,30 @@ fun BrowseScreen(
     val sources          by playlistViewModel.sources.collectAsState()
     val selectedSource   by playlistViewModel.selectedSource.collectAsState()
 
-    var selectedSubGroup by remember { mutableStateOf<String?>(null) }
     val subGroups        by playlistViewModel.subGroups.collectAsState()
 
     var showAddSource by remember { mutableStateOf(false) }
+
+    val filteredSections  by playlistViewModel.filteredSections.collectAsState()
+    val selectedGroup     by playlistViewModel.selectedGroup.collectAsState()
+    val selectedSubGroup  by playlistViewModel.selectedSubGroup.collectAsState()
+    val selectedSport     by playlistViewModel.selectedSport.collectAsState()
+    val showFavouritesOnly by playlistViewModel.showFavouritesOnly.collectAsState()
+    var searchText        by remember { mutableStateOf("") }  // local only for text field
+    val favouriteIds      by favouritesViewModel.favouriteIds.collectAsState()
+
+    val groups by remember {
+        derivedStateOf {
+            channels.map { it.groupTitle }.distinct().sorted()
+        }
+    }
+    val activeSports by remember {
+        derivedStateOf {
+            if (selectedGroup?.lowercase()?.contains("sport") == true)
+                epgViewModel.activeSports(channels)
+            else emptyList()
+        }
+    }
 
     // Deselect channel if it no longer belongs to the newly selected source
     LaunchedEffect(selectedSource) {
@@ -92,36 +106,10 @@ fun BrowseScreen(
             if (current.sourceId != source.id) selectedChannelId = null
         }
     }
-
-    // Groups from playlist
-    val groups = remember(channels) {
-        channels.map { it.groupTitle }.distinct().sorted()
+    LaunchedEffect(favouriteIds) {
+        playlistViewModel.updateFavouriteIds(favouriteIds)
     }
 
-    // Sport sub-chips only when Sports group selected
-    val activeSports = remember(channels, selectedGroup) {
-        if (selectedGroup?.lowercase()?.contains("sport") == true)
-            epgViewModel.activeSports(channels)
-        else emptyList()
-    }
-
-    val filtered = remember(channels, selectedGroup, selectedSubGroup, selectedSport, searchText, showFavouritesOnly, favouriteIds) {
-        channels
-            .filter { if (selectedGroup != null) it.groupTitle == selectedGroup else true }
-            .filter { if (selectedSubGroup != null) it.subGroupTitle == selectedSubGroup else true }
-            .filter { if (selectedSport != null) {
-                val prog = epgViewModel.currentProgramme(it) ?: epgViewModel.nextProgramme(it)
-                prog != null && epgViewModel.matchesSport(selectedSport!!, prog)
-            } else true }
-            .filter { if (searchText.isNotEmpty()) it.name.contains(searchText, ignoreCase = true) else true }
-            .filter { if (showFavouritesOnly) favouriteIds.contains(it.id) else true }
-    }
-
-    val groupedSections = remember(filtered, selectedGroup) {
-        val groups = filtered.groupBy { it.groupTitle }
-        val sorted = groups.keys.sorted().map { ChannelSection(it, groups[it]!!) }
-        if (selectedGroup != null) sorted.filter { it.name == selectedGroup } else sorted
-    }
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = modifier
@@ -134,8 +122,8 @@ fun BrowseScreen(
                 searchActive   = searchActive,
                 searchText     = searchText,
                 onSearchClick  = { searchActive = true },
-                onSearchChange = { searchText = it },
-                onSearchClose  = { searchActive = false; searchText = "" },
+                onSearchChange = { searchText = it; playlistViewModel.setSearchQuery(it) },
+                onSearchClose  = { searchActive = false; searchText = ""; playlistViewModel.setSearchQuery("") },
                 onPlayUrl      = { showPlayUrl = true },
                 onAddChannel   = { showAddChannel = true },
                 selectedSource = selectedSource,
@@ -157,20 +145,22 @@ fun BrowseScreen(
                 activeSports   = activeSports,
                 selectedSport  = selectedSport,
                 onPillClick    = { showSourcePicker = true },
-                onSelectGroup  = { selectedGroup = it; selectedSport = null; selectedSubGroup = null; showFavouritesOnly = false },
-                onSelectAll    = { selectedGroup = null; selectedSport = null; selectedSubGroup = null; showFavouritesOnly = false },
-                onSelectSport  = { selectedSport = it },
+                onSelectAll        = { playlistViewModel.clearFilters() },
+                onSelectGroup      = { playlistViewModel.setSelectedGroup(it) },
+                onSelectSubGroup   = { playlistViewModel.setSelectedSubGroup(it) },
+                onSelectSport      = { playlistViewModel.setSelectedSport(it) },
+                onToggleFavourites = { playlistViewModel.toggleFavourites() },
                 showFavouritesOnly  = showFavouritesOnly,
-                onToggleFavourites = { if (!showFavouritesOnly) { showFavouritesOnly = true; selectedGroup = null; selectedSport = null } },
                 subGroups        = subGroups,
                 selectedSubGroup = selectedSubGroup,
-                onSelectSubGroup = { selectedSubGroup = it },
             )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
             when {
                 isLoading -> BrowseLoadingView()
                 useDetail -> BrowseMasterDetail(
-                    sections            = groupedSections,
+                    sections = filteredSections,
+                    isEmptyState    = filteredSections.isEmpty(),
+                    emptySearchText     = searchText,
                     selectedChannel     = selectedChannel,
                     onSelectChannel     = { selectedChannelId = it.id },
                     playerViewModel     = playerViewModel,
@@ -185,18 +175,16 @@ fun BrowseScreen(
                     activeSports        = activeSports,
                     selectedSport       = selectedSport,
                     onPillClick         = { showSourcePicker = true },
-                    onSelectAll         = { selectedGroup = null; selectedSport = null; selectedSubGroup = null; showFavouritesOnly = false },
-                    onSelectGroup       = { selectedGroup = it; selectedSport = null; selectedSubGroup = null; showFavouritesOnly = false },
-                    onSelectSubGroup    = { selectedSubGroup = it },
-                    onSelectSport       = { selectedSport = it },
+                    onSelectAll        = { playlistViewModel.clearFilters() },
+                    onSelectGroup      = { playlistViewModel.setSelectedGroup(it) },
+                    onSelectSubGroup   = { playlistViewModel.setSelectedSubGroup(it) },
+                    onSelectSport      = { playlistViewModel.setSelectedSport(it) },
+                    onToggleFavourites = { playlistViewModel.toggleFavourites() },
                     showFavouritesOnly  = showFavouritesOnly,
-                    onToggleFavourites = { if (!showFavouritesOnly) { showFavouritesOnly = true; selectedGroup = null; selectedSport = null } },
-                    isEmptyState        = filtered.isEmpty(),
-                    emptySearchText     = searchText,
                 )
-                filtered.isEmpty() -> BrowseEmptyView(searchText)
+                filteredSections.isEmpty() -> BrowseEmptyView(searchText)
                 else -> BrowseGrid(
-                    sections            = groupedSections,
+                    sections            = filteredSections,
                     playerViewModel     = playerViewModel,
                     epgViewModel        = epgViewModel,
                     favouritesViewModel = favouritesViewModel,

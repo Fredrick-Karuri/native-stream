@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,10 +68,17 @@ fun ChannelCard(
     val activeChannel by playerViewModel.activeChannel.collectAsState()
     val favourites    by favouritesViewModel.favouriteIds.collectAsState()
 
-    val programme  = epgViewModel.currentProgramme(channel)
-    val nextProg   = epgViewModel.nextProgramme(channel)
-    val isPlaying  = activeChannel?.id == channel.id
-    val isLive = LiveEligibility.isLive(channel, programme)
+    val epgReady   by epgViewModel.isReady.collectAsState()
+    val nowMs      by epgViewModel.nowMs.collectAsState()
+
+    val programme  = remember(channel.id, epgReady) {
+        epgViewModel.currentProgramme(channel)
+    }
+    val nextProg   = remember(channel.id, epgReady) {
+        epgViewModel.nextProgramme(channel)
+    }
+    val isPlaying   = activeChannel?.id == channel.id
+    val isLive      = LiveEligibility.isLive(channel, programme)
     val isFavourite = favourites.contains(channel.id)
 
     val borderColor = when {
@@ -93,7 +101,7 @@ fun ChannelCard(
             // Progress bar at bottom edge
             programme?.let { prog ->
                 NSProgressBar(
-                    value    = prog.progress.toFloat(),
+                    value    = prog.progress(nowMs).toFloat(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter),
