@@ -5,6 +5,7 @@
 package com.nativestream.android.ui.viewmodel
 
 import app.cash.turbine.test
+import com.nativestream.android.data.local.ChannelCache
 import com.nativestream.android.data.local.SettingsDataStore
 import com.nativestream.android.data.parser.M3uParseResult
 import com.nativestream.android.data.parser.M3uParser
@@ -41,6 +42,7 @@ class PlaylistViewModelTest {
     private lateinit var m3uParser: M3uParser
     private lateinit var settingsDataStore: SettingsDataStore
     private lateinit var viewModel: PlaylistViewModel
+    private lateinit var channelCache: ChannelCache
 
     private val sourcesFlow = MutableStateFlow<List<PlaylistSource>>(emptyList())
 
@@ -64,17 +66,22 @@ class PlaylistViewModelTest {
         apiClient = mockk()
         m3uParser = mockk()
         settingsDataStore = mockk()
+        channelCache = mockk()
 
         every { settingsDataStore.sources } returns sourcesFlow
         every { settingsDataStore.selectedSourceId } returns MutableStateFlow("")
         coEvery { settingsDataStore.setEpgUrl(any()) } returns Unit
         coEvery { settingsDataStore.updateSource(any()) } returns Unit
         coEvery { settingsDataStore.setSelectedSourceId(any()) } returns Unit
+        coEvery { channelCache.read(any(), any(), any()) } returns null
+        coEvery { channelCache.write(any(), any(), any()) } returns Unit
+        coEvery { channelCache.clear(any()) } returns Unit
 
         coEvery { apiClient.fetchRawUrl(any()) } returns ByteArray(0)
         coEvery { m3uParser.parse(any<ByteArray>()) } returns M3uParseResult(fakeChannels, null, emptyList())
 
-        viewModel = PlaylistViewModel(apiClient, m3uParser, settingsDataStore, testDispatcher)
+        viewModel = PlaylistViewModel(apiClient, m3uParser, settingsDataStore, channelCache, testDispatcher)
+
     }
 
     @After
@@ -84,7 +91,7 @@ class PlaylistViewModelTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
     private fun buildViewModel(): PlaylistViewModel {
-        return PlaylistViewModel(apiClient, m3uParser, settingsDataStore, testDispatcher)
+        return PlaylistViewModel(apiClient, m3uParser, settingsDataStore, channelCache, testDispatcher)
     }
 
     // ── Tests ─────────────────────────────────────────────────────────────────
