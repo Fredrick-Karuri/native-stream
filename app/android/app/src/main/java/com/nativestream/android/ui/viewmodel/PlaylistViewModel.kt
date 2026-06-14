@@ -11,6 +11,7 @@ import android.util.Log
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nativestream.android.data.local.ChannelCache
 import com.nativestream.android.data.local.SettingsDataStore
 import com.nativestream.android.data.parser.M3uParser
 import com.nativestream.android.data.remote.ApiClient
@@ -44,12 +45,14 @@ import kotlinx.coroutines.flow.first
 private const val TAG = "PlaylistViewModel"
 private const val FALLBACK_REFRESH_INTERVAL_MS = 3_600_000L // 1 hour
 private const val SEARCH_DEBOUNCE_MS = 150L
+private const val CHANNEL_CACHE_TTL_MS = 6 * 3_600_000L // 6 hours
 
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val m3uParser: M3uParser,
     private val settingsDataStore: SettingsDataStore,
+    private val channelCache: ChannelCache,
     @Named("io") private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
 
@@ -63,6 +66,9 @@ class PlaylistViewModel @Inject constructor(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -160,14 +166,46 @@ class PlaylistViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.sources.collect { stored ->
                 _sources.value = stored
-                if (stored.isNotEmpty()) loadAll()
+                if (stored.isNotEmpty()) {
+                    loadFromCacheThenRefresh()
+                }
             }
         }
         viewModelScope.launch {
             val savedId = settingsDataStore.selectedSourceId.first()
             if (savedId.isNotEmpty()) {
-                _sources.first { it.isNotEmpty() } // wait for sources to populate
+                _sources.first { it.isNotEmpty() }
                 _selectedSource.value = _sources.value.find { it.id == savedId }
+            }
+        }
+    }
+
+    /**
+     * Warm boot: emit cached channels immediately, then fetch fresh in background.
+     * Cold boot (no cache): falls through to loadAll() with loading spinner.
+     */
+    private fun loadFromCacheThenRefresh() {
+        viewModelScope.launch {
+            val sources = _sources.value
+            val cachedChannels = withContext(ioDispatcher) {
+                sources.flatMap { source ->
+                    channelCache.read(
+                        sourceId  = source.id,
+                        sourceUrl = source.url,
+                        ttlMs     = CHANNEL_CACHE_TTL_MS,
+                    ) ?: emptyList()
+                }
+            }
+
+            if (cachedChannels.isNotEmpty()) {
+                // Warm boot — show stale data immediately
+                _channels.value = cachedChannels
+                // Background refresh — no loading spinner
+                _isRefreshing.value = true
+                loadAll(isBackgroundRefresh = true)
+            } else {
+                // Cold boot — show spinner
+                loadAll(isBackgroundRefresh = false)
             }
         }
     }
@@ -175,20 +213,23 @@ class PlaylistViewModel @Inject constructor(
     // ── Load ──────────────────────────────────────────────────────────────────
 
     /** Fetch channels from all configured sources in parallel. */
-    fun loadAll() {
+    fun loadAll(isBackgroundRefresh: Boolean = false) {
         if (_isLoading.value) return
         viewModelScope.launch {
-            _isLoading.value = true
+            if (isBackgroundRefresh) {
+                _isRefreshing.value = true
+            } else {
+                _isLoading.value = true
+            }
             _error.value = null
-
             try {
                 val allChannels = fetchAllSourcesInParallel()
                 _channels.value = allChannels
-
             } catch (e: Exception) {
                 _error.value = e.message
             } finally {
-                _isLoading.value = false
+                _isLoading.value    = false
+                _isRefreshing.value = false
             }
         }
     }
@@ -217,6 +258,11 @@ class PlaylistViewModel @Inject constructor(
                     )
                     settingsDataStore.updateSource(updatedSource)
                     if (result.epgUrl != null) settingsDataStore.setEpgUrl(result.epgUrl)
+                    channelCache.write(
+                        sourceId  = source.id,
+                        sourceUrl = source.url,
+                        channels  = taggedChannels,
+                    )
                     taggedChannels
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to load source ${source.name}", e)
@@ -276,6 +322,7 @@ class PlaylistViewModel @Inject constructor(
     fun removeSource(id: String) {
         viewModelScope.launch {
             settingsDataStore.removeSource(id)
+            channelCache.clear(id)
         }
     }
 

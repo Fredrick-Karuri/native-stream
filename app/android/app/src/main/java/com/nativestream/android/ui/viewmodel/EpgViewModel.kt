@@ -10,6 +10,7 @@ package com.nativestream.android.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nativestream.android.data.local.EpgIndexCache
 import com.nativestream.android.data.local.SettingsDataStore
 import com.nativestream.android.data.parser.EpgParser
 import com.nativestream.android.data.parser.EpgStore
@@ -17,7 +18,6 @@ import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.domain.model.SportCategory
-import com.nativestream.android.domain.model.LiveEligibility
 import com.nativestream.android.ui.screens.now.ChannelWithProgramme
 import com.nativestream.android.ui.screens.now.NowBuckets
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -53,6 +53,7 @@ class EpgViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val epgParser: EpgParser,
     private val settingsDataStore: SettingsDataStore,
+    private val epgIndexCache: EpgIndexCache,
     @Named("io") private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
 
@@ -66,6 +67,9 @@ class EpgViewModel @Inject constructor(
 
     private val _isReady = MutableStateFlow(false)
     val isReady: StateFlow<Boolean> = _isReady.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     // Keyed by source id — mirrors Swift stores: [UUID: EPGStore]
     private val stores = mutableMapOf<String, EpgStore>()
@@ -90,8 +94,47 @@ class EpgViewModel @Inject constructor(
 
     // ── Load ──────────────────────────────────────────────────────────────────
     init {
-        load()
+        viewModelScope.launch {
+            loadFromCacheThenRefresh()
+        }
         startIndexRebuildTimer()
+    }
+
+    private suspend fun loadFromCacheThenRefresh() {
+        val sources = settingsDataStore.sources.first()
+        if (sources.isEmpty()) {
+            load()
+            return
+        }
+
+        // Try to load index from cache for each source
+        val snapshots = withContext(ioDispatcher) {
+            sources.mapNotNull { source ->
+                epgIndexCache.readIndex(source.id)
+            }
+        }
+
+        if (snapshots.isNotEmpty()) {
+            // Warm boot — populate index immediately from cache
+            val mergedCurrent = mutableMapOf<String, Programme?>()
+            val mergedNext    = mutableMapOf<String, Programme?>()
+            snapshots.forEach { snapshot ->
+                mergedCurrent.putAll(snapshot.currentIndex)
+                mergedNext.putAll(snapshot.nextIndex)
+            }
+
+            // Inject into a synthetic store so currentProgramme/nextProgramme work immediately
+            stores["__cache__"] = EpgStore.fromIndex(mergedCurrent, mergedNext)
+            _isReady.value = true
+            rebuildBuckets()
+
+            // Background refresh — no loading spinner
+            _isRefreshing.value = true
+            load(isBackgroundRefresh = true)
+        } else {
+            // Cold boot — show spinner
+            load(isBackgroundRefresh = false)
+        }
     }
 
     private fun startIndexRebuildTimer() {
@@ -106,16 +149,25 @@ class EpgViewModel @Inject constructor(
         }
     }
 
-    fun load() {
-        // Prevent redundant simultaneous loads if already active
+    fun clearSourceCache(sourceId: String) {
+        viewModelScope.launch {
+            epgIndexCache.clear(sourceId)
+            stores.remove(sourceId)
+        }
+    }
+
+    fun load(isBackgroundRefresh: Boolean = false) {
         if (_isLoading.value) return
-        _isLoading.value = true
+        if (isBackgroundRefresh) {
+            _isRefreshing.value = true
+        } else {
+            _isLoading.value = true
+        }
 
         viewModelScope.launch {
             try {
-                // Shift the entire heavy setup workflow safely off the Main thread
+                val sources = settingsDataStore.sources.first()
                 val newStores = withContext(ioDispatcher) {
-                    val sources = settingsDataStore.sources.first()
                     fetchAllStoresInParallel(sources)
                 }
                 stores.clear()
@@ -123,12 +175,25 @@ class EpgViewModel @Inject constructor(
                 _isAvailable.value = stores.isNotEmpty()
                 _isReady.value = true
                 logLoadSummary()
+
+                // Rebuild index and persist to cache
+                val nowMs = System.currentTimeMillis()
+                stores.forEach { (sourceId, store) ->
+                    store.rebuildIndex(nowMs)
+                    epgIndexCache.writeIndex(
+                        sourceId     = sourceId,
+                        currentIndex = store.currentIndexSnapshot(),
+                        nextIndex    = store.nextIndexSnapshot(),
+                    )
+                }
+                _nowMs.value = nowMs
                 rebuildBuckets()
             } catch (e: Exception) {
                 Log.e(TAG, "EPG load failed", e)
                 _isAvailable.value = false
             } finally {
-                _isLoading.value = false
+                _isLoading.value    = false
+                _isRefreshing.value = false
             }
         }
     }

@@ -97,6 +97,7 @@ fun BrowseScreen(
             else emptyList()
         }
     }
+    val isRefreshing by playlistViewModel.isRefreshing.collectAsState()
 
     // Deselect channel if it no longer belongs to the newly selected source
     LaunchedEffect(selectedSource) {
@@ -128,6 +129,7 @@ fun BrowseScreen(
                 onAddChannel   = { showAddChannel = true },
                 selectedSource = selectedSource,
                 onSourceClick  = { showSourcePicker = true },
+                isRefreshing   = isRefreshing,
             )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 

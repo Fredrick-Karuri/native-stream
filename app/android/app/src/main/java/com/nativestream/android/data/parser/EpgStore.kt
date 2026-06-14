@@ -26,11 +26,28 @@ class EpgStore(rawProgrammes: Map<String, List<Programme>>) {
 
     // AND-PERF-001: precomputed current/next index
     // Rebuilt via rebuildIndex() called by EpgViewModel on a 30s timer
-    private var currentIndex: Map<String, Programme?> = emptyMap()
-    private var nextIndex: Map<String, Programme?> = emptyMap()
+    internal var currentIndex: Map<String, Programme?> = emptyMap()
+    internal var nextIndex: Map<String, Programme?> = emptyMap()
 
     init {
         rebuildIndex(System.currentTimeMillis())
+    }
+
+    companion object {
+        /**
+         * Creates a lightweight EpgStore from precomputed index maps.
+         * Used on warm boot to serve cached EPG before full parse completes.
+         * Full programme data is unavailable — schedule() returns empty.
+         */
+        fun fromIndex(
+            currentIndex: Map<String, Programme?>,
+            nextIndex:    Map<String, Programme?>,
+        ): EpgStore {
+            val empty = EpgStore(emptyMap())
+            empty.currentIndex = currentIndex.toMutableMap()
+            empty.nextIndex    = nextIndex.toMutableMap()
+            return empty
+        }
     }
 
     /**
@@ -101,6 +118,12 @@ class EpgStore(rawProgrammes: Map<String, List<Programme>>) {
         }
         return result
     }
+
+    /** Returns a snapshot of the current programme index for cache persistence. */
+    fun currentIndexSnapshot(): Map<String, Programme?> = currentIndex
+
+    /** Returns a snapshot of the next programme index for cache persistence. */
+    fun nextIndexSnapshot(): Map<String, Programme?> = nextIndex
 
     /** All distinct channel IDs present in this store. */
     fun allChannelIds(): Set<String> = programmesByChannelId.keys
