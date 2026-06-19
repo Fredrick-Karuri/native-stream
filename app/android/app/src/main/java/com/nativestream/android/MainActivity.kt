@@ -22,6 +22,7 @@ import androidx.activity.viewModels
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.nativestream.android.ui.LocalWindowSizeClass
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
     private val settingsViewModel: SettingsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         WindowInsetsControllerCompat(window, window.decorView).apply {
