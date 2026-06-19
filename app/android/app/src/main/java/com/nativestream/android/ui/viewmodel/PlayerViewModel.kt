@@ -282,11 +282,14 @@ class PlayerViewModel @Inject constructor(
 
     fun onEnteredPip() {
         _isInPip.value = true
+        controlsHideJob?.cancel()
+        _controlsVisible.value = false
     }
 
     fun onExitedPip() {
         _isInPip.value = false
         _controlsVisible.value = true
+        scheduleControlsHide()
     }
 
     // ── Score overlay helper ──────────────────────────────────────────────────

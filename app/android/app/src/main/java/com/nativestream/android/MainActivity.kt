@@ -26,11 +26,13 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
+import com.nativestream.android.ui.viewmodel.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val settingsViewModel: SettingsViewModel by viewModels()
+    private val playerViewModel: PlayerViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +58,11 @@ class MainActivity : ComponentActivity() {
         newConfig: Configuration
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            playerViewModel.onEnteredPip()
+        } else {
+            playerViewModel.onExitedPip()
+        }
     }
 
     override fun onResume() {

@@ -119,7 +119,6 @@ fun PlayerStandardLayout(
                             (context as? Activity)?.enterPictureInPictureMode(
                                 playerViewModel.buildPipParams()
                             )
-                            playerViewModel.onEnteredPip()
                         }
                     },
                     modifier          = Modifier.fillMaxSize(),
