@@ -15,8 +15,8 @@ android {
         applicationId = "com.nativestream.android"
         minSdk = 26          // API 26+
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.0.8"
+        versionCode = 11
+        versionName = "1.0.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -91,6 +91,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.window.layout)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.foundation)
 
     // Compose BOM — version-managed block
