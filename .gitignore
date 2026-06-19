@@ -42,3 +42,5 @@ app/android/.kotlin/
 # Private local script — never commit
 crawlers/*.py
 *.local.py
+
+*.jks
