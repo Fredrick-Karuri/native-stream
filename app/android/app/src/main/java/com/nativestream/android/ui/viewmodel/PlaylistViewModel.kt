@@ -8,22 +8,26 @@
 package com.nativestream.android.ui.viewmodel
 
 import android.util.Log
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nativestream.android.data.local.ChannelCache
 import com.nativestream.android.data.local.SettingsDataStore
 import com.nativestream.android.data.parser.M3uParser
 import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.PlaylistSource
 import com.nativestream.android.domain.model.isAll
+import com.nativestream.android.ui.screens.browse.ChannelSection
+import com.nativestream.android.domain.model.SportCategory
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.FlowPreview
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,12 +44,15 @@ import kotlinx.coroutines.flow.first
 
 private const val TAG = "PlaylistViewModel"
 private const val FALLBACK_REFRESH_INTERVAL_MS = 3_600_000L // 1 hour
+private const val SEARCH_DEBOUNCE_MS = 150L
+private const val CHANNEL_CACHE_TTL_MS = 6 * 3_600_000L // 6 hours
 
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
     private val apiClient: ApiClient,
     private val m3uParser: M3uParser,
     private val settingsDataStore: SettingsDataStore,
+    private val channelCache: ChannelCache,
     @Named("io") private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
 
@@ -60,11 +67,28 @@ class PlaylistViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
     private val _selectedSource = MutableStateFlow<PlaylistSource?>(null)
     val selectedSource: StateFlow<PlaylistSource?> = _selectedSource.asStateFlow()
+
+    // ── Filter state ──────────────────────────────────────────────────────────────
+    private val _searchQuery       = MutableStateFlow("")
+    private val _selectedGroup     = MutableStateFlow<String?>(null)
+    private val _selectedSubGroup  = MutableStateFlow<String?>(null)
+    private val _selectedSport     = MutableStateFlow<SportCategory?>(null)
+    private val _showFavouritesOnly = MutableStateFlow(false)
+    private val _favouriteIds      = MutableStateFlow<Set<String>>(emptySet())
+
+    val searchQuery:        StateFlow<String>         = _searchQuery.asStateFlow()
+    val selectedGroup:      StateFlow<String?>        = _selectedGroup.asStateFlow()
+    val selectedSubGroup:   StateFlow<String?>        = _selectedSubGroup.asStateFlow()
+    val selectedSport:      StateFlow<SportCategory?> = _selectedSport.asStateFlow()
+    val showFavouritesOnly: StateFlow<Boolean>        = _showFavouritesOnly.asStateFlow()
 
     val filteredChannels: StateFlow<List<Channel>> = combine(
         _channels,
@@ -99,6 +123,41 @@ class PlaylistViewModel @Inject constructor(
         initialValue = emptyList(),
     )
 
+    @OptIn(FlowPreview::class)
+    val filteredSections: StateFlow<List<ChannelSection>> = combine(
+        filteredChannels,
+        _searchQuery.debounce(SEARCH_DEBOUNCE_MS).distinctUntilChanged(),
+        _selectedGroup,
+        _selectedSubGroup,
+        _selectedSport,
+        _showFavouritesOnly,
+        _favouriteIds,
+    ) { args ->
+        @Suppress("UNCHECKED_CAST")
+        val channels        = args[0] as List<Channel>
+        val query           = args[1] as String
+        val group           = args[2] as String?
+        val subGroup        = args[3] as String?
+        val sport           = args[4] as SportCategory?
+        val favsOnly        = args[5] as Boolean
+        val favIds          = args[6] as Set<String>
+
+        val filtered = channels
+            .filter { if (group != null) it.groupTitle == group else true }
+            .filter { if (subGroup != null) it.subGroupTitle == subGroup else true }
+            .filter { if (sport != null) it.groupTitle.contains(sport.label, ignoreCase = true) else true }
+            .filter { if (query.isNotEmpty()) it.name.contains(query, ignoreCase = true) else true }
+            .filter { if (favsOnly) favIds.contains(it.id) else true }
+
+        val grouped = filtered.groupBy { it.groupTitle }
+        val sorted  = grouped.keys.sorted().map { ChannelSection(it, grouped[it]!!) }
+        if (group != null) sorted.filter { it.name == group } else sorted
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList(),
+    )
+
     // ── Auto-refresh ──────────────────────────────────────────────────────────
 
     private var autoRefreshJob: Job? = null
@@ -107,14 +166,46 @@ class PlaylistViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.sources.collect { stored ->
                 _sources.value = stored
-                if (stored.isNotEmpty()) loadAll()
+                if (stored.isNotEmpty()) {
+                    loadFromCacheThenRefresh()
+                }
             }
         }
         viewModelScope.launch {
             val savedId = settingsDataStore.selectedSourceId.first()
             if (savedId.isNotEmpty()) {
-                _sources.first { it.isNotEmpty() } // wait for sources to populate
+                _sources.first { it.isNotEmpty() }
                 _selectedSource.value = _sources.value.find { it.id == savedId }
+            }
+        }
+    }
+
+    /**
+     * Warm boot: emit cached channels immediately, then fetch fresh in background.
+     * Cold boot (no cache): falls through to loadAll() with loading spinner.
+     */
+    private fun loadFromCacheThenRefresh() {
+        viewModelScope.launch {
+            val sources = _sources.value
+            val cachedChannels = withContext(ioDispatcher) {
+                sources.flatMap { source ->
+                    channelCache.read(
+                        sourceId  = source.id,
+                        sourceUrl = source.url,
+                        ttlMs     = CHANNEL_CACHE_TTL_MS,
+                    ) ?: emptyList()
+                }
+            }
+
+            if (cachedChannels.isNotEmpty()) {
+                // Warm boot — show stale data immediately
+                _channels.value = cachedChannels
+                // Background refresh — no loading spinner
+                _isRefreshing.value = true
+                loadAll(isBackgroundRefresh = true)
+            } else {
+                // Cold boot — show spinner
+                loadAll(isBackgroundRefresh = false)
             }
         }
     }
@@ -122,20 +213,23 @@ class PlaylistViewModel @Inject constructor(
     // ── Load ──────────────────────────────────────────────────────────────────
 
     /** Fetch channels from all configured sources in parallel. */
-    fun loadAll() {
+    fun loadAll(isBackgroundRefresh: Boolean = false) {
         if (_isLoading.value) return
         viewModelScope.launch {
-            _isLoading.value = true
+            if (isBackgroundRefresh) {
+                _isRefreshing.value = true
+            } else {
+                _isLoading.value = true
+            }
             _error.value = null
-
             try {
                 val allChannels = fetchAllSourcesInParallel()
                 _channels.value = allChannels
-
             } catch (e: Exception) {
                 _error.value = e.message
             } finally {
-                _isLoading.value = false
+                _isLoading.value    = false
+                _isRefreshing.value = false
             }
         }
     }
@@ -164,6 +258,11 @@ class PlaylistViewModel @Inject constructor(
                     )
                     settingsDataStore.updateSource(updatedSource)
                     if (result.epgUrl != null) settingsDataStore.setEpgUrl(result.epgUrl)
+                    channelCache.write(
+                        sourceId  = source.id,
+                        sourceUrl = source.url,
+                        channels  = taggedChannels,
+                    )
                     taggedChannels
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to load source ${source.name}", e)
@@ -204,6 +303,13 @@ class PlaylistViewModel @Inject constructor(
         autoRefreshJob?.cancel()
         autoRefreshJob = null
     }
+    fun setSearchQuery(query: String)      { _searchQuery.value = query }
+    fun setSelectedGroup(group: String?)   { _selectedGroup.value = group; _selectedSubGroup.value = null; _selectedSport.value = null; _showFavouritesOnly.value = false }
+    fun setSelectedSubGroup(sub: String?)  { _selectedSubGroup.value = sub }
+    fun setSelectedSport(sport: SportCategory?) { _selectedSport.value = sport }
+    fun toggleFavourites()                 { if (!_showFavouritesOnly.value) { _showFavouritesOnly.value = true; _selectedGroup.value = null; _selectedSport.value = null } else { _showFavouritesOnly.value = false } }
+    fun clearFilters()                     { _selectedGroup.value = null; _selectedSubGroup.value = null; _selectedSport.value = null; _showFavouritesOnly.value = false; _searchQuery.value = "" }
+    fun updateFavouriteIds(ids: Set<String>) { _favouriteIds.value = ids }
 
     // ── Source CRUD ───────────────────────────────────────────────────────────
 
@@ -216,6 +322,7 @@ class PlaylistViewModel @Inject constructor(
     fun removeSource(id: String) {
         viewModelScope.launch {
             settingsDataStore.removeSource(id)
+            channelCache.clear(id)
         }
     }
 
@@ -245,4 +352,6 @@ class PlaylistViewModel @Inject constructor(
     fun logMatchDiagnostic(epgViewModel: EpgViewModel) {
         epgViewModel.logMatchDiagnostic(_channels.value)
     }
+
+
 }

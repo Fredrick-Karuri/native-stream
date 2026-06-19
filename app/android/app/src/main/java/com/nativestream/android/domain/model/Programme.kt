@@ -73,4 +73,22 @@ data class Programme(
         private const val MS_PER_MINUTE = 60_000L
         private val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
     }
+
+    /** Progress using pre-captured [nowMs] — avoids System.currentTimeMillis() per card. */
+    fun progress(nowMs: Long): Double {
+        if (nowMs < startEpochMs) return 0.0
+        if (nowMs >= stopEpochMs) return 1.0
+        val duration = (stopEpochMs - startEpochMs).toDouble()
+        if (duration <= 0) return 0.0
+        return ((nowMs - startEpochMs) / duration).coerceIn(0.0, 1.0)
+    }
+
+    /** Whether airing at [nowMs] — avoids System.currentTimeMillis() per card. */
+    fun isNow(nowMs: Long): Boolean = nowMs in startEpochMs until stopEpochMs
+
+    /** Time remaining string using pre-captured [nowMs]. */
+    fun timeRemainingString(nowMs: Long): String {
+        val remainingMinutes = ((stopEpochMs - nowMs) / MS_PER_MINUTE).toInt()
+        return if (remainingMinutes > 0) "${remainingMinutes}m left" else "Ending"
+    }
 }

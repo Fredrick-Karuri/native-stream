@@ -37,6 +37,9 @@ private const val ATTR_URL_TVG     = "url-tvg"
 private val DOUBLE_QUOTE_PATTERN = Regex("""(\S+)="([^"]*)"""")
 private val SINGLE_QUOTE_PATTERN = Regex("""(\S+)='([^']*)'""")
 
+private const val INITIAL_CHANNEL_CAPACITY  = 512
+private const val INITIAL_WARNING_CAPACITY  = 16
+
 @Singleton
 class M3uParser @Inject constructor() {
 
@@ -57,8 +60,8 @@ class M3uParser @Inject constructor() {
      * Reads line-by-line — no full-file buffering — safe for very large playlists.
      */
     fun parse(stream: InputStream): M3uParseResult {
-        val channels  = mutableListOf<Channel>()
-        val warnings  = mutableListOf<M3uParseWarning>()
+        val channels  = ArrayList<Channel>(INITIAL_CHANNEL_CAPACITY)
+        val warnings  = ArrayList<M3uParseWarning>(INITIAL_WARNING_CAPACITY)
         var epgUrl: String? = null
         var pendingMeta: ChannelMetadata? = null
         var lineNumber = 0

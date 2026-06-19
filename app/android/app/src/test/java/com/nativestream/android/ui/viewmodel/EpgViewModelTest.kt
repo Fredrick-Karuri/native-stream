@@ -7,6 +7,7 @@ package com.nativestream.android.ui.viewmodel
 
 import android.app.Application
 import android.os.Looper
+import com.nativestream.android.data.local.EpgIndexCache
 import com.nativestream.android.data.local.SettingsDataStore
 import com.nativestream.android.data.parser.EpgParser
 import com.nativestream.android.data.parser.EpgStore
@@ -49,6 +50,7 @@ class EpgViewModelTest {
     private lateinit var epgParser: EpgParser
     private lateinit var settingsDataStore: SettingsDataStore
     private lateinit var viewModel: EpgViewModel
+    private lateinit var epgIndexCache: EpgIndexCache
 
     private val now = System.currentTimeMillis()
 
@@ -92,6 +94,7 @@ class EpgViewModelTest {
         apiClient        = mockk()
         epgParser        = mockk()
         settingsDataStore = mockk()
+        epgIndexCache = mockk()
 
         val currentProgramme = programme("bbc.one", "News at Noon", startOffsetMs = -1_800_000L)
         val nextProgramme    = programme("bbc.one", "Afternoon Show", startOffsetMs = 1_800_000L)
@@ -106,12 +109,18 @@ class EpgViewModelTest {
         coEvery { settingsDataStore.epgUrl() } returns "http://epg.example.com/guide.xml"
         coEvery { apiClient.fetchRawUrl(any()) } returns ByteArray(0)
         coEvery { epgParser.parse(any()) } returns fakeStore
+        coEvery { epgIndexCache.readIndex(any()) } returns null
+        coEvery { epgIndexCache.writeIndex(any(), any(), any()) } returns Unit
+        coEvery { epgIndexCache.clear(any()) } returns Unit
 
-        viewModel = EpgViewModel(apiClient, epgParser, settingsDataStore,testDispatcher)
+        viewModel = EpgViewModel(apiClient, epgParser, settingsDataStore,epgIndexCache,testDispatcher)
+        viewModel.cancelBackgroundWorkForTest()
+
     }
 
     @After
     fun tearDown() {
+        viewModel.cancelBackgroundWorkForTest()
         Dispatchers.resetMain()
     }
 
@@ -160,9 +169,11 @@ class EpgViewModelTest {
             fakeSource.copy(id = "b"),
         )
         every { settingsDataStore.sources } returns flowOf(sources)
-        val vm = EpgViewModel(apiClient, epgParser, settingsDataStore)
+        val vm = EpgViewModel(apiClient, epgParser, settingsDataStore, epgIndexCache, testDispatcher)
+        vm.cancelBackgroundWorkForTest()
         vm.load()
         advanceUntilIdle()
+        shadowOf(Looper.getMainLooper()).idle()
 
         val schedule = vm.schedule(bbcChannel, 6)
         val ids = schedule.map { it.id }
@@ -201,6 +212,7 @@ class EpgViewModelTest {
     fun `T014 - hasContent GOLF false when no live or upcoming golf`() = runTest {
         viewModel.load()
         advanceUntilIdle()
+        shadowOf(Looper.getMainLooper()).idle()   // add this
         // fakeStore has no golf content
         assertFalse(viewModel.hasContent(SportCategory.GOLF, listOf(bbcChannel, skyChannel)))
     }
@@ -209,6 +221,7 @@ class EpgViewModelTest {
     fun `T014 - activeSports excludes sports with no content`() = runTest {
         viewModel.load()
         advanceUntilIdle()
+        shadowOf(Looper.getMainLooper()).idle()   // add this
         val sports = viewModel.activeSports(listOf(bbcChannel, skyChannel))
         assertFalse(sports.contains(SportCategory.GOLF))
         assertFalse(sports.contains(SportCategory.TENNIS))

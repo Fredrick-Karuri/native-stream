@@ -29,6 +29,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import com.nativestream.android.domain.model.PlaylistSource
 import com.nativestream.android.ui.components.NSIconButton
 import com.nativestream.android.ui.components.NSSourcePill
@@ -47,6 +50,7 @@ fun BrowseTopBar(
     onAddChannel: () -> Unit,
     selectedSource: PlaylistSource?,
     onSourceClick: () -> Unit,
+    isRefreshing: Boolean = false,
 ) {
     val dimens = NSDimens.current
     var menuExpanded by remember { mutableStateOf(false) }
@@ -64,6 +68,14 @@ fun BrowseTopBar(
                 .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
         ) {
             Text(text = "Browse", style = NSType.heading(), color = NSColors.text)
+            if (isRefreshing) {
+                Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                CircularProgressIndicator(
+                    color       = NSColors.text3,
+                    strokeWidth = 1.5.dp,
+                    modifier    = Modifier.size(12.dp),
+                )
+            }
             Spacer(modifier = Modifier.width(dimens.spacing.md))
             NSSourcePill(
                 source  = selectedSource,

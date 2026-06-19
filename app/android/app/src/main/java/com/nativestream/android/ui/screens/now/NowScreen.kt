@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import com.adamglin.PhosphorIcons
@@ -69,27 +70,22 @@ fun NowScreen(
 ) {
     val channels by playlistViewModel.filteredChannels.collectAsState()
     val isLoading by playlistViewModel.isLoading.collectAsState()
-    val epgReady by epgViewModel.isReady.collectAsState()
 
-    val liveMatches  = remember(channels,epgReady) {
-        NowBuckets.liveMatches(channels) { epgViewModel.currentProgramme(it) }
-    }
-    val liveOnAir = remember(channels, epgReady) {
-        NowBuckets.liveOnAir(channels) { epgViewModel.currentProgramme(it) }
-    }
-    val startingSoon = remember(channels,epgReady) {
-        NowBuckets.startingSoon(
-            channels            = channels,
-            currentProgrammeFor = { epgViewModel.currentProgramme(it) },
-            nextProgrammeFor    = { epgViewModel.nextProgramme(it) },
-        )
-    }
+    val liveMatches  by epgViewModel.liveMatches.collectAsState()
+    val liveOnAir    by epgViewModel.liveOnAir.collectAsState()
+    val startingSoon by epgViewModel.startingSoon.collectAsState()
 
     val liveCount = liveMatches.size + liveOnAir.size
     val soonCount = startingSoon.size
 
+    val isRefreshing by epgViewModel.isRefreshing.collectAsState()
+
+    LaunchedEffect(channels) {
+        epgViewModel.updateChannels(channels)
+    }
+
     Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
-        NowTopBar(liveCount = liveCount, soonCount = soonCount)
+        NowTopBar(liveCount = liveCount, soonCount = soonCount,isRefreshing = isRefreshing,)
         Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
         when {
@@ -108,7 +104,7 @@ fun NowScreen(
 // ── Top bar ───────────────────────────────────────────────────────────────────
 
 @Composable
-private fun NowTopBar(liveCount: Int, soonCount: Int) {
+private fun NowTopBar(liveCount: Int, soonCount: Int, isRefreshing: Boolean = false) {
     val dimens = NSDimens.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -119,6 +115,14 @@ private fun NowTopBar(liveCount: Int, soonCount: Int) {
             .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
     ) {
         Text(text = "What's on", style = NSType.heading(), color = NSColors.text)
+        if (isRefreshing) {
+            Spacer(modifier = Modifier.width(dimens.spacing.sm))
+            CircularProgressIndicator(
+                color       = NSColors.text3,
+                strokeWidth = 1.5.dp,
+                modifier    = Modifier.size(12.dp),
+            )
+        }
         Spacer(modifier = Modifier.weight(1f))
         // Pill chip — "11 live · 5 soon"
         Text(
