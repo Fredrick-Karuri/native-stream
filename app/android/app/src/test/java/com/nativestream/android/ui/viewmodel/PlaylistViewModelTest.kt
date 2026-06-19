@@ -82,6 +82,7 @@ class PlaylistViewModelTest {
 
         viewModel = PlaylistViewModel(apiClient, m3uParser, settingsDataStore, channelCache, testDispatcher)
 
+
     }
 
     @After

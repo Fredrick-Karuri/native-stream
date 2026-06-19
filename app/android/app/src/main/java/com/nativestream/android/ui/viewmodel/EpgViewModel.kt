@@ -73,7 +73,7 @@ class EpgViewModel @Inject constructor(
 
     // Keyed by source id — mirrors Swift stores: [UUID: EPGStore]
     private val stores = mutableMapOf<String, EpgStore>()
-    private val indexRebuildJob: Job? = null
+    private var indexRebuildJob: Job? = null
 
     private val _nowMs = MutableStateFlow(System.currentTimeMillis())
     val nowMs: StateFlow<Long> = _nowMs.asStateFlow()
@@ -88,8 +88,6 @@ class EpgViewModel @Inject constructor(
     val liveMatches:  StateFlow<List<ChannelWithProgramme>> = _liveMatches.asStateFlow()
     val liveOnAir:    StateFlow<List<ChannelWithProgramme>> = _liveOnAir.asStateFlow()
     val startingSoon: StateFlow<List<ChannelWithProgramme>> = _startingSoon.asStateFlow()
-
-
 
 
     // ── Load ──────────────────────────────────────────────────────────────────
@@ -138,7 +136,8 @@ class EpgViewModel @Inject constructor(
     }
 
     private fun startIndexRebuildTimer() {
-        viewModelScope.launch(ioDispatcher) {
+        indexRebuildJob?.cancel()
+        indexRebuildJob = viewModelScope.launch(ioDispatcher) {
             while (true) {
                 delay(INDEX_REBUILD_INTERVAL_MS)
                 val nowMs = System.currentTimeMillis()
@@ -154,6 +153,16 @@ class EpgViewModel @Inject constructor(
             epgIndexCache.clear(sourceId)
             stores.remove(sourceId)
         }
+    }
+
+    @androidx.annotation.VisibleForTesting
+    fun cancelBackgroundWorkForTest() {
+        indexRebuildJob?.cancel()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        indexRebuildJob?.cancel()
     }
 
     fun load(isBackgroundRefresh: Boolean = false) {

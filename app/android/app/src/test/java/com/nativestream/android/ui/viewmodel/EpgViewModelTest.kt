@@ -113,12 +113,14 @@ class EpgViewModelTest {
         coEvery { epgIndexCache.writeIndex(any(), any(), any()) } returns Unit
         coEvery { epgIndexCache.clear(any()) } returns Unit
 
-
         viewModel = EpgViewModel(apiClient, epgParser, settingsDataStore,epgIndexCache,testDispatcher)
+        viewModel.cancelBackgroundWorkForTest()
+
     }
 
     @After
     fun tearDown() {
+        viewModel.cancelBackgroundWorkForTest()
         Dispatchers.resetMain()
     }
 
@@ -168,8 +170,10 @@ class EpgViewModelTest {
         )
         every { settingsDataStore.sources } returns flowOf(sources)
         val vm = EpgViewModel(apiClient, epgParser, settingsDataStore, epgIndexCache, testDispatcher)
+        vm.cancelBackgroundWorkForTest()
         vm.load()
         advanceUntilIdle()
+        shadowOf(Looper.getMainLooper()).idle()
 
         val schedule = vm.schedule(bbcChannel, 6)
         val ids = schedule.map { it.id }
@@ -208,6 +212,7 @@ class EpgViewModelTest {
     fun `T014 - hasContent GOLF false when no live or upcoming golf`() = runTest {
         viewModel.load()
         advanceUntilIdle()
+        shadowOf(Looper.getMainLooper()).idle()   // add this
         // fakeStore has no golf content
         assertFalse(viewModel.hasContent(SportCategory.GOLF, listOf(bbcChannel, skyChannel)))
     }
@@ -216,6 +221,7 @@ class EpgViewModelTest {
     fun `T014 - activeSports excludes sports with no content`() = runTest {
         viewModel.load()
         advanceUntilIdle()
+        shadowOf(Looper.getMainLooper()).idle()   // add this
         val sports = viewModel.activeSports(listOf(bbcChannel, skyChannel))
         assertFalse(sports.contains(SportCategory.GOLF))
         assertFalse(sports.contains(SportCategory.TENNIS))
