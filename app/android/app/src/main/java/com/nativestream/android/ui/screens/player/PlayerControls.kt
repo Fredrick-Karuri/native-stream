@@ -77,17 +77,17 @@ fun PlayerControlsOverlay(
 ) {
     val windowSizeClass = LocalWindowSizeClass.current
     val isExpanded      = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
-    val iconSize = if (isExpanded) 22.dp else CTRL_ICON_SIZE
 
     val primarySize   = if (isExpanded) 52.dp else 44.dp
     val secondarySize = if (isExpanded) 44.dp else 36.dp
     val controlsVisible by playerViewModel.controlsVisible.collectAsState()
+    val isInPip          by playerViewModel.isInPip.collectAsState()
     val isPlaying       by playerViewModel.isPlaying.collectAsState()
     val isMuted         by playerViewModel.isMuted.collectAsState()
     val videoQuality    by playerViewModel.videoQuality.collectAsState()
 
     AnimatedVisibility(
-        visible  = controlsVisible,
+        visible  = controlsVisible && !isInPip,
         enter    = fadeIn(),
         exit     = fadeOut(),
         modifier = modifier,
