@@ -48,15 +48,30 @@ jobs:
       - name: Find build output
         run: find app/macos/NativeStream/DerivedData -name "*.app" 2>/dev/null || echo "No .app found"
 
-      - name: Package App to ZIP Archive
+      - name: Package App as DMG
         run: |
           APP_PATH="app/macos/NativeStream/DerivedData/Build/Products/Release/NativeStream.app"
           if [ ! -d "$APP_PATH" ]; then
             echo "::error::Build output not found at $APP_PATH"
             exit 1
           fi
+
           mkdir -p dist
-          zip -r dist/NativeStream-macOS-arm64.zip "$APP_PATH"
+          STAGING_DIR=$(mktemp -d)
+
+          # Copy the .app into a staging folder and add an /Applications symlink
+          # so opening the DMG presents the standard drag-to-install window.
+          cp -R "$APP_PATH" "$STAGING_DIR/"
+          ln -s /Applications "$STAGING_DIR/Applications"
+
+          hdiutil create \
+            -volname "NativeStream" \
+            -srcfolder "$STAGING_DIR" \
+            -ov \
+            -format UDZO \
+            dist/NativeStream-macOS-arm64.dmg
+
+          rm -rf "$STAGING_DIR"
 
       - name: Generate Scoped Changelog
         id: changelog
@@ -79,13 +94,13 @@ jobs:
             ${{ steps.changelog.outputs.changelog }}
 
             ## Installation
-            1. Download the ZIP archive below and extract it.
-            2. Move `NativeStream.app` into your `/Applications` directory.
+            1. Download the DMG below and open it.
+            2. Drag `NativeStream.app` into the `Applications` shortcut in the window that opens.
             3. **macOS will say the app "is damaged" — this is expected** for an unsigned app, not actual corruption. To fix, open Terminal and run:
                ```
                xattr -cr /Applications/NativeStream.app
                ```
             4. Now double-click to open normally.
-          files: dist/NativeStream-macOS-arm64.zip
+          files: dist/NativeStream-macOS-arm64.dmg
           draft: false
           prerelease: false
