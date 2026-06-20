@@ -1,4 +1,7 @@
-.PHONY: build-server run-server clean build-app run-app dev test-server test-android-unit test-android-ui test-android-all
+.PHONY: build-server run-server clean build-app run-app dev test-server test-android-unit test-android-ui test-android-all \
+        release-server-patch release-server-minor release-server-major release-server-current \
+        release-android-patch release-android-minor release-android-major release-android-current \
+        release-macos-patch release-macos-minor release-macos-major release-macos-current
 
 
 VERSION := $(shell cat VERSION)
@@ -63,7 +66,7 @@ run-app:
 	open $(DERIVED)/Build/Products/Debug/NativeStream.app
 
 lint-client:
-	swiftlint lint --path app/macos/NativeStreamMac
+	swiftlint lint --path app/macos/NativeStream
 
 # ── Android App ───────────────────────────────────────────────────────────────
 ANDROID_DIR := app/android
@@ -77,6 +80,9 @@ test-android-ui:
 	cd $(ANDROID_DIR) && ./gradlew connectedDebugAndroidTest
 
 test-android-all: test-android-unit test-android-ui
+
+lint-android:
+	cd $(ANDROID_DIR) && ./gradlew lint
 
 
 # ── Dev (server + app together) ───────────────────────────────────────────────
@@ -124,6 +130,35 @@ release-binaries:
 		-o ../../dist/nativestream-server-linux-arm64 ./cmd/
 	cd dist && shasum -a 256 nativestream-server-* > checksums.txt
 	@echo "✓ dist/ ready — $(VERSION)"
+
+# One target per component per bump type, wired to release.sh.
+# e.g. `make release-macos-patch` → ./release.sh macos patch
+release-server-patch:
+	./release.sh server patch
+release-server-minor:
+	./release.sh server minor
+release-server-major:
+	./release.sh server major
+release-server-current:
+	./release.sh server current
+
+release-android-patch:
+	./release.sh android patch
+release-android-minor:
+	./release.sh android minor
+release-android-major:
+	./release.sh android major
+release-android-current:
+	./release.sh android current
+
+release-macos-patch:
+	./release.sh macos patch
+release-macos-minor:
+	./release.sh macos minor
+release-macos-major:
+	./release.sh macos major
+release-macos-current:
+	./release.sh macos current
 
 # ── Service (macOS) ───────────────────────────────────────────────────
 install-service: build-server

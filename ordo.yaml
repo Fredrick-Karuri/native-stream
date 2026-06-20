@@ -25,9 +25,21 @@ groups:
       logs:
         description: Tail server logs
         run: "tail -f /tmp/nativestream.log /tmp/nativestream-error.log"
+      release-patch:
+        description: Bump patch version and release the server
+        run: "./release.sh server patch"
+      release-minor:
+        description: Bump minor version and release the server
+        run: "./release.sh server minor"
+      release-major:
+        description: Bump major version and release the server
+        run: "./release.sh server major"
+      release-current:
+        description: Re-release current server version, no bump
+        run: "./release.sh server current"
 
-  app:
-    description: macOS app
+  mac:
+    description: macOS client
     commands:
       build:
         description: Build Mac app (Release)
@@ -47,6 +59,51 @@ groups:
                      -derivedDataPath app/macos/NativeStream/DerivedData \
                      build
           open app/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
+      lint:
+        description: Lint the macOS client with SwiftLint
+        run: "swiftlint lint --path app/macos/NativeStream"
+      release-patch:
+        description: Bump patch version and release the macOS app
+        run: "./release.sh macos patch"
+      release-minor:
+        description: Bump minor version and release the macOS app
+        run: "./release.sh macos minor"
+      release-major:
+        description: Bump major version and release the macOS app
+        run: "./release.sh macos major"
+      release-current:
+        description: Re-release current macOS version, no bump
+        run: "./release.sh macos current"
+
+  android:
+    description: Android client
+    commands:
+      test-unit:
+        description: Run Android local unit and integration tests
+        run: "cd app/android && ./gradlew testDebugUnitTest"
+      test-ui:
+        description: Run Android instrumented Compose UI tests (requires emulator/device)
+        run: "cd app/android && ./gradlew connectedDebugAndroidTest"
+      test-all:
+        description: Run all Android tests (unit + UI)
+        run: |
+          cd app/android && ./gradlew testDebugUnitTest
+          ./gradlew connectedDebugAndroidTest
+      lint:
+        description: Run Android Lint
+        run: "cd app/android && ./gradlew lint"
+      release-patch:
+        description: Bump patch version and release the Android app
+        run: "./release.sh android patch"
+      release-minor:
+        description: Bump minor version and release the Android app
+        run: "./release.sh android minor"
+      release-major:
+        description: Bump major version and release the Android app
+        run: "./release.sh android major"
+      release-current:
+        description: Re-release current Android version, no bump
+        run: "./release.sh android current"
 
   dev:
     description: Full dev environment
