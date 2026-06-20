@@ -34,6 +34,7 @@ jobs:
       - name: Compile Production App
         working-directory: app/macos/NativeStream
         run: |
+          set -o pipefail
           xcodebuild \
             -project NativeStream.xcodeproj \
             -scheme NativeStream \
@@ -49,9 +50,13 @@ jobs:
 
       - name: Package App to ZIP Archive
         run: |
+          APP_PATH="app/macos/NativeStream/DerivedData/Build/Products/Release/NativeStream.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::Build output not found at $APP_PATH"
+            exit 1
+          fi
           mkdir -p dist
-          zip -r dist/NativeStream-macOS-arm64.zip \
-            app/macos/NativeStream/DerivedData/Build/Products/Release/NativeStream.app
+          zip -r dist/NativeStream-macOS-arm64.zip "$APP_PATH"
 
       - name: Generate Scoped Changelog
         id: changelog
@@ -74,7 +79,13 @@ jobs:
             ${{ steps.changelog.outputs.changelog }}
 
             ## Installation
-            Download the ZIP archive below, extract it, and copy the application into your `/Applications` directory.
+            1. Download the ZIP archive below and extract it.
+            2. Move `NativeStream.app` into your `/Applications` directory.
+            3. **macOS will say the app "is damaged" — this is expected** for an unsigned app, not actual corruption. To fix, open Terminal and run:
+               ```
+               xattr -cr /Applications/NativeStream.app
+               ```
+            4. Now double-click to open normally.
           files: dist/NativeStream-macOS-arm64.zip
           draft: false
           prerelease: false
