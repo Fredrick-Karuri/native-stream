@@ -1,109 +1,83 @@
-// BrowserScreen.swift — UX-026
-// All channels browser. Search + group by groupTitle.
-// Sport filtering lives in MatchDayScreen. Now screen lives in NowScreen.
+/// /Browser/BrowserScreen.swift
+///
+/// All Channels browser. Thin coordinator — composes BrowserTopBar,
+/// group chips, and channel content. All state lives in BrowserViewModel
+/// which is lifted to AppShell so it survives destination switches.
 
 import SwiftUI
 
 struct BrowserScreen: View {
-    
-    @Environment(PlaylistViewModel.self) private var playlistVM
-    @Environment(EPGViewModel.self)      private var epgVM
+
+    @Environment(PlaylistViewModel.self)    private var playlistVM
+    @Environment(EPGViewModel.self)         private var epgVM
     @Environment(ChannelManagerViewModel.self) private var channelManager
-    
+    @Environment(BrowserViewModel.self)     private var browserVM
+
     let onSelectChannel: (Channel) -> Void
-    
-    @State private var searchText  = ""
-    @State private var gridWidth: CGFloat = 700
-    @State private var showAddChannel = false
-    @State private var selectedGroup: String? = nil
-    @State private var groupedSections: [ChannelSection] = []
-    
+
+    @FocusState private var searchFocused: Bool
+
     var body: some View {
         VStack(spacing: 0) {
-            topBar
+            TopBar(
+                searchText:    Bindable(browserVM).searchText,
+                searchFocused: $searchFocused,
+                channelCount:  browserVM.filteredCount,
+                onAddChannel:  { browserVM.showAddChannel = true }
+            )
             Divider().overlay(NS.border)
-            groupChips
+
+            BrowserGroupChips(
+                allGroupNames:  browserVM.allGroupNames,
+                selectedGroup:  Bindable(browserVM).selectedGroup
+            )
             Divider().overlay(NS.border)
-            channelContent
+
+            BrowserContent(
+                sections:        browserVM.groupedSections,
+                isLoading:       playlistVM.isLoading,
+                searchText:      browserVM.searchText,
+                onSelectChannel: onSelectChannel
+            )
         }
         .background(NS.bg)
-        .sheet(isPresented: $showAddChannel) {
+        .onTapGesture { searchFocused = false }
+        .sheet(isPresented: Bindable(browserVM).showAddChannel) {
             AddChannelSheet { newChannel in
-                showAddChannel = false
+                browserVM.showAddChannel = false
                 if let newChannel {
                     playlistVM.insert(newChannel)
                 }
             }
             .environment(channelManager)
         }
-        .task(id: playlistVM.channels.count) { recomputeSections() }
-        .onChange(of: searchText)    { recomputeSections() }
-        .onChange(of: selectedGroup) { recomputeSections() }
-    }
-    
-    // MARK: - Top bar
-    private var topBar: some View {
-        HStack {
-            Text("All Channels")
-                .font(NS.Font.heading)
-                .foregroundStyle(NS.text)
-            Spacer()
-            
-            // Centered search
-            HStack(spacing: NS.Spacing.xs) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: NS.Help.inlineIconSize))
-                    .foregroundStyle(NS.text3)
-                TextField("Search channels…", text: $searchText)
-                    .font(NS.Font.caption)
-                    .foregroundStyle(NS.text)
-                    .textFieldStyle(.plain)
-                    .frame(width: NS.Browser.searchWidth)
-                    .onChange(of: searchText) { selectedGroup = nil }
-            }
-            .padding(.horizontal, NS.Spacing.md)
-            .frame(height: NS.Help.searchHeight)
-            .background(NS.surface2)
-            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2, lineWidth: 0.5))
-            
-            Spacer()
-            
-            Text("\(filtered.count) channels")
-                .font(NS.Font.caption)
-                .foregroundStyle(NS.text3)
-            
-            // Visible Add Channel button
-            Button {
-                showAddChannel = true
-            } label: {
-                HStack(spacing: NS.Spacing.xs) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .semibold))
-                    Text("Add Channel")
-                        .font(NS.Font.captionMed)
-                }
-                .foregroundStyle(NS.accent)
-                .padding(.horizontal, NS.Spacing.md)
-                .frame(height: NS.Help.searchHeight)
-                .background(NS.accentGlow)
-                .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
-                .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.accentBorder, lineWidth: 0.5))
-            }
-            .buttonStyle(.plain)
+        .task(id: playlistVM.channels.count) {
+            browserVM.recomputeSections(channels: playlistVM.channels)
         }
-        .padding(.horizontal, NS.Spacing.xl)
-        .padding(.vertical, NS.Spacing.md)
-        .background(NS.surface)
+        .onChange(of: browserVM.searchText) {
+            browserVM.clearGroupWhenSearching()
+            browserVM.recomputeSections(channels: playlistVM.channels)
+        }
+        .onChange(of: browserVM.selectedGroup) {
+            browserVM.recomputeSections(channels: playlistVM.channels)
+        }
     }
-    
-    private var groupChips: some View {
+}
+
+// MARK: - Group chips
+
+private struct BrowserGroupChips: View {
+
+    let allGroupNames: [String]
+    @Binding var selectedGroup: String?
+
+    var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: NS.Spacing.xs) {
                 NSChip(label: "All", isActive: selectedGroup == nil) {
                     selectedGroup = nil
                 }
-                ForEach(groupedSections.map(\.name), id: \.self) { group in
+                ForEach(allGroupNames, id: \.self) { group in
                     NSChip(label: group, isActive: selectedGroup == group) {
                         selectedGroup = group
                     }
@@ -114,19 +88,28 @@ struct BrowserScreen: View {
         }
         .background(NS.surface)
     }
-    
-    // MARK: - Content
-    
-    @ViewBuilder
-    private var channelContent: some View {
-        if playlistVM.isLoading {
+}
+
+// MARK: - Content
+
+private struct BrowserContent: View {
+
+    let sections:        [ChannelSection]
+    let isLoading:       Bool
+    let searchText:      String
+    let onSelectChannel: (Channel) -> Void
+
+    @State private var gridWidth: CGFloat = 700
+
+    var body: some View {
+        if isLoading {
             loadingView
-        } else if filtered.isEmpty {
+        } else if sections.isEmpty {
             emptyView
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: NS.Spacing.xxl) {
-                    ForEach(groupedSections, id: \.name) { section in
+                    ForEach(sections, id: \.name) { section in
                         VStack(alignment: .leading, spacing: NS.Spacing.md) {
                             NSGroupHeader(title: section.name, count: section.channels.count)
                                 .padding(.horizontal, NS.Spacing.xl)
@@ -139,12 +122,12 @@ struct BrowserScreen: View {
             }
         }
     }
-    
+
     @ViewBuilder
     private func channelGrid(_ channels: [Channel]) -> some View {
         let columns = max(1, Int(gridWidth / NS.CardSize.minWidth))
         let grid = Array(repeating: GridItem(.flexible(), spacing: NS.Spacing.sm), count: columns)
-        
+
         LazyVGrid(columns: grid, spacing: NS.Spacing.sm) {
             ForEach(channels) { channel in
                 ChannelCard(channel: channel) { onSelectChannel(channel) }
@@ -159,17 +142,15 @@ struct BrowserScreen: View {
             }
         )
     }
-    
-    // MARK: - Empty / loading
-    
+
     private var loadingView: some View {
         VStack(spacing: NS.Spacing.md) {
-            ProgressView().scaleEffect(0.8)
+            ProgressView().scaleEffect(NS.Browser.loadingScale)
             Text("Loading channels…").font(NS.Font.caption).foregroundStyle(NS.text3)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     private var emptyView: some View {
         VStack(spacing: NS.Spacing.md) {
             Text("📺").font(.system(size: NS.Browser.emptyEmojiSize))
@@ -177,26 +158,8 @@ struct BrowserScreen: View {
             Text(searchText.isEmpty
                  ? "Add a playlist source in Settings."
                  : "Try a different search term.")
-            .font(NS.Font.caption).foregroundStyle(NS.text3)
+                .font(NS.Font.caption).foregroundStyle(NS.text3)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    // MARK: - Filtering & grouping
-    
-    private var filtered: [Channel] {
-        guard !searchText.isEmpty else { return playlistVM.channels }
-        return playlistVM.channels.filter {
-            $0.name.localizedCaseInsensitiveContains(searchText) ||
-            $0.groupTitle.localizedCaseInsensitiveContains(searchText)
-        }
-    }
-    
-    private struct ChannelSection { let name: String; let channels: [Channel] }
-    
-    private func recomputeSections() {
-        let groups = Dictionary(grouping: filtered, by: \.groupTitle)
-        let sorted = groups.keys.sorted().map { ChannelSection(name: $0, channels: groups[$0]!) }
-        groupedSections = selectedGroup == nil ? sorted : sorted.filter { $0.name == selectedGroup }
     }
 }

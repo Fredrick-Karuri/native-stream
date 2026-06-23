@@ -1,4 +1,4 @@
-// DesignSystem.swift — UX-001
+// DesignSystem.swift
 // Single source of truth for all colours, typography, and spacing.
 // Every view uses NS.* — never hardcoded hex values.
 //
@@ -165,6 +165,11 @@ enum NS {
     enum Browser {
         static var searchWidth:    CGFloat { 200 * NS.scale }
         static var emptyEmojiSize: CGFloat { 40  * NS.scale }
+        static var loadingScale:   CGFloat { 0.8 }
+    }
+
+    enum BrowserTopBar {
+        static var addIconSize: CGFloat { 11 * NS.scale }
     }
 
     enum Schedule {
@@ -225,6 +230,10 @@ enum NS {
         static var logoSquareSm: CGFloat { 32 * NS.scale }  // player sidebar
         static var logoSquareMd: CGFloat { 36 * NS.scale }  // rows and lists
         static var progressHeight: CGFloat { 2 }            // intentionally not scaled
+    }
+    enum Sidebar {
+        static var rowPaddingV:  CGFloat { 8  * NS.scale }
+        static var playIconSize: CGFloat { 9  * NS.scale }
     }
 
     enum Upcoming {

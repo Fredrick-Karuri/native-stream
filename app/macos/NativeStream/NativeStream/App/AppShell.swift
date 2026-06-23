@@ -1,4 +1,4 @@
-// AppShell.swift
+// File: AppShell.swift
 import SwiftUI
 import AVKit
 
@@ -12,10 +12,13 @@ struct AppShell: View {
     @Environment(ServerHealthViewModel.self) private var serverHealth
 
     @State private var destination: AppDestination = .now
+    @State private var browserVM = BrowserViewModel()
     @State private var selectedChannel: Channel?   = nil
     @State private var showPlayer                  = false
     @State private var showPlayURL                 = false
     @State private var keyMonitor: Any?            = nil
+    
+    @State private var keyMonitorEngine = GlobalKeyMonitor()
 
     var body: some View {
         HStack(spacing: 0) {
@@ -39,26 +42,27 @@ struct AppShell: View {
         }
         .background(NS.bg)
         .frame(minWidth: 960, minHeight: 580)
+        // Hidden Button triggers the Cmd + F action anywhere globally
+        .background {
+            Button("") {
+                destination = .allChannels
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NotificationCenter.default.post(name: .focusSearchField, object: nil)
+                }
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            .opacity(0)
+            .allowsHitTesting(false)
+        }
         .task { await loadAll() }
         .onChange(of: settings.epgURLString) { Task { await loadEPG() } }
-        .onChange(of: showPlayer) { _, isShowing in
-            if isShowing {
-                keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                    switch event.charactersIgnoringModifiers {
-                    case " ": playerVM.togglePlayback()
-                    case "m", "M": playerVM.toggleMute()
-                    case "p", "P": playerVM.enterPiP()
-                    case "f", "F": NSApp.mainWindow?.toggleFullScreen(nil)
-                    default: break
-                    }
-                    return event
-                }
-            } else {
-                if let m = keyMonitor { NSEvent.removeMonitor(m); keyMonitor = nil }
-            }
-        }
+        // Dynamic Key Monitoring for Player Overrides and Esc intercepts
+        // Sync state to the decoupled engine cleanly on any structural swap
+        .onChange(of: destination) { _, _ in synchronizeMonitor() }
+        .onChange(of: showPlayer)   { _, _ in synchronizeMonitor() }
+        .onChange(of: showPlayURL)  { _, _ in synchronizeMonitor() }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: playerVM.isPlaying)
-        //  ⌘U opens Play URL sheet
         .sheet(isPresented: $showPlayURL) {
             PlayURLSheet(isPresented: $showPlayURL) {
                 withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
@@ -73,8 +77,16 @@ struct AppShell: View {
         }
     }
 
-    // MARK: - Load
+    // MARK: - Helpers
+    
+    private func closePlayerView() {
+        playerVM.pipController?.stopPictureInPicture()
+        playerVM.pipController = nil
+        playerVM.pipActive     = false
+        withAnimation { showPlayer = false }
+    }
 
+    // MARK: - Load
     private func loadAll() async {
         await playlistVM.loadAll()
         if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
@@ -86,23 +98,15 @@ struct AppShell: View {
     }
 
     private func loadEPG() async {
-        print("🔍 [EPG] settings URL: \(settings.epgURLString)")
-        print("🔍 [EPG] source EPG URLs: \(playlistVM.sources.map { $0.epgURLString })")
         epgVM.epgURL = settings.epgURL
         await epgVM.load(sources: playlistVM.sources)
     }
 
     // MARK: - Routing
-
     @ViewBuilder
     private var destinationContent: some View {
         if showPlayer {
-            PlayerScreen(channel: selectedChannel, onBack: {
-                playerVM.pipController?.stopPictureInPicture()
-                playerVM.pipController = nil
-                playerVM.pipActive     = false
-                showPlayer             = false
-            })
+            PlayerScreen(channel: selectedChannel, onBack: { closePlayerView() })
             .transition(.asymmetric(
                 insertion: .move(edge: .trailing).combined(with: .opacity),
                 removal:   .move(edge: .leading).combined(with: .opacity)
@@ -115,6 +119,7 @@ struct AppShell: View {
                 case .favourites:   FavouritesScreen(onSelectChannel: selectChannel)
                 case .schedule:     ScheduleScreen(onSelectChannel: selectChannel)
                 case .allChannels:  BrowserScreen(onSelectChannel: selectChannel)
+                                                        .environment(browserVM)
                 case .help:         HelpScreen()
                 case .settings:     SettingsScreen()
                 }
@@ -125,8 +130,6 @@ struct AppShell: View {
             ))
         }
     }
-
-    // MARK: - Channel selection
 
     private func selectChannel(_ channel: Channel) {
         selectedChannel       = channel
@@ -141,21 +144,30 @@ struct AppShell: View {
         }
         withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
     }
+    
+    // MARK: - Monitor Binding Synchronizer
+
+    private func synchronizeMonitor() {
+        keyMonitorEngine.start(
+            with: .init(
+                showPlayer: showPlayer,
+                destination: destination,
+                hasSheetOpen: showPlayURL,
+                onClosePlayer: { closePlayerView() },
+                onGoHome: { withAnimation(.easeInOut(duration: 0.2)) { destination = .now } },
+                onPlaybackToggle: { playerVM.togglePlayback() },
+                onMuteToggle: { playerVM.toggleMute() },
+                onPiPToggle: { playerVM.enterPiP() }
+            )
+        )
+    }
+
 }
 
 extension Notification.Name {
     static let showHelp = Notification.Name("showHelp")
     static let openPlayURL = Notification.Name("openPlayURL")
+    static let focusSearchField = Notification.Name("focusSearchField") // New communication pipe
 }
 
-#Preview {
-    let s = SettingsStore()
-    return AppShell()
-        .environment(PlaylistViewModel(settings: s))
-        .environment(EPGViewModel())
-        .environment(PlayerViewModel())
-        .environment(s)
-        .environment(FavouritesManager())
-        .environment(ServerHealthViewModel())
-        .environment(ChannelManagerViewModel())
-}
+
