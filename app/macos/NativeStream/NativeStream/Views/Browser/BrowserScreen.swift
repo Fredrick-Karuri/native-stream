@@ -13,6 +13,7 @@ struct BrowserScreen: View {
     let onSelectChannel: (Channel) -> Void
     
     @State private var searchText  = ""
+    @FocusState private var searchFocused: Bool
     @State private var gridWidth: CGFloat = 700
     @State private var showAddChannel = false
     @State private var selectedGroup: String? = nil
@@ -27,6 +28,7 @@ struct BrowserScreen: View {
             channelContent
         }
         .background(NS.bg)
+        .onTapGesture { searchFocused = false }
         .sheet(isPresented: $showAddChannel) {
             AddChannelSheet { newChannel in
                 showAddChannel = false
@@ -55,6 +57,7 @@ struct BrowserScreen: View {
                     .font(.system(size: NS.Help.inlineIconSize))
                     .foregroundStyle(NS.text3)
                 TextField("Search channels…", text: $searchText)
+                    .focused($searchFocused)
                     .font(NS.Font.caption)
                     .foregroundStyle(NS.text)
                     .textFieldStyle(.plain)

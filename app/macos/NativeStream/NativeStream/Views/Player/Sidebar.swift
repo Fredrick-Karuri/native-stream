@@ -1,4 +1,4 @@
-// PlayerSidebar.swift
+// Sidebar.swift
 
 import SwiftUI
 
@@ -80,9 +80,6 @@ struct PlayerOnNowTab: View {
 
     private var sortedChannels: [Channel] {
         filteredChannels.sorted { a, b in
-            let aPlaying = playerVM.currentChannel?.id == a.id
-            let bPlaying = playerVM.currentChannel?.id == b.id
-            if aPlaying != bPlaying { return aPlaying }
             let aLive = epgVM.currentProgramme(for: a) != nil
             let bLive = epgVM.currentProgramme(for: b) != nil
             if aLive != bLive { return aLive }
@@ -91,18 +88,31 @@ struct PlayerOnNowTab: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 2) {
-                ForEach(sortedChannels) { channel in
-                    PlayerSidebarRow(channel: channel)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 2) {
+                    ForEach(sortedChannels) { channel in
+                        PlayerSidebarRow(channel: channel)
+                            .id(channel.id)
+                    }
+                }
+                .padding(NS.Spacing.sm)
+            }
+            .onAppear {
+                if playerVM.channelList.isEmpty {
+                    playerVM.channelList = sortedChannels
+                }
+                if let current = playerVM.currentChannel {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation { proxy.scrollTo(current.id, anchor: .center) }
+                    }
                 }
             }
-            .padding(NS.Spacing.sm)
-        }
-        .onAppear {
-            if playerVM.channelList.isEmpty {
-                playerVM.channelList = sortedChannels
+            .onChange(of: playerVM.currentChannel?.id) { _, id in
+                guard let id else { return }
+                withAnimation { proxy.scrollTo(id, anchor: .center) }
             }
+
         }
     }
 }
@@ -161,5 +171,71 @@ struct PlayerScheduleTab: View {
                 .stroke(prog.isNow ? NS.accentBorder : Color.clear, lineWidth: 0.5)
         )
         .opacity(prog.stop < Date() ? 0.4 : 1.0)
+    }
+}
+
+
+struct PlayerSidebarRow: View {
+
+    @Environment(EPGViewModel.self)    private var epgVM
+    @Environment(PlayerViewModel.self) private var playerVM
+
+    let channel: Channel
+
+    private var isPlaying: Bool { playerVM.currentChannel?.id == channel.id }
+    private var current: Programme? { epgVM.currentProgramme(for: channel) }
+    private var next: Programme?    { epgVM.nextProgramme(for: channel) }
+    private var isLive: Bool        { current != nil }
+
+    var body: some View {
+        Button {
+            Task { try? await playerVM.play(channel: channel) }
+        }
+        label: {
+            HStack(spacing: NS.Spacing.sm) {
+
+                ChannelLogoSquare(
+                    channel: channel,
+                    size: NS.Channel.logoSquareSm,
+                    cornerRadius: NS.Radius.sm
+                )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(channel.name)
+                        .font(NS.Font.captionMed)
+                        .foregroundStyle(Color.white.opacity(isPlaying ? 0.9 : 0.6))
+                        .lineLimit(1)
+
+                    if let prog = current ?? next {
+                        Text(prog.title)
+                            .font(NS.Font.monoSm)
+                            .foregroundStyle(Color.white.opacity(0.3))
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Right indicator
+                if isPlaying {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(NS.accent)
+                } else if let prog = current {
+                    Text(prog.timeRemainingString)
+                        .font(NS.Font.monoSm)
+                        .foregroundStyle(Color.white.opacity(0.3))
+                
+                } else if let next {
+                    Text(next.startTimeString)
+                        .font(NS.Font.monoSm)
+                        .foregroundStyle(NS.accent.opacity(0.7))
+                }
+            }
+            .padding(.horizontal, NS.Spacing.sm)
+            .padding(.vertical, NS.Spacing.xs)
+            .background(isPlaying ? NS.accentGlow : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
+        }
+        .buttonStyle(.plain)
     }
 }

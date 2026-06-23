@@ -1,4 +1,4 @@
-// PlayerControls.swift
+// Controls.swift
 
 import SwiftUI
 import AVFoundation
