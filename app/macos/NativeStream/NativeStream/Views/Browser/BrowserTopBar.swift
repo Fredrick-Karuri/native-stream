@@ -52,6 +52,13 @@ extension BrowserScreen{
                     .textFieldStyle(.plain)
                     .frame(width: NS.Browser.searchWidth)
                     .focused($searchFocused)
+                    .onExitCommand {
+                        if !searchText.isEmpty {
+                            searchText = ""
+                        } else {
+                            searchFocused = false
+                        }
+                    }
                 
                 // UX Addition: Clear button appears dynamically when text is typed
                 if !searchText.isEmpty {
