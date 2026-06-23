@@ -185,54 +185,51 @@ struct PlayerSidebarRow: View {
     private var isPlaying: Bool { playerVM.currentChannel?.id == channel.id }
     private var current: Programme? { epgVM.currentProgramme(for: channel) }
     private var next: Programme?    { epgVM.nextProgramme(for: channel) }
-    private var isLive: Bool        { current != nil }
 
     var body: some View {
         Button {
             Task { try? await playerVM.play(channel: channel) }
         }
         label: {
-            HStack(spacing: NS.Spacing.sm) {
+            VStack(spacing: 0) {
+                HStack(spacing: NS.Spacing.sm) {
+                    ChannelLogoSquare(
+                        channel: channel,
+                        size: NS.Channel.logoSquareSm,
+                        cornerRadius: NS.Radius.sm
+                    )
 
-                ChannelLogoSquare(
-                    channel: channel,
-                    size: NS.Channel.logoSquareSm,
-                    cornerRadius: NS.Radius.sm
-                )
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(channel.name)
-                        .font(NS.Font.captionMed)
-                        .foregroundStyle(Color.white.opacity(isPlaying ? 0.9 : 0.6))
-                        .lineLimit(1)
-
-                    if let prog = current ?? next {
-                        Text(prog.title)
-                            .font(NS.Font.monoSm)
-                            .foregroundStyle(Color.white.opacity(0.3))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(channel.name)
+                            .font(NS.Font.captionMed)
+                            .foregroundStyle(Color.white.opacity(isPlaying ? 0.9 : 0.6))
                             .lineLimit(1)
+
+                        if let prog = current ?? next {
+                            Text(prog.title)
+                                .font(NS.Font.monoSm)
+                                .foregroundStyle(Color.white.opacity(0.3))
+                                .lineLimit(1)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if isPlaying {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: NS.Sidebar.playIconSize))
+                            .foregroundStyle(NS.accent)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, NS.Spacing.sm)
+                .padding(.top, NS.Sidebar.rowPaddingV)
+                .padding(.bottom, current != nil ? NS.Spacing.xs : NS.Sidebar.rowPaddingV)
 
-                // Right indicator
-                if isPlaying {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(NS.accent)
-                } else if let prog = current {
-                    Text(prog.timeRemainingString)
-                        .font(NS.Font.monoSm)
-                        .foregroundStyle(Color.white.opacity(0.3))
-                
-                } else if let next {
-                    Text(next.startTimeString)
-                        .font(NS.Font.monoSm)
-                        .foregroundStyle(NS.accent.opacity(0.7))
+                if let prog = current {
+                    NSProgressBar(value: prog.progress, height: 2, glow: false)
+                        .opacity(isPlaying ? 0.8 : 0.35)
+                        .padding(.bottom, NS.Spacing.xs)
                 }
             }
-            .padding(.horizontal, NS.Spacing.sm)
-            .padding(.vertical, NS.Spacing.xs)
             .background(isPlaying ? NS.accentGlow : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
         }
