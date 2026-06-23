@@ -1,4 +1,4 @@
-// LiveOnAirRow.swift — UX-012
+// LiveOnAirRow.swift
 // Row for channels broadcasting live non-match content (PGA, snooker, studio shows).
 
 import SwiftUI
@@ -8,10 +8,11 @@ struct LiveOnAirRow: View {
     let programme: Programme
     let onTap: () -> Void
 
+    @State private var isHovered = false
+
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: NS.Spacing.md) {
-
                 ChannelLogoSquare(channel: channel, size: NS.Channel.logoSquareMd)
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -23,23 +24,28 @@ struct LiveOnAirRow: View {
                         .font(NS.Font.monoSm)
                         .foregroundStyle(NS.text3)
                     NSProgressBar(value: programme.progress, height: NS.Channel.progressHeight, glow: false)
-
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(programme.timeRemainingString)
                     .font(NS.Font.monoSm)
                     .foregroundStyle(NS.text3)
-
             }
             .padding(NS.Spacing.md)
+            .background(isHovered ? NS.surface3 : NS.surface2)
+            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
+            .overlay(
+                RoundedRectangle(cornerRadius: NS.Radius.lg)
+                    .stroke(isHovered ? NS.accentBorder : NS.border, lineWidth: 0.5)
+            )
+            .contentShape(.interaction, Rectangle())
         }
         .buttonStyle(.plain)
-        .background(NS.surface2)
-        .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
-        .overlay(
-            RoundedRectangle(cornerRadius: NS.Radius.lg)
-                .stroke(NS.border, lineWidth: 0.5)
-        )
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.12)) {
+                isHovered = hovering
+            }
+        }
     }
 }
+

@@ -19,7 +19,7 @@ struct BrowserScreen: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            BrowserTopBar(
+            TopBar(
                 searchText:    Bindable(browserVM).searchText,
                 searchFocused: $searchFocused,
                 channelCount:  browserVM.filteredCount,

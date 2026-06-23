@@ -4,58 +4,58 @@ import SwiftUI
 
 
 // MARK: - Player Sidebar
-
-struct PlayerSidebar: View {
-
-    @Environment(EPGViewModel.self)      private var epgVM
-    @Environment(PlaylistViewModel.self) private var playlistVM
-    @Environment(PlayerViewModel.self)   private var playerVM
-
-    let currentChannel: Channel?
-
-    enum SidebarTab { case onNow, schedule }
-    @State private var tab: SidebarTab = .onNow
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                sidebarTab("On now",   tab: .onNow)
-                sidebarTab("Schedule", tab: .schedule)
-            }
-            .background(Color.black.opacity(0.6))
-            .overlay(alignment: .bottom) {
-                Rectangle().fill(Color.white.opacity(0.07)).frame(height: 0.5)
-            }
-
-            switch tab {
-            case .onNow:    PlayerOnNowTab(currentChannel: currentChannel)
-            case .schedule: PlayerScheduleTab(channel: playerVM.currentChannel)
-            }
-        }
-        .frame(width: NS.Player.sidebarWidth)
-        .background(Color(hex: "0e0e0e"))
-        .overlay(alignment: .leading) {
-            Rectangle().fill(Color.white.opacity(0.07)).frame(width: 0.5)
-        }
-    }
-
-    private func sidebarTab(_ label: String, tab: SidebarTab) -> some View {
-        Button { self.tab = tab } label: {
-            Text(label)
-                .font(NS.Font.captionMed)
-                .foregroundStyle(self.tab == tab ? Color.white.opacity(0.85) : Color.white.opacity(0.35))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, NS.Spacing.sm)
-                .overlay(alignment: .bottom) {
-                    if self.tab == tab {
-                        Rectangle().fill(NS.accent).frame(height: 1.5)
-                    }
+extension PlayerScreen{
+    struct PlayerSidebar: View {
+        
+        @Environment(EPGViewModel.self)      private var epgVM
+        @Environment(PlaylistViewModel.self) private var playlistVM
+        @Environment(PlayerViewModel.self)   private var playerVM
+        
+        let currentChannel: Channel?
+        
+        enum SidebarTab { case onNow, schedule }
+        @State private var tab: SidebarTab = .onNow
+        
+        var body: some View {
+            VStack(spacing: 0) {
+                HStack(spacing: 0) {
+                    sidebarTab("On now",   tab: .onNow)
+                    sidebarTab("Schedule", tab: .schedule)
                 }
+                .background(Color.black.opacity(0.6))
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Color.white.opacity(0.07)).frame(height: 0.5)
+                }
+                
+                switch tab {
+                case .onNow:    PlayerOnNowTab(currentChannel: currentChannel)
+                case .schedule: PlayerScheduleTab(channel: playerVM.currentChannel)
+                }
+            }
+            .frame(width: NS.Player.sidebarWidth)
+            .background(Color(hex: "0e0e0e"))
+            .overlay(alignment: .leading) {
+                Rectangle().fill(Color.white.opacity(0.07)).frame(width: 0.5)
+            }
         }
-        .buttonStyle(.plain)
+        
+        private func sidebarTab(_ label: String, tab: SidebarTab) -> some View {
+            Button { self.tab = tab } label: {
+                Text(label)
+                    .font(NS.Font.captionMed)
+                    .foregroundStyle(self.tab == tab ? Color.white.opacity(0.85) : Color.white.opacity(0.35))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, NS.Spacing.sm)
+                    .overlay(alignment: .bottom) {
+                        if self.tab == tab {
+                            Rectangle().fill(NS.accent).frame(height: 1.5)
+                        }
+                    }
+            }
+            .buttonStyle(.plain)
+        }
     }
 }
-
 
 // MARK: - On Now Tab
 
