@@ -17,6 +17,8 @@ struct AppShell: View {
     @State private var showPlayer                  = false
     @State private var showPlayURL                 = false
     @State private var keyMonitor: Any?            = nil
+    
+    @State private var keyMonitorEngine = GlobalKeyMonitor()
 
     var body: some View {
         HStack(spacing: 0) {
@@ -56,9 +58,10 @@ struct AppShell: View {
         .task { await loadAll() }
         .onChange(of: settings.epgURLString) { Task { await loadEPG() } }
         // Dynamic Key Monitoring for Player Overrides and Esc intercepts
-        .onChange(of: destination) { _, _ in updateKeyMonitor() }
-        .onChange(of: showPlayer)   { _, _ in updateKeyMonitor() }
-        .task { updateKeyMonitor() } // Set up on initial launch
+        // Sync state to the decoupled engine cleanly on any structural swap
+        .onChange(of: destination) { _, _ in synchronizeMonitor() }
+        .onChange(of: showPlayer)   { _, _ in synchronizeMonitor() }
+        .onChange(of: showPlayURL)  { _, _ in synchronizeMonitor() }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: playerVM.isPlaying)
         .sheet(isPresented: $showPlayURL) {
             PlayURLSheet(isPresented: $showPlayURL) {
@@ -142,54 +145,22 @@ struct AppShell: View {
         withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
     }
     
-    // MARK: - Keyboard Monitor Engine
+    // MARK: - Monitor Binding Synchronizer
 
-    // MARK: - Keyboard Monitor Engine
-
-    private func updateKeyMonitor() {
-        if let m = keyMonitor { NSEvent.removeMonitor(m); keyMonitor = nil }
-        
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            // Catch Escape Key (Virtual Key Code: 53)
-            if event.keyCode == 53 {
-                
-                // Fix: If a text box is actively focused, let SwiftUI's .onExitCommand handle it instead!
-                if let firstResponder = NSApp.mainWindow?.firstResponder,
-                   let className = Optional(String(describing: type(of: firstResponder))),
-                   className.contains("NSText") || className.contains("Field") {
-                    return event // Pass through normally; do not change destination!
-                }
-                
-                // Tier 2: Player escape handling
-                if showPlayer {
-                    closePlayerView()
-                    return nil
-                }
-                
-                // Tier 3: Global navigation jump home
-                if destination != .now && !showPlayURL {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        destination = .now
-                    }
-                    return nil
-                }
-            }
-            
-            // Default player hotkeys
-            if showPlayer {
-                switch event.charactersIgnoringModifiers {
-                case " ": playerVM.togglePlayback(); return nil
-                case "m", "M": playerVM.toggleMute(); return nil
-                case "p", "P": playerVM.enterPiP(); return nil
-                case "f", "F": NSApp.mainWindow?.toggleFullScreen(nil); return nil
-                default: break
-                }
-            }
-            
-            return event
-        }
+    private func synchronizeMonitor() {
+        keyMonitorEngine.start(
+            with: .init(
+                showPlayer: showPlayer,
+                destination: destination,
+                hasSheetOpen: showPlayURL,
+                onClosePlayer: { closePlayerView() },
+                onGoHome: { withAnimation(.easeInOut(duration: 0.2)) { destination = .now } },
+                onPlaybackToggle: { playerVM.togglePlayback() },
+                onMuteToggle: { playerVM.toggleMute() },
+                onPiPToggle: { playerVM.enterPiP() }
+            )
+        )
     }
-
 
 }
 
