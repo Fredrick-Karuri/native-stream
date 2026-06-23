@@ -12,6 +12,7 @@ struct AppShell: View {
     @Environment(ServerHealthViewModel.self) private var serverHealth
 
     @State private var destination: AppDestination = .now
+    @State private var browserVM = BrowserViewModel()
     @State private var selectedChannel: Channel?   = nil
     @State private var showPlayer                  = false
     @State private var showPlayURL                 = false
@@ -115,6 +116,7 @@ struct AppShell: View {
                 case .favourites:   FavouritesScreen(onSelectChannel: selectChannel)
                 case .schedule:     ScheduleScreen(onSelectChannel: selectChannel)
                 case .allChannels:  BrowserScreen(onSelectChannel: selectChannel)
+                                                        .environment(browserVM)
                 case .help:         HelpScreen()
                 case .settings:     SettingsScreen()
                 }

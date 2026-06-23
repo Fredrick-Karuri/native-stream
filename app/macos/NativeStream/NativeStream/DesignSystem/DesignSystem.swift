@@ -165,6 +165,11 @@ enum NS {
     enum Browser {
         static var searchWidth:    CGFloat { 200 * NS.scale }
         static var emptyEmojiSize: CGFloat { 40  * NS.scale }
+        static var loadingScale:   CGFloat { 0.8 }
+    }
+
+    enum BrowserTopBar {
+        static var addIconSize: CGFloat { 11 * NS.scale }
     }
 
     enum Schedule {
