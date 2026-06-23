@@ -45,11 +45,13 @@ struct NSChip: View {
                 .frame(height: NS.Chip.height)
                 .background(isActive ? NS.accentGlow : Color.clear)
                 .clipShape(Capsule())
+                .contentShape(.interaction, Capsule())
                 .overlay(Capsule().stroke(isActive ? NS.accentBorder : NS.border2))
         }
         .buttonStyle(.plain)
     }
 }
+
 
 // MARK: - NSCard
 

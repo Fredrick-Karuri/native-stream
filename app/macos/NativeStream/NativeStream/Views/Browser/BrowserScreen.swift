@@ -103,7 +103,8 @@ struct BrowserScreen: View {
                 NSChip(label: "All", isActive: selectedGroup == nil) {
                     selectedGroup = nil
                 }
-                ForEach(groupedSections.map(\.name), id: \.self) { group in
+                ForEach(allGroupNames, id: \.self) { group in
+
                     NSChip(label: group, isActive: selectedGroup == group) {
                         selectedGroup = group
                     }
@@ -190,6 +191,10 @@ struct BrowserScreen: View {
             $0.name.localizedCaseInsensitiveContains(searchText) ||
             $0.groupTitle.localizedCaseInsensitiveContains(searchText)
         }
+    }
+    private var allGroupNames: [String] {
+        let groups = Dictionary(grouping: filtered, by: \.groupTitle)
+        return groups.keys.sorted()
     }
     
     private struct ChannelSection { let name: String; let channels: [Channel] }
