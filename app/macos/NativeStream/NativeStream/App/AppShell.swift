@@ -1,4 +1,4 @@
-// AppShell.swift
+// File: AppShell.swift
 import SwiftUI
 import AVKit
 
@@ -40,11 +40,31 @@ struct AppShell: View {
         }
         .background(NS.bg)
         .frame(minWidth: 960, minHeight: 580)
+        // Hidden Button triggers the Cmd + F action anywhere globally
+        .background {
+            Button("") {
+                destination = .allChannels
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NotificationCenter.default.post(name: .focusSearchField, object: nil)
+                }
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            .opacity(0)
+            .allowsHitTesting(false)
+        }
         .task { await loadAll() }
         .onChange(of: settings.epgURLString) { Task { await loadEPG() } }
+        // Dynamic Key Monitoring for Player Overrides and Esc intercepts
         .onChange(of: showPlayer) { _, isShowing in
             if isShowing {
                 keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                    // Catch the Escape Key Code (53) first to prevent window sizing bugs
+                    if event.keyCode == 53 {
+                        closePlayerView()
+                        return nil // Stops the event from hitting AppKit window management
+                    }
+
                     switch event.charactersIgnoringModifiers {
                     case " ": playerVM.togglePlayback()
                     case "m", "M": playerVM.toggleMute()
@@ -59,7 +79,6 @@ struct AppShell: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: playerVM.isPlaying)
-        //  ⌘U opens Play URL sheet
         .sheet(isPresented: $showPlayURL) {
             PlayURLSheet(isPresented: $showPlayURL) {
                 withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
@@ -74,8 +93,16 @@ struct AppShell: View {
         }
     }
 
-    // MARK: - Load
+    // MARK: - Helpers
+    
+    private func closePlayerView() {
+        playerVM.pipController?.stopPictureInPicture()
+        playerVM.pipController = nil
+        playerVM.pipActive     = false
+        withAnimation { showPlayer = false }
+    }
 
+    // MARK: - Load
     private func loadAll() async {
         await playlistVM.loadAll()
         if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
@@ -87,23 +114,15 @@ struct AppShell: View {
     }
 
     private func loadEPG() async {
-        print("🔍 [EPG] settings URL: \(settings.epgURLString)")
-        print("🔍 [EPG] source EPG URLs: \(playlistVM.sources.map { $0.epgURLString })")
         epgVM.epgURL = settings.epgURL
         await epgVM.load(sources: playlistVM.sources)
     }
 
     // MARK: - Routing
-
     @ViewBuilder
     private var destinationContent: some View {
         if showPlayer {
-            PlayerScreen(channel: selectedChannel, onBack: {
-                playerVM.pipController?.stopPictureInPicture()
-                playerVM.pipController = nil
-                playerVM.pipActive     = false
-                showPlayer             = false
-            })
+            PlayerScreen(channel: selectedChannel, onBack: { closePlayerView() })
             .transition(.asymmetric(
                 insertion: .move(edge: .trailing).combined(with: .opacity),
                 removal:   .move(edge: .leading).combined(with: .opacity)
@@ -128,8 +147,6 @@ struct AppShell: View {
         }
     }
 
-    // MARK: - Channel selection
-
     private func selectChannel(_ channel: Channel) {
         selectedChannel       = channel
         playerVM.bufferPreset = settings.bufferPreset
@@ -148,16 +165,5 @@ struct AppShell: View {
 extension Notification.Name {
     static let showHelp = Notification.Name("showHelp")
     static let openPlayURL = Notification.Name("openPlayURL")
-}
-
-#Preview {
-    let s = SettingsStore()
-    return AppShell()
-        .environment(PlaylistViewModel(settings: s))
-        .environment(EPGViewModel())
-        .environment(PlayerViewModel())
-        .environment(s)
-        .environment(FavouritesManager())
-        .environment(ServerHealthViewModel())
-        .environment(ChannelManagerViewModel())
+    static let focusSearchField = Notification.Name("focusSearchField") // New communication pipe
 }

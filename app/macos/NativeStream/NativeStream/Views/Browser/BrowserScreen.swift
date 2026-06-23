@@ -1,4 +1,4 @@
-/// Features/Browser/BrowserScreen.swift
+/// /Browser/BrowserScreen.swift
 ///
 /// All Channels browser. Thin coordinator — composes BrowserTopBar,
 /// group chips, and channel content. All state lives in BrowserViewModel

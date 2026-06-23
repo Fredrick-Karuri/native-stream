@@ -43,21 +43,43 @@ extension BrowserScreen{
             HStack(spacing: NS.Spacing.xs) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: NS.Help.inlineIconSize))
-                    .foregroundStyle(NS.text3)
+                    // Visual feedback: Turns bright when input is actively selected
+                    .foregroundStyle(searchFocused ? NS.accent2 : NS.text3)
+                
                 TextField("Search channels…", text: $searchText)
                     .font(NS.Font.caption)
                     .foregroundStyle(NS.text)
                     .textFieldStyle(.plain)
                     .frame(width: NS.Browser.searchWidth)
                     .focused($searchFocused)
+                
+                // UX Addition: Clear button appears dynamically when text is typed
+                if !searchText.isEmpty {
+                    Button(action: { searchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(NS.text3)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.horizontal, NS.Spacing.md)
             .frame(height: NS.Help.searchHeight)
             .background(NS.surface2)
             .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2, lineWidth: 0.5))
+            .overlay(
+                RoundedRectangle(cornerRadius: NS.Radius.md)
+                    .stroke(searchFocused ? NS.accent : NS.border2, lineWidth: searchFocused ? 1.0 : 0.5)
+            )
+            .contentShape(.interaction, Rectangle())
+            .onTapGesture {
+                searchFocused = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .focusSearchField)) { _ in
+                searchFocused = true
+            }
         }
-        
+
         private var addChannelButton: some View {
             Button(action: onAddChannel) {
                 HStack(spacing: NS.Spacing.xs) {
