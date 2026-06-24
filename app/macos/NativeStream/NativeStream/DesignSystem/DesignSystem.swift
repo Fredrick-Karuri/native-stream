@@ -137,8 +137,13 @@ enum NS {
 
     // ── Rail sizing ───────────────────────────────────────────────────────────
     enum Rail {
-        static var width:    CGFloat { 52 * NS.scale }
-        static var iconSize: CGFloat { 38 * NS.scale }
+        static var width:        CGFloat { 52 * NS.scale }
+        static var iconSize:     CGFloat { 38 * NS.scale }
+        static var iconFontSize: CGFloat { 15 * NS.scale }
+        static var itemSpacing:  CGFloat { 2  * NS.scale }
+        static var dividerWidth: CGFloat { 24 * NS.scale }
+        static var dividerHeight: CGFloat { 0.5 }         
+        static var labelSpacing: CGFloat { 3  * NS.scale }
     }
 
     // ── Settings sizing ───────────────────────────────────────────────────────
@@ -238,6 +243,20 @@ enum NS {
 
     enum Upcoming {
         static var badgeSize: CGFloat { 20 * NS.scale }
+    }
+    
+    enum Favourites {
+        static var logoSize: CGFloat       { 36.0 * CGFloat(scale) }
+        static var textSpacing: CGFloat    { 3.0 * CGFloat(scale) }
+        static var progressBarHeight: CGFloat { 2.0 * CGFloat(scale) }
+        static var starIconSize: CGFloat   { 12.0 * CGFloat(scale) }
+        static var playIconSize: CGFloat   { 7.0 * CGFloat(scale) }
+        static var badgePaddingV: CGFloat  { 3.0 * CGFloat(scale) }
+        static var borderWidth: CGFloat     { 0.5 } // Standard physical pixel stroke
+        
+        // Semantic opacity tokens for live rows
+        static let liveBorderOpacityIdle: Double = 0.157
+        static let liveBorderOpacityHover: Double = 0.350
     }
 
     // ── Health score → colour ─────────────────────────────────────────────────

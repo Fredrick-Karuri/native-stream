@@ -14,7 +14,8 @@ struct PlayerScreen: View {
     let onBack: () -> Void
 
     @State private var showControls = true
-    @State private var showSidebar  = true
+    @Binding var isSidebarOpen: Bool
+
     @State private var hideTask: Task<Void, Never>? = nil
     
     private var activeChannel: Channel? {
@@ -67,7 +68,7 @@ struct PlayerScreen: View {
                         PlayerControls(
                             pipController: playerVM.pipController,
                             currentProgramme: currentProgramme,
-                            showSidebar: $showSidebar,
+                            showSidebar: $isSidebarOpen,
                         )
                     }
                     .transition(.opacity)
@@ -79,12 +80,12 @@ struct PlayerScreen: View {
             .onHover { if $0 { showControlsTemporarily() } }
 
             // Sidebar — hidden in fullscreen
-            if showSidebar {
+            if isSidebarOpen {
                 PlayerSidebar(currentChannel: activeChannel)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: showSidebar)
+        .animation(.easeInOut(duration: 0.2), value: isSidebarOpen)
     }
 
     private func showControlsTemporarily() {

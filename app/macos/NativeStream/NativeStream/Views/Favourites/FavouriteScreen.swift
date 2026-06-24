@@ -1,4 +1,4 @@
-// FavouritesScreen.swift — UX-016
+// FavouritesScreen.swift
 // Starred channels only. Live first, then up next.
 
 import SwiftUI

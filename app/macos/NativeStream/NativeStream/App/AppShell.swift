@@ -19,6 +19,8 @@ struct AppShell: View {
     @State private var keyMonitor: Any?            = nil
     
     @State private var keyMonitorEngine = GlobalKeyMonitor()
+    @State private var isPlayerSidebarOpen = true
+
 
     var body: some View {
         HStack(spacing: 0) {
@@ -62,6 +64,8 @@ struct AppShell: View {
         .onChange(of: destination) { _, _ in synchronizeMonitor() }
         .onChange(of: showPlayer)   { _, _ in synchronizeMonitor() }
         .onChange(of: showPlayURL)  { _, _ in synchronizeMonitor() }
+        .onChange(of: isPlayerSidebarOpen) { _, _ in synchronizeMonitor() }
+
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: playerVM.isPlaying)
         .sheet(isPresented: $showPlayURL) {
             PlayURLSheet(isPresented: $showPlayURL) {
@@ -106,7 +110,12 @@ struct AppShell: View {
     @ViewBuilder
     private var destinationContent: some View {
         if showPlayer {
-            PlayerScreen(channel: selectedChannel, onBack: { closePlayerView() })
+            PlayerScreen(
+                channel: selectedChannel,
+                onBack: { closePlayerView() },
+                isSidebarOpen: $isPlayerSidebarOpen,
+            )
+
             .transition(.asymmetric(
                 insertion: .move(edge: .trailing).combined(with: .opacity),
                 removal:   .move(edge: .leading).combined(with: .opacity)
@@ -153,6 +162,8 @@ struct AppShell: View {
                 showPlayer: showPlayer,
                 destination: destination,
                 hasSheetOpen: showPlayURL,
+                isPlayerSidebarOpen: isPlayerSidebarOpen,
+                onToggleSidebar: { withAnimation(.easeInOut(duration: 0.2)) { isPlayerSidebarOpen.toggle() } },
                 onClosePlayer: { closePlayerView() },
                 onGoHome: { withAnimation(.easeInOut(duration: 0.2)) { destination = .now } },
                 onPlaybackToggle: { playerVM.togglePlayback() },
@@ -161,6 +172,7 @@ struct AppShell: View {
             )
         )
     }
+
 
 }
 
