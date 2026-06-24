@@ -23,9 +23,7 @@ struct Channel: Identifiable, Codable, Sendable, Hashable {
         self.id = if !tvgId.isEmpty {
             tvgId
         } else {
-            streamURL.pathComponents
-                .filter { $0 != "/" && $0 != "stream" && $0 != "proxy" }
-                .first ?? UUID().uuidString
+            streamURL.absoluteString
         }
         self.tvgId = tvgId
         self.name = name

@@ -1,4 +1,4 @@
-// NS-021 + NS-023: M3UParser
+// M3UParser
 // Pure Swift M3U/M3U8 playlist parser. No third-party dependencies.
 // Supports local file:// and remote https:// sources.
 

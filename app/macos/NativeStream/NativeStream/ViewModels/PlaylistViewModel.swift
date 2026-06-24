@@ -90,7 +90,7 @@ final class PlaylistViewModel {
             }
         }
 
-        channels = allChannels
+        channels = deduplicated(allChannels)
         groups = Dictionary(grouping: channels, by: \.groupTitle)
         sortedGroupNames = groups.keys.sorted()
         isLoading = false
@@ -229,5 +229,9 @@ final class PlaylistViewModel {
             return
         }
         sources = loaded
+    }
+    private func deduplicated(_ channels: [Channel]) -> [Channel] {
+        var seen = Set<String>()
+        return channels.filter { seen.insert($0.id).inserted }
     }
 }

@@ -7,14 +7,14 @@ struct FavouriteRow: View {
     @Environment(FavouritesManager.self) private var favourites
 
     let channel: Channel
-    let programme: Programme
+    let programme: Programme?
     let isPlaying: Bool
     let isUpcoming: Bool
     let onTap: () -> Void
 
     @State private var isHovered = false
 
-    private var isLive: Bool { programme.isNow }
+    private var isLive: Bool { programme?.isNow ?? false }
 
     var body: some View {
         Button(action: onTap) {
@@ -30,7 +30,6 @@ struct FavouriteRow: View {
                         .lineLimit(1)
 
                     if isLive, let teams = teamsFromTitle {
-                        // Match teams row
                         HStack(spacing: NS.Spacing.xs) {
                             Text(teams.home)
                                 .font(NS.Font.monoSm)
@@ -41,29 +40,34 @@ struct FavouriteRow: View {
                             Text(teams.away)
                                 .font(NS.Font.monoSm)
                                 .foregroundStyle(NS.text2)
+                            }
+                        } else if let prog = programme {
+                            Text(prog.title)
+                                .font(NS.Font.caption)
+                                .foregroundStyle(NS.text3)
+                                .lineLimit(1)
+                        } else {
+                            Text("No programme info")
+                                .font(NS.Font.caption)
+                                .foregroundStyle(NS.text3.opacity(0.5))
+                                .lineLimit(1)
                         }
-                    } else {
-                        Text(programme.title)
-                            .font(NS.Font.caption)
-                            .foregroundStyle(NS.text3)
-                            .lineLimit(1)
-                    }
 
-                    if isLive {
-                        NSProgressBar(value: programme.progress, height: NS.Favourites.progressBarHeight, glow: false)
-                    }
-                }
+                        if isLive, let prog = programme {
+                            NSProgressBar(value: prog.progress, height: NS.Favourites.progressBarHeight, glow: false)
+                        }
+}
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Right badge
                 if isPlaying {
                     playingBadge
-                } else if isLive {
-                    Text(programme.timeRemainingString)
+                } else if isLive, let prog = programme {
+                    Text(prog.timeRemainingString)
                         .font(NS.Font.monoSm)
                         .foregroundStyle(NS.text3)
-                } else {
-                    Text(programme.startTimeString)
+                } else if let prog = programme {
+                    Text(prog.startTimeString)
                         .font(NS.Font.monoSm)
                         .foregroundStyle(NS.accent)
                 }
@@ -119,6 +123,7 @@ struct FavouriteRow: View {
     }
 
     private var teamsFromTitle: (home: String, away: String)? {
+        guard let programme else { return nil }
         let parts = programme.title.components(separatedBy: " vs ")
         guard parts.count >= 2 else { return nil }
         let home = parts[0].trimmingCharacters(in: .whitespaces)

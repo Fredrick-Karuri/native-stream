@@ -38,6 +38,13 @@ struct FavouritesScreen: View {
         }
     }
 
+    private var noEPG: [Channel] {
+        starred.filter {
+            epgVM.currentProgramme(for: $0) == nil &&
+            epgVM.nextProgramme(for: $0) == nil
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             topBar
@@ -51,6 +58,7 @@ struct FavouritesScreen: View {
                         if !liveNow.isEmpty { liveSection }
                         if !onAir.isEmpty    { onAirSection }
                         if !upNext.isEmpty  { upNextSection }
+                        if !noEPG.isEmpty   { noEPGSection }
                     }
                     .padding(NS.Spacing.xl)
                     .padding(.bottom, 80)
@@ -135,6 +143,27 @@ struct FavouritesScreen: View {
                         isPlaying: false,
                         isUpcoming: true
                     ) { onSelectChannel(item.channel) }
+                }
+            }
+        }
+    }
+
+    private var noEPGSection: some View {
+        VStack(alignment: .leading, spacing: NS.Spacing.md) {
+            HStack(spacing: NS.Spacing.sm) {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.system(size: 11))
+                    .foregroundStyle(NS.text3)
+                NSGroupHeader(title: "Channels", count: noEPG.count)
+            }
+            VStack(spacing: NS.Spacing.sm) {
+                ForEach(noEPG) { channel in
+                    FavouriteRow(
+                        channel: channel,
+                        programme: nil,
+                        isPlaying: playerVM.currentChannel?.id == channel.id,
+                        isUpcoming: false
+                    ) { onSelectChannel(channel) }
                 }
             }
         }

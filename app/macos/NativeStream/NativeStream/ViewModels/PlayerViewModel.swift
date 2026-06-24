@@ -7,6 +7,7 @@ import MediaPlayer
 import Observation
 import Combine
 import AVKit
+import IOKit.pwr_mgt
 
 @Observable
 @MainActor
@@ -33,6 +34,8 @@ final class PlayerViewModel:NSObject {
     var bufferPreset: BufferPreset = .balanced
 
     private var playerItemObservation: Task<Void, Never>?
+    private let sleepAssertion = SleepAssertion()
+
     private let maxRetries = 3
     private let retryDelay: TimeInterval = 2
 
@@ -46,7 +49,7 @@ final class PlayerViewModel:NSObject {
         startPlayback(url: channel.streamURL)
     }
 
-    /// FX-018: Play any URL directly without persisting a channel.
+    /// Play any URL directly without persisting a channel.
     /// Creates a temporary Channel not added to the playlist.
     func playURL(_ urlString: String, headers: [String: String] = [:]) {
         guard let url = URL(string: urlString.trimmingCharacters(in: .whitespaces)) else {
@@ -68,7 +71,7 @@ final class PlayerViewModel:NSObject {
 
     // MARK: - Internal playback
 
-    /// FX-017: Uses AVURLAsset when headers are present so streams requiring
+    /// Uses AVURLAsset when headers are present so streams requiring
     /// Referer/User-Agent or custom tokens play without buffering failures.
     private func startPlayback(url: URL, headers: [String: String] = [:]) {
         print("[player] url=\(url) headers=\(headers)")
@@ -93,6 +96,7 @@ final class PlayerViewModel:NSObject {
         player?.automaticallyWaitsToMinimizeStalling = true
         player?.play()
         isPlaying = true
+        manageScreenSleep(disableSleep: true)
  
         observePlayerItem(item)
         setupNowPlaying()
@@ -100,7 +104,7 @@ final class PlayerViewModel:NSObject {
     }
 
 
-    // MARK: - NS-042: Retry logic via async KVO observation
+    // MARK: Retry logic via async KVO observation
     private func observePlayerItem(_ item: AVPlayerItem) {
         playerItemObservation?.cancel()
         playerItemObservation = Task { [weak self] in
@@ -183,10 +187,12 @@ final class PlayerViewModel:NSObject {
             player.pause()
             isPlaying = false
             updateNowPlayingState(paused: true)
+            manageScreenSleep(disableSleep: false)
         } else {
             player.play()
             isPlaying = true
             updateNowPlayingState(paused: false)
+            manageScreenSleep(disableSleep: true)
         }
     }
 
@@ -249,6 +255,26 @@ final class PlayerViewModel:NSObject {
         // we just need to hide the source layer
         pipController?.playerLayer.opacity = hidden ? 0 : 1
     }
+    private func manageScreenSleep(disableSleep: Bool) {
+        if disableSleep {
+            guard sleepAssertion.id == 0 else { return }
+            let result = IOPMAssertionCreateWithName(
+                kIOPMAssertionTypeNoDisplaySleep as CFString,
+                IOPMAssertionLevel(kIOPMAssertionLevelOn),
+                "NativeStream playback" as CFString,
+                &sleepAssertion.id
+            )
+            if result != kIOReturnSuccess { sleepAssertion.id = 0 }
+        } else {
+            guard sleepAssertion.id != 0 else { return }
+            IOPMAssertionRelease(sleepAssertion.id)
+            sleepAssertion.id = 0
+        }
+    }
+
+    deinit {
+        if sleepAssertion.id != 0 { IOPMAssertionRelease(sleepAssertion.id) }
+    }
 
     // MARK: - Cleanup
 
@@ -260,6 +286,7 @@ final class PlayerViewModel:NSObject {
         player?.replaceCurrentItem(with: nil)
         isPlaying = false
         pipActive = false
+        manageScreenSleep(disableSleep: false)
     }
 
     func stop() {
@@ -302,4 +329,7 @@ extension PlayerViewModel: AVPictureInPictureControllerDelegate {
     }
 }
 
+private final class SleepAssertion: @unchecked Sendable {
+    var id: IOPMAssertionID = 0
+}
 
