@@ -82,7 +82,7 @@ struct SportNavRail: View {
 
             // ── Middle: scrollable sport icons ────────────────────────────────
             // FX-013: dim while EPG is loading
-            ScrollView(.vertical, showsIndicators: true) {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: NS.Rail.itemSpacing) {
                     ForEach(visibleSports, id: \.self) { sport in
                         RailIcon(
@@ -98,7 +98,8 @@ struct SportNavRail: View {
                 .animation(.easeOut(duration: 0.3), value: epgVM.isLoading)
                 .padding(.vertical, NS.Spacing.xs)
             }
-
+            
+            Spacer()
 
             // ── Bottom: fixed utility nav ─────────────────────────────────────
             VStack(spacing: NS.Rail.itemSpacing) {

@@ -33,7 +33,7 @@ extension AppShell {
                 }
 
                 // 2. Focused Input Shield: If an active field has typing priority, let single-letter strokes pass through
-                if self.isTextInputActive() {
+                if self.isInteractionLayerActive() {
                     return event
                 }
 
@@ -78,10 +78,23 @@ extension AppShell {
             }
         }
 
-        private func isTextInputActive() -> Bool {
-            guard let responder = NSApp.mainWindow?.firstResponder else { return false }
-            let name = String(describing: type(of: responder))
-            return name.contains("NSText") || name.contains("Field")
+        private func isInteractionLayerActive() -> Bool {
+            // 1. Core Window Layer Check: If a native sheet is actively attached to the window, stop global shortcuts
+            if NSApp.mainWindow?.attachedSheet != nil {
+                return true
+            }
+            
+            // 2. Text Field Focus Check: If typing inside a text field, preserve character routing
+            if let responder = NSApp.mainWindow?.firstResponder {
+                let name = String(describing: type(of: responder))
+                if name.contains("NSText") || name.contains("Field") {
+                    return true
+                }
+            }
+            
+            return false
         }
+
+
     }
 }
