@@ -1,4 +1,10 @@
-// SportNavRail.swift — UX-007, UX-008
+/// Features/Navigation/SportNavRail.swift
+///
+/// Vertical nav rail with three zones:
+/// - Top (fixed):   Now
+/// - Middle (scrollable): Sport categories — never clips in small windows
+/// - Bottom (fixed): Favourites, Schedule, All Channels, Help, Settings
+
 import SwiftUI
 
 // MARK: - App Destination
@@ -63,50 +69,59 @@ struct SportNavRail: View {
     }
 
     var body: some View {
-        VStack(spacing: 2) {
-            RailIcon(icon: "play.fill", label: "Now", isActive: destination == .now) {
-                destination = .now
-            }
+        VStack(spacing: 0) {
 
-            railDivider
-            
-            // FX-013: dim sport icons while EPG is loading
-            ForEach(visibleSports, id: \.self) { sport in
-                RailIcon(
-                    icon: sport.icon,
-                    label: sport.label,
-                    isActive: destination == .sport(sport)
-                ) {
-                    destination = .sport(sport)
+            // ── Top: fixed primary nav ────────────────────────────────────────
+            VStack(spacing: NS.Rail.itemSpacing) {
+                RailIcon(icon: "play.fill", label: "Now", isActive: destination == .now) {
+                    destination = .now
                 }
-                .opacity(epgVM.isLoading ? 0.4 : 1.0)
+                railDivider
             }
-            .animation(.easeOut(duration: 0.3), value: epgVM.isLoading)
+            .padding(.top, NS.Spacing.md)
 
-            Spacer()
+            // ── Middle: scrollable sport icons ────────────────────────────────
+            // FX-013: dim while EPG is loading
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(spacing: NS.Rail.itemSpacing) {
+                    ForEach(visibleSports, id: \.self) { sport in
+                        RailIcon(
+                            icon: sport.icon,
+                            label: sport.label,
+                            isActive: destination == .sport(sport)
+                        ) {
+                            destination = .sport(sport)
+                        }
+                        .opacity(epgVM.isLoading ? 0.4 : 1.0)
+                    }
+                }
+                .animation(.easeOut(duration: 0.3), value: epgVM.isLoading)
+                .padding(.vertical, NS.Spacing.xs)
+            }
 
-            railDivider
 
-            RailIcon(icon: "star", label: "Favourites", isActive: destination == .favourites) {
-                destination = .favourites
+            // ── Bottom: fixed utility nav ─────────────────────────────────────
+            VStack(spacing: NS.Rail.itemSpacing) {
+                railDivider
+                RailIcon(icon: "star", label: "Favourites", isActive: destination == .favourites) {
+                    destination = .favourites
+                }
+                RailIcon(icon: "calendar", label: "Schedule", isActive: destination == .schedule) {
+                    destination = .schedule
+                }
+                RailIcon(icon: "square.grid.2x2", label: "All Channels", isActive: destination == .allChannels) {
+                    destination = .allChannels
+                }
+                railDivider
+                RailIcon(icon: "questionmark.circle", label: "Help", isActive: destination == .help) {
+                    destination = .help
+                }
+                RailIcon(icon: "gearshape", label: "Settings", isActive: destination == .settings) {
+                    destination = .settings
+                }
             }
-            RailIcon(icon: "calendar", label: "Schedule", isActive: destination == .schedule) {
-                destination = .schedule
-            }
-            RailIcon(icon: "square.grid.2x2", label: "All Channels", isActive: destination == .allChannels) {
-                destination = .allChannels
-            }
-
-            railDivider
-
-            RailIcon(icon: "questionmark.circle", label: "Help", isActive: destination == .help) {
-                destination = .help
-            }
-            RailIcon(icon: "gearshape", label: "Settings", isActive: destination == .settings) {
-                destination = .settings
-            }
+            .padding(.bottom, NS.Spacing.md)
         }
-        .padding(.vertical, NS.Spacing.md)
         .frame(width: NS.Rail.width)
         .background(NS.surface)
         .overlay(alignment: .trailing) {
@@ -117,7 +132,7 @@ struct SportNavRail: View {
     private var railDivider: some View {
         Rectangle()
             .fill(NS.border)
-            .frame(width: NS.Rail.iconSize * 0.63, height: 0.5)   
+            .frame(width: NS.Rail.dividerWidth, height: NS.Rail.dividerHeight)
             .padding(.vertical, NS.Spacing.xs)
     }
 }
@@ -140,6 +155,8 @@ struct RailIcon: View {
     }
 }
 
+// MARK: - Rail Icon Label
+
 struct RailIconLabel: View {
     let icon: String
     let label: String
@@ -147,9 +164,9 @@ struct RailIconLabel: View {
     var isHovered: Bool = false
 
     var body: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: NS.Rail.labelSpacing) {
             Image(systemName: icon)
-                .font(.system(size: 15 * NS.scale, weight: .medium))
+                .font(.system(size: NS.Rail.iconFontSize, weight: .medium))
                 .foregroundStyle(isActive ? NS.accent2 : isHovered ? NS.text2 : NS.text3)
                 .frame(width: NS.Rail.iconSize, height: NS.Rail.iconSize)
                 .background(isActive ? NS.accentGlow : isHovered ? NS.surface2 : Color.clear)

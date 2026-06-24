@@ -137,8 +137,13 @@ enum NS {
 
     // ── Rail sizing ───────────────────────────────────────────────────────────
     enum Rail {
-        static var width:    CGFloat { 52 * NS.scale }
-        static var iconSize: CGFloat { 38 * NS.scale }
+        static var width:        CGFloat { 52 * NS.scale }
+        static var iconSize:     CGFloat { 38 * NS.scale }
+        static var iconFontSize: CGFloat { 15 * NS.scale }
+        static var itemSpacing:  CGFloat { 2  * NS.scale }
+        static var dividerWidth: CGFloat { 24 * NS.scale }
+        static var dividerHeight: CGFloat { 0.5 }         
+        static var labelSpacing: CGFloat { 3  * NS.scale }
     }
 
     // ── Settings sizing ───────────────────────────────────────────────────────
