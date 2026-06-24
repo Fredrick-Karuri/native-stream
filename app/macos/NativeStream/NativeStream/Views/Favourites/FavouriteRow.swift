@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Favourite Row (UX-017)
+// MARK: - Favourite Row
 
 struct FavouriteRow: View {
 
@@ -12,16 +12,18 @@ struct FavouriteRow: View {
     let isUpcoming: Bool
     let onTap: () -> Void
 
+    @State private var isHovered = false
+
     private var isLive: Bool { programme.isNow }
 
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: NS.Spacing.md) {
 
-                ChannelLogoSquare(channel: channel, size: 36)
+                ChannelLogoSquare(channel: channel, size: NS.Favourites.logoSize)
 
                 // Body
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: NS.Favourites.textSpacing) {
                     Text(channel.name)
                         .font(NS.Font.captionMed)
                         .foregroundStyle(NS.text)
@@ -48,7 +50,7 @@ struct FavouriteRow: View {
                     }
 
                     if isLive {
-                        NSProgressBar(value: programme.progress, height: 2, glow: false)
+                        NSProgressBar(value: programme.progress, height: NS.Favourites.progressBarHeight, glow: false)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -71,38 +73,49 @@ struct FavouriteRow: View {
                     favourites.toggle(channel)
                 } label: {
                     Image(systemName: "star.fill")
-                        .font(.system(size: 12))
+                        .font(.system(size: NS.Favourites.starIconSize))
                         .foregroundStyle(NS.amber)
                 }
                 .buttonStyle(.plain)
             }
             .padding(NS.Spacing.md)
+            .background(isHovered ? NS.surface3 : NS.surface2)
+            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
+            .overlay(
+                RoundedRectangle(cornerRadius: NS.Radius.lg)
+                    .stroke(rowBorderColour, lineWidth: NS.Favourites.borderWidth)
+            )
+            .contentShape(.interaction, Rectangle())
         }
         .buttonStyle(.plain)
-        .background(NS.surface2)
-        .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
-        .overlay(
-            RoundedRectangle(cornerRadius: NS.Radius.lg)
-                .stroke(rowBorderColour, lineWidth: 0.5)
-        )
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.12)) {
+                isHovered = hovering
+            }
+        }
     }
 
     private var playingBadge: some View {
-        HStack(spacing: 3) {
-            Image(systemName: "play.fill").font(.system(size: 7))
-            Text("NOW").font(NS.Font.monoSm).fontWeight(.bold)
+        HStack(spacing: NS.Favourites.textSpacing) {
+            Image(systemName: "play.fill")
+                .font(.system(size: NS.Favourites.playIconSize))
+            Text("NOW")
+                .font(NS.Font.monoSm)
+                .fontWeight(.bold)
         }
         .foregroundStyle(.white)
         .padding(.horizontal, NS.Spacing.sm)
-        .padding(.vertical, 3)
+        .padding(.vertical, NS.Favourites.badgePaddingV)
         .background(NS.accentGlow)
         .clipShape(RoundedRectangle(cornerRadius: NS.Radius.sm))
     }
 
     private var rowBorderColour: Color {
-        isPlaying ? NS.accentBorder :
-        isLive    ? Color(hex: "ef4444").opacity(0.157) :
-                    NS.border
+        if isPlaying { return NS.accentBorder }
+        if isHovered {
+            return isLive ? NS.live.opacity(NS.Favourites.liveBorderOpacityHover) : NS.border2
+        }
+        return isLive ? NS.live.opacity(NS.Favourites.liveBorderOpacityIdle) : NS.border
     }
 
     private var teamsFromTitle: (home: String, away: String)? {
@@ -115,3 +128,4 @@ struct FavouriteRow: View {
         return (home, away)
     }
 }
+
