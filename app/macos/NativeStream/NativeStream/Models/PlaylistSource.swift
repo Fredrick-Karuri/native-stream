@@ -4,7 +4,7 @@
 import Foundation
 import SwiftUI
 
-struct PlaylistSource: Identifiable, Codable, Sendable {
+struct PlaylistSource: Identifiable, Codable, Sendable, Equatable {
     let id: UUID
     var label: String
     var url: URL
@@ -81,5 +81,8 @@ struct PlaylistSource: Identifiable, Codable, Sendable {
         refreshInterval  = try c.decode(RefreshInterval.self,  forKey: .refreshInterval)
         lastFetched      = try c.decodeIfPresent(Date.self,    forKey: .lastFetched)
         epgURLString     = try c.decodeIfPresent(String.self,  forKey: .epgURLString) ?? ""
+    }
+    static func == (lhs: PlaylistSource, rhs: PlaylistSource) -> Bool {
+        lhs.id == rhs.id
     }
 }

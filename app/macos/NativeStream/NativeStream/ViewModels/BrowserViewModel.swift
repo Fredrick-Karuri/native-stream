@@ -104,7 +104,7 @@ final class BrowserViewModel {
 
     // MARK: - Pure computation (nonisolated)
 
-    private static func compute(
+    private nonisolated static func compute(
         channels:     [Channel],
         search:       String,
         group:        String?,
@@ -198,10 +198,9 @@ final class BrowserViewModel {
             showFavouritesOnly = true
             selectedGroup      = nil
             selectedSubGroup   = nil
-        } else {
-            showFavouritesOnly = false
+            recomputeSections(channels: channels, favouriteIDs: favouriteIDs)
         }
-        recomputeSections(channels: channels, favouriteIDs: favouriteIDs)
+        // Second tap does nothing — mirrors Android onToggleFavourites behaviour
     }
 
     func clearGroupWhenSearching(channels: [Channel], favouriteIDs: Set<String> = []) {
