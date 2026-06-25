@@ -16,7 +16,7 @@ enum SettingsSection: String, CaseIterable {
         case .playback:  return "play.circle"
         case .server:    return "cpu"
         case .proxy:     return "lock.shield"
-        case .discovery: return "radar"
+        case .discovery: return "antenna.radiowaves.left.and.right" 
         }
     }
 }
