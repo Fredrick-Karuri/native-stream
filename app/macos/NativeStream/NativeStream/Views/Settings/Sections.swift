@@ -10,10 +10,8 @@ import SwiftUI
 struct SourcesSection: View {
 
     @Environment(PlaylistViewModel.self) private var playlistVM
-    @State private var showAddForm = false
-    @State private var newLabel    = ""
-    @State private var newURL      = ""
-    @State private var newInterval: RefreshInterval = .sixHours
+    
+    @State private var showAddSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
@@ -23,26 +21,20 @@ struct SourcesSection: View {
                 SourceRow(source: source) { playlistVM.removeSource(id: source.id) }
             }
 
-            if showAddForm {
-                AddSourceForm(
-                    label: $newLabel, url: $newURL, interval: $newInterval,
-                    onCancel: { showAddForm = false; resetForm() },
-                    onAdd: {
-                        guard let url = URL(string: newURL) else { return }
-                        playlistVM.addSource(PlaylistSource(
-                            label: newLabel.isEmpty ? (URL(string: newURL)?.host ?? "Source") : newLabel,
-                            url: url, refreshInterval: newInterval))
-                        showAddForm = false; resetForm()
-                        Task { await playlistVM.loadAll() }
-                    }
-                )
-            } else {
-                AddButton(label: "+ Add Source") { showAddForm = true }
+            AddButton(label: "+ Add Source") { showAddSheet = true }
+        }
+        .sheet(isPresented: $showAddSheet) {
+            AddSourceSheet { source in
+                showAddSheet = false
+                if let source {
+                    playlistVM.addSource(source)
+                    Task { await playlistVM.loadAll() }
+                }
             }
+        
         }
     }
 
-    private func resetForm() { newLabel = ""; newURL = ""; newInterval = .sixHours }
 }
 
 struct SourceRow: View {
@@ -145,17 +137,28 @@ struct AddSourceForm: View {
         VStack(alignment: .leading, spacing: NS.Spacing.md) {
             NSTextField(placeholder: "Label (e.g. Sports Pack)", text: $label)
             NSTextField(placeholder: "URL (https:// or file://)", text: $url)
-            HStack {
-                Text("Refresh").font(NS.Font.caption).foregroundStyle(NS.text3)
+
+            HStack(spacing: NS.Spacing.xs) {
+                Text("Refresh")
+                    .font(NS.Font.caption)
+                    .foregroundStyle(NS.text3)
                 Picker("", selection: $interval) {
-                    ForEach(RefreshInterval.allCases, id: \.self) { Text($0.displayName).tag($0) }
-                }.labelsHidden().frame(width: 160)
+                    ForEach(RefreshInterval.allCases, id: \.self) {
+                        Text($0.displayName).tag($0)
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: .infinity)
+            }
+
+            HStack(spacing: NS.Spacing.sm) {
                 Spacer()
                 Button("Cancel", action: onCancel).buttonStyle(.bordered)
-                Button("Add", action: onAdd).buttonStyle(.borderedProminent).disabled(url.isEmpty)
+                Button("Add", action: onAdd)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(url.isEmpty)
             }
-        }
-        .padding(NS.Spacing.md)
+        }        .padding(NS.Spacing.md)
         .background(NS.surface2)
         .clipShape(RoundedRectangle(cornerRadius: NS.Radius.lg))
         .overlay(RoundedRectangle(cornerRadius: NS.Radius.lg).stroke(NS.border2, lineWidth: 0.5))

@@ -1,4 +1,4 @@
-// NS-031 + NS-032: PlaylistViewModel
+// PlaylistViewModel
 // Owns the channel list, loading state, and auto-refresh scheduling.
 
 import Foundation
@@ -79,6 +79,12 @@ final class PlaylistViewModel {
                                 streamURL:     channel.streamURL,
                                 streamHeaders: channel.streamHeaders
                             )
+                        }
+                        // Write channel count back to source
+                        await MainActor.run {
+                            if let idx = self.sources.firstIndex(where: { $0.id == source.id }) {
+                                self.sources[idx].channelCount = tagged.count
+                            }
                         }
                         return (tagged, result.epgURL, source.id)
                     } catch {

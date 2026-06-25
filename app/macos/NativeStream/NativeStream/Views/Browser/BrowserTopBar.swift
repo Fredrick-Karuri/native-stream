@@ -17,8 +17,11 @@ extension BrowserScreen {
         let onSelectSource: (PlaylistSource?) -> Void
         let onAddPlaylist:  () -> Void
         let onAddChannel:   () -> Void
-
+        let playlistVM:     PlaylistViewModel
+        
         @State private var showSourcePicker = false
+        @State private var showAddSource = false
+        
 
         var body: some View {
             HStack(spacing: NS.Spacing.md) {
@@ -35,7 +38,7 @@ extension BrowserScreen {
                         sources:        sources,
                         selectedSource: selectedSource,
                         onSelect:       { onSelectSource($0) },
-                        onAddPlaylist:  onAddPlaylist,
+                        onAddPlaylist: { showAddSource = true },
                         onDismiss:      { showSourcePicker = false }
                     )
                     .padding(NS.Spacing.xs)
@@ -56,6 +59,15 @@ extension BrowserScreen {
             .padding(.horizontal, NS.Spacing.xl)
             .padding(.vertical, NS.Spacing.md)
             .background(NS.surface)
+            .sheet(isPresented: $showAddSource) {
+                AddSourceSheet { source in
+                    showAddSource = false
+                    if let source {
+                        playlistVM.addSource(source)
+                        Task { await playlistVM.loadAll() }
+                    }
+                }
+            }
         }
 
         // MARK: - Components

@@ -87,7 +87,8 @@ struct BrowserScreen: View {
                 browserVM.selectSource(source, channels: playlistVM.channels)
             },
             onAddPlaylist:  { /* navigate to Settings → Sources */ },
-            onAddChannel:   { browserVM.showAddChannel = true }
+            onAddChannel:   { browserVM.showAddChannel = true },
+            playlistVM:     playlistVM
         )
     }
 
