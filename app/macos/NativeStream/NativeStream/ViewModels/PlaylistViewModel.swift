@@ -68,7 +68,19 @@ final class PlaylistViewModel {
                         for warning in result.warnings {
                             print("⚠️ [M3U] Line \(warning.line): \(warning.reason)")
                         }
-                        return (result.channels, result.epgURL, source.id)
+                        let tagged = result.channels.map { channel in
+                            Channel(
+                                tvgId:         channel.tvgId,
+                                name:          channel.name,
+                                groupTitle:    channel.groupTitle,
+                                subGroupTitle: channel.subGroupTitle,
+                                sourceId:      source.id.uuidString,
+                                logoURL:       channel.logoURL,
+                                streamURL:     channel.streamURL,
+                                streamHeaders: channel.streamHeaders
+                            )
+                        }
+                        return (tagged, result.epgURL, source.id)
                     } catch {
                         await MainActor.run {
                             self.error = error as? AppError ?? .playlistFetchFailed(url: source.url, underlying: error)

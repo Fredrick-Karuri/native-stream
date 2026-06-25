@@ -12,10 +12,27 @@ struct BrowserScreen: View {
     @Environment(EPGViewModel.self)         private var epgVM
     @Environment(ChannelManagerViewModel.self) private var channelManager
     @Environment(BrowserViewModel.self)     private var browserVM
+    @Environment(FavouritesManager.self) private var favourites
 
     let onSelectChannel: (Channel) -> Void
 
     @FocusState private var searchFocused: Bool
+    @State private var activeSports: [SportCategory] = []
+    
+    private var displayedSections: [ChannelSection] {
+        guard let sport = browserVM.selectedSport else {
+            return browserVM.groupedSections
+        }
+        return browserVM.groupedSections.map { section in
+            let filtered = section.channels.filter { channel in
+                guard let prog = epgVM.currentProgramme(for: channel)
+                              ?? epgVM.nextProgramme(for: channel) else { return false }
+                return epgVM.matchesSport(sport, programme: prog, channel: channel)
+            }
+            return ChannelSection(name: section.name, channels: filtered)
+        }.filter { !$0.channels.isEmpty }
+    }
+
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,18 +45,35 @@ struct BrowserScreen: View {
             Divider().overlay(NS.border)
 
             BrowserGroupChips(
-                allGroupNames:  browserVM.allGroupNames,
-                selectedGroup:  Bindable(browserVM).selectedGroup
+                allGroupNames:      browserVM.allGroupNames,
+                subGroupNames:      browserVM.subGroupNames,
+                activeSports:       activeSports,
+                selectedSource:     browserVM.selectedSource,
+                selectedGroup:      browserVM.selectedGroup,
+                selectedSubGroup:   browserVM.selectedSubGroup,
+                selectedSport:      browserVM.selectedSport,
+                showFavouritesOnly: browserVM.showFavouritesOnly,
+                onSelectAll:        { browserVM.selectGroup(nil, channels: playlistVM.channels,
+                                                            favouriteIDs: favourites.favouriteIDs) },
+                onSelectGroup:      { browserVM.selectGroup($0, channels: playlistVM.channels,
+                                                            favouriteIDs: favourites.favouriteIDs) },
+                onSelectSubGroup:   { browserVM.selectSubGroup($0, channels: playlistVM.channels,
+                                                               favouriteIDs: favourites.favouriteIDs) },
+                onSelectSport:      { browserVM.selectSport($0, channels: playlistVM.channels,
+                                                            favouriteIDs: favourites.favouriteIDs) },
+                onToggleFavourites: { browserVM.toggleFavourites(channels: playlistVM.channels,
+                                                                 favouriteIDs: favourites.favouriteIDs) }
             )
             Divider().overlay(NS.border)
 
             BrowserContent(
-                sections:        browserVM.groupedSections,
+                sections:        displayedSections,
                 isLoading:       playlistVM.isLoading,
                 searchText:      browserVM.searchText,
+                showSourceBadge: browserVM.selectedSource == nil || browserVM.selectedSource!.isAll,
+                sources:         playlistVM.sources,
                 onSelectChannel: onSelectChannel
-            )
-        }
+            )        }
         .background(NS.bg)
         .onTapGesture { searchFocused = false }
         .sheet(isPresented: Bindable(browserVM).showAddChannel) {
@@ -61,105 +95,44 @@ struct BrowserScreen: View {
         .onChange(of: browserVM.selectedGroup) {
             browserVM.recomputeSections(channels: playlistVM.channels)
         }
-    }
-}
-
-// MARK: - Group chips
-
-private struct BrowserGroupChips: View {
-
-    let allGroupNames: [String]
-    @Binding var selectedGroup: String?
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: NS.Spacing.xs) {
-                NSChip(label: "All", isActive: selectedGroup == nil) {
-                    selectedGroup = nil
-                }
-                ForEach(allGroupNames, id: \.self) { group in
-                    NSChip(label: group, isActive: selectedGroup == group) {
-                        selectedGroup = group
-                    }
-                }
+        .onAppear {
+            browserVM.restoreSelection(
+                from:     playlistVM.sources,
+                channels: playlistVM.channels
+            )
+        }
+        .task(id: playlistVM.channels.count) {
+            browserVM.recomputeSections(
+                channels:     playlistVM.channels,
+                favouriteIDs: favourites.favouriteIDs
+            )
+        }
+        .onChange(of: browserVM.searchText) {
+            browserVM.clearGroupWhenSearching(
+                channels:     playlistVM.channels,
+                favouriteIDs: favourites.favouriteIDs
+            )
+            browserVM.recomputeSections(
+                channels:     playlistVM.channels,
+                favouriteIDs: favourites.favouriteIDs
+            )
+        }
+        .onChange(of: browserVM.selectedGroup) {
+            browserVM.recomputeSections(
+                channels:     playlistVM.channels,
+                favouriteIDs: favourites.favouriteIDs
+            )
+        }
+        .task(id: browserVM.selectedGroup) {
+            guard let group = browserVM.selectedGroup,
+                  group.lowercased().contains("sport") else {
+                activeSports = []
+                return
             }
-            .padding(.horizontal, NS.Spacing.xl)
-            .padding(.vertical, NS.Spacing.sm)
+            let channels = playlistVM.channels
+            activeSports = await Task.detached(priority: .userInitiated) {
+                epgVM.activeSports(in: channels)
+            }.value
         }
-        .background(NS.surface)
-    }
-}
-
-// MARK: - Content
-
-private struct BrowserContent: View {
-
-    let sections:        [ChannelSection]
-    let isLoading:       Bool
-    let searchText:      String
-    let onSelectChannel: (Channel) -> Void
-
-    @State private var gridWidth: CGFloat = 700
-
-    var body: some View {
-        if isLoading {
-            loadingView
-        } else if sections.isEmpty {
-            emptyView
-        } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: NS.Spacing.xxl) {
-                    ForEach(sections, id: \.name) { section in
-                        VStack(alignment: .leading, spacing: NS.Spacing.md) {
-                            NSGroupHeader(title: section.name, count: section.channels.count)
-                                .padding(.horizontal, NS.Spacing.xl)
-                            channelGrid(section.channels)
-                        }
-                    }
-                }
-                .padding(NS.Spacing.xl)
-                .padding(.bottom, NS.Help.emptyTopPadding)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func channelGrid(_ channels: [Channel]) -> some View {
-        let columns = max(1, Int(gridWidth / NS.CardSize.minWidth))
-        let grid = Array(repeating: GridItem(.flexible(), spacing: NS.Spacing.sm), count: columns)
-
-        LazyVGrid(columns: grid, spacing: NS.Spacing.sm) {
-            ForEach(channels) { channel in
-                ChannelCard(channel: channel) { onSelectChannel(channel) }
-            }
-        }
-        .padding(.horizontal, NS.Spacing.xl)
-        .background(
-            GeometryReader { geo in
-                Color.clear
-                    .onAppear { gridWidth = geo.size.width }
-                    .onChange(of: geo.size.width) { gridWidth = $0 }
-            }
-        )
-    }
-
-    private var loadingView: some View {
-        VStack(spacing: NS.Spacing.md) {
-            ProgressView().scaleEffect(NS.Browser.loadingScale)
-            Text("Loading channels…").font(NS.Font.caption).foregroundStyle(NS.text3)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var emptyView: some View {
-        VStack(spacing: NS.Spacing.md) {
-            Text("📺").font(.system(size: NS.Browser.emptyEmojiSize))
-            Text("No channels found").font(NS.Font.display).foregroundStyle(NS.text)
-            Text(searchText.isEmpty
-                 ? "Add a playlist source in Settings."
-                 : "Try a different search term.")
-                .font(NS.Font.caption).foregroundStyle(NS.text3)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
