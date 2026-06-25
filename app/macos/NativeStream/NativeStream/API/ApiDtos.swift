@@ -38,10 +38,13 @@ struct HealthResponse: Decodable {
     let channels: Int
     let healthy: Int
     let lastProbe: Date?
+    let serverName: String?
+    let addr: String?
 
     enum CodingKeys: String, CodingKey {
-        case status, uptime, channels, healthy
-        case lastProbe = "last_probe"
+        case status, uptime, channels, healthy, addr
+        case lastProbe   = "last_probe"
+        case serverName  = "server_name"
     }
 }
 

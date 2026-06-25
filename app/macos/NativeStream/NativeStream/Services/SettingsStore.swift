@@ -48,6 +48,13 @@ final class SettingsStore {
     var epgURL: URL? { URL(string: epgURLString) }
     var serverURL: URL? { URL(string: serverURLString) }
 
+    // MARK: - Discovery
+
+    func confirmDiscoveredURL(_ url: URL) {
+        serverURLString = url.absoluteString
+        Task { await APIClient.shared.setBaseURL(url) }
+    }
+
     // MARK: - Keys
 
     private enum Keys {

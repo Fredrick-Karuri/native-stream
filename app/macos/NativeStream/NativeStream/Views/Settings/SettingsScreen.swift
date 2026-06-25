@@ -1,4 +1,4 @@
-// SettingsScreen.swift — UX-023
+// SettingsScreen.swift
 // Settings as a full rail destination. No fixed frame, no sheet.
 
 import SwiftUI
@@ -26,6 +26,9 @@ struct SettingsScreen: View {
     @Environment(SettingsStore.self)         private var settings
     @Environment(PlaylistViewModel.self)     private var playlistVM
     @Environment(ServerHealthViewModel.self) private var serverHealth
+    @Environment(ServerDiscoveryService.self) private var discovery
+    @Environment(\.scenePhase) private var scenePhase
+
 
     @State private var selected: SettingsSection = .sources
 
@@ -45,6 +48,13 @@ struct SettingsScreen: View {
             }
         }
         .background(NS.bg)
+        .onAppear {
+            Task { await serverHealth.check(serverURL: settings.serverURL ?? URL(string: "http://localhost:8888")!) }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await serverHealth.check(serverURL: settings.serverURL ?? URL(string: "http://localhost:8888")!) }
+        }
     }
 
     // MARK: - Top bar
@@ -85,6 +95,16 @@ struct SettingsScreen: View {
                 Text(serverHealth.isConnected ? "Server connected" : "Server unreachable")
                     .font(NS.Font.caption)
                     .foregroundStyle(NS.text2)
+                Spacer()
+                if !serverHealth.isConnected {
+                    Button(discovery.isScanning ? "Scanning…" : "Scan again") {
+                        discovery.scan()
+                    }
+                    .buttonStyle(.plain)
+                    .font(NS.Font.caption)
+                    .foregroundStyle(NS.accent)
+                    .disabled(discovery.isScanning)
+                }
             }
             Text(settings.serverURLString)
                 .font(NS.Font.monoSm)
@@ -96,12 +116,18 @@ struct SettingsScreen: View {
                     .foregroundStyle(NS.text3)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading) 
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(NS.Spacing.md)
         .background(NS.surface2)
         .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
         .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2, lineWidth: 0.5))
+        .onChange(of: discovery.discoveredURL) { _, url in
+            guard let url else { return }
+            settings.confirmDiscoveredURL(url)
+            Task { await serverHealth.check(serverURL: url) }
+        }
     }
+
 
     // MARK: - Panel routing
 

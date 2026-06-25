@@ -11,6 +11,7 @@ struct NativeStreamApp: App {
     @State private var playerVM       = PlayerViewModel()
     @State private var favourites     = FavouritesManager()
     @State private var serverHealth   = ServerHealthViewModel()
+    @State private var discoveryService = ServerDiscoveryService()
     @State private var channelManager = ChannelManagerViewModel()
     @State private var playlistVM: PlaylistViewModel
     @State private var settings: SettingsStore
@@ -29,6 +30,7 @@ struct NativeStreamApp: App {
                         .environment(settings)
                         .environment(serverHealth)
                         .environment(playlistVM)
+                        .environment(discoveryService)
                 } else {
                     AppShell()
                         .environment(playlistVM)
@@ -38,6 +40,7 @@ struct NativeStreamApp: App {
                         .environment(favourites)
                         .environment(serverHealth)
                         .environment(channelManager)
+                        .environment(discoveryService)
                 }
             }
             
@@ -66,6 +69,7 @@ struct NativeStreamApp: App {
                 .environment(playlistVM)
                 .environment(serverHealth)
                 .environment(channelManager)
+                .environment(discoveryService)
         }
     }
 }

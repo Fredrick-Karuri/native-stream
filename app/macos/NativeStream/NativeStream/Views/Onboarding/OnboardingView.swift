@@ -13,6 +13,8 @@ struct OnboardingView: View {
     @Environment(SettingsStore.self)         private var settings
     @Environment(PlaylistViewModel.self)     private var playlistVM
     @Environment(ServerHealthViewModel.self) private var serverHealth
+    @Environment(ServerDiscoveryService.self) private var discovery
+
 
     @State private var step: OnboardingStep = .serverCheck
     @State private var isChecking = false
@@ -53,6 +55,11 @@ struct OnboardingView: View {
         }
         .frame(width: 500, height: 440)
         .background(NS.bg)
+        .onAppear { discovery.scan() }
+        .onChange(of: discovery.discoveredURL) { _, url in
+            guard let url else { return }
+            settings.confirmDiscoveredURL(url)
+        }
     }
 
     // MARK: - Step 1: Server check
@@ -67,23 +74,51 @@ struct OnboardingView: View {
                 .font(NS.Font.display)
                 .foregroundStyle(NS.text)
 
-            Text("Make sure StreamServer is running.\nOpen Terminal and run:")
-                .font(NS.Font.body)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(NS.text3)
+            if let found = discovery.discoveredURL {
+                // Server found via mDNS
+                Text("Server found on your network!")
+                    .font(NS.Font.body)
+                    .foregroundStyle(NS.text3)
 
-            NSCodeBlock(code: "make run-server")
-            NSCodeBlock(code: "make install-service")
+                Text(found.absoluteString)
+                    .font(NS.Font.monoSm)
+                    .foregroundStyle(NS.accent)
 
-            HStack(spacing: NS.Spacing.md) {
-                Button("Skip") { withAnimation { step = .channelSetup } }
-                    .buttonStyle(.bordered)
+                HStack(spacing: NS.Spacing.md) {
+                    Button("Enter manually") { withAnimation { step = .channelSetup } }
+                        .buttonStyle(.bordered)
 
-                Button(isChecking ? "Checking…" : "Check Connection") {
-                    Task { await checkServer() }
+                    Button("Use this server") {
+                        settings.confirmDiscoveredURL(found)
+                        withAnimation { step = .channelSetup }
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(isChecking)
+            } else {
+                // Scanning / manual fallback
+                Text(discovery.isScanning
+                     ? "Scanning your network for NativeStream server…\nOr enter the server URL manually."
+                     : "Make sure StreamServer is running.\nOr enter the server URL manually.")
+                    .font(NS.Font.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(NS.text3)
+
+                if discovery.isScanning {
+                    ProgressView().controlSize(.small)
+                }
+
+                NSCodeBlock(code: "make run-server")
+
+                HStack(spacing: NS.Spacing.md) {
+                    Button("Skip") { withAnimation { step = .channelSetup } }
+                        .buttonStyle(.bordered)
+
+                    Button(isChecking ? "Checking…" : "Check Connection") {
+                        Task { await checkServer() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isChecking)
+                }
             }
         }
         .padding(NS.Spacing.xxl)

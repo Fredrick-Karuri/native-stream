@@ -1,4 +1,4 @@
-// ServerHealthViewModel.swift — NS-160, NS-161
+// ServerHealthViewModel.swift
 // Monitors StreamServer connectivity and exposes status to the UI.
 
 import Foundation
