@@ -32,21 +32,34 @@ struct NSIconButton: View {
 // MARK: - NSChip
 
 struct NSChip: View {
-    let label: String
+    let label:    String
     let isActive: Bool
-    var action: (() -> Void)? = nil
+    var icon:     String? = nil
+    let action:   () -> Void
 
     var body: some View {
-        Button(action: { action?() }) {
-            Text(label)
-                .font(NS.Font.captionMed)
-                .foregroundStyle(isActive ? NS.accent2 : NS.text3)
-                .padding(.horizontal, NS.Chip.paddingH)
-                .frame(height: NS.Chip.height)
-                .background(isActive ? NS.accentGlow : Color.clear)
-                .clipShape(Capsule())
-                .contentShape(.interaction, Capsule())
-                .overlay(Capsule().stroke(isActive ? NS.accentBorder : NS.border2))
+        Button(action: action) {
+            HStack(spacing: NS.Spacing.xs) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 10))
+                        .foregroundStyle(isActive ? NS.accent2 : NS.text3)
+                }
+                Text(label)
+                    .font(NS.Font.caption)
+                    .foregroundStyle(isActive ? NS.accent2 : NS.text3)
+            }
+            .padding(.horizontal, NS.Spacing.lg)
+            .padding(.vertical, NS.Spacing.sm)
+            .background(isActive ? NS.accentGlow : NS.surface2)
+            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.pill))
+            .overlay(
+                RoundedRectangle(cornerRadius: NS.Radius.pill)
+                    .strokeBorder(
+                        isActive ? NS.accentBorder : NS.border,
+                        lineWidth: 0.5
+                    )
+            )
         }
         .buttonStyle(.plain)
     }

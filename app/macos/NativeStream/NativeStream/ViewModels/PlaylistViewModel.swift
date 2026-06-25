@@ -1,4 +1,4 @@
-// NS-031 + NS-032: PlaylistViewModel
+// PlaylistViewModel
 // Owns the channel list, loading state, and auto-refresh scheduling.
 
 import Foundation
@@ -68,7 +68,25 @@ final class PlaylistViewModel {
                         for warning in result.warnings {
                             print("⚠️ [M3U] Line \(warning.line): \(warning.reason)")
                         }
-                        return (result.channels, result.epgURL, source.id)
+                        let tagged = result.channels.map { channel in
+                            Channel(
+                                tvgId:         channel.tvgId,
+                                name:          channel.name,
+                                groupTitle:    channel.groupTitle,
+                                subGroupTitle: channel.subGroupTitle,
+                                sourceId:      source.id.uuidString,
+                                logoURL:       channel.logoURL,
+                                streamURL:     channel.streamURL,
+                                streamHeaders: channel.streamHeaders
+                            )
+                        }
+                        // Write channel count back to source
+                        await MainActor.run {
+                            if let idx = self.sources.firstIndex(where: { $0.id == source.id }) {
+                                self.sources[idx].channelCount = tagged.count
+                            }
+                        }
+                        return (tagged, result.epgURL, source.id)
                     } catch {
                         await MainActor.run {
                             self.error = error as? AppError ?? .playlistFetchFailed(url: source.url, underlying: error)

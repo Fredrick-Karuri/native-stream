@@ -9,6 +9,8 @@ import SwiftUI
         
         let channel: Channel
         let onTap: () -> Void
+        var showSourceBadge: Bool            = false
+        var sources:         [PlaylistSource] = []
         
         @State private var isHovered = false
         
@@ -70,6 +72,32 @@ import SwiftUI
                             .foregroundStyle(NS.text3)
                             .lineLimit(1)
                     }
+
+                    // Source badge — visible only in all-sources mode
+                    if showSourceBadge,
+                       let source = sources.first(where: { $0.id.uuidString == channel.sourceId }) {
+                        HStack(spacing: NS.Spacing.xs) {
+                            Circle()
+                                .fill(Color(hex: source.colorHex))
+                                .frame(width: 5, height: 5)
+                            Text(source.label)
+                                .font(NS.Font.monoSm)
+                                .foregroundStyle(NS.text3)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, NS.Spacing.sm)
+                        .padding(.vertical, 2)
+                        .background(
+                            Color(hex: source.colorHex).opacity(0.08)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: NS.Radius.pill))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: NS.Radius.pill)
+                                .strokeBorder(Color(hex: source.colorHex).opacity(0.25),
+                                              lineWidth: 0.5)
+                        )
+                    }
+
                     
                 }
             }
