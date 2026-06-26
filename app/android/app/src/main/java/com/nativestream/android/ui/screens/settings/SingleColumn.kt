@@ -115,15 +115,6 @@ fun SettingsSingleColumn(
                         }
                     },
                 )
-                SettingsDivider()
-                SettingsIconRow(
-                    iconBackground = COLOR_RED,
-                    iconTint       = TINT_RED,
-                    icon           = PhosphorIcons.Regular.ArrowCounterClockwise,
-                    title          = "Reset App",
-                    subtitle       = "Clear all settings and restart onboarding",
-                    onClick        = { showResetConfirm = true },
-                )
             }
         }
         item {
@@ -196,7 +187,7 @@ fun SettingsSingleColumn(
                         .fillMaxWidth()
                         .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
                 ) {
-                    RowIcon(background = COLOR_RED, tint = TINT_RED, icon = PhosphorIcons.Regular.FileLock)
+                    RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.FileLock)
                     Spacer(modifier = Modifier.width(dimens.spacing.sm))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(text = "Enable proxy", style = NSType.bodyMedium(), color = NSColors.text)
@@ -204,6 +195,18 @@ fun SettingsSingleColumn(
                     }
                     NSToggle(checked = proxyEnabled, onCheckedChange = { onProxyEnabled(it) })
                 }
+            }
+        }
+        item {
+            SettingsSection(label = "System") {
+                SettingsIconRow(
+                    iconBackground = COLOR_RED,
+                    iconTint       = TINT_RED,
+                    icon           = PhosphorIcons.Regular.ArrowCounterClockwise,
+                    title          = "Reset App",
+                    subtitle       = "Clear all settings and restart onboarding",
+                    onClick        = { showResetConfirm = true },
+                )
             }
         }
 

@@ -58,14 +58,16 @@ val TINT_AMBER   = Color(0xFFF59E0B)
 val TINT_RED     = Color(0xFFEF4444)
 
 enum class SettingsSection {
-    SERVER, SOURCES, PLAYBACK, PROXY;
+    SERVER, SOURCES, PLAYBACK, PROXY, SYSTEM;
     val label get() = when (this) {
         SERVER   -> "Server"
         SOURCES  -> "Sources"
         PLAYBACK -> "Playback"
         PROXY    -> "Proxy"
+        SYSTEM   -> "System"
     }
 }
+
 
 @Composable
 fun settingsFieldModifier(): Modifier {
