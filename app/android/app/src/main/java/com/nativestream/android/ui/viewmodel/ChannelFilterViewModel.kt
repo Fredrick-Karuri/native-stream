@@ -15,9 +15,9 @@ package com.nativestream.android.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nativestream.android.data.local.SettingsDataStore
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.SportCategory
-import com.nativestream.android.domain.model.isAll
 import com.nativestream.android.domain.repository.ChannelRepository
 import com.nativestream.android.ui.screens.browse.ChannelSection
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,7 +37,7 @@ private const val SEARCH_DEBOUNCE_MS = 150L
 @HiltViewModel
 class ChannelFilterViewModel @Inject constructor(
     private val channelRepository: ChannelRepository,
-    private val sourceViewModel: SourceViewModel,
+    private val settingsDataStore: SettingsDataStore,
 ) : ViewModel() {
 
     // ── Filter inputs ─────────────────────────────────────────────────────────
@@ -59,14 +59,14 @@ class ChannelFilterViewModel @Inject constructor(
 
     val filteredChannels: StateFlow<List<Channel>> = combine(
         channelRepository.channels,
-        sourceViewModel.selectedSource,
-    ) { channels, source ->
-        if (source == null || source.isAll) channels
-        else channels.filter { it.sourceId == source.id }
+        settingsDataStore.selectedSourceId,
+    ) { channels, selectedId ->
+        if (selectedId.isEmpty()) channels
+        else channels.filter { it.sourceId == selectedId }
     }.stateIn(
-        scope          = viewModelScope,
-        started        = SharingStarted.WhileSubscribed(5_000),
-        initialValue   = emptyList(),
+        scope        = viewModelScope,
+        started      = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList(),
     )
 
     // ── Sub-groups derived from source-filtered channels ──────────────────────

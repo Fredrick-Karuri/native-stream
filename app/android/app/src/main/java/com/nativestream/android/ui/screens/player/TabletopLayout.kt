@@ -37,14 +37,12 @@ import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.CastViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)@Composable
 fun PlayerTabletopLayout(
     playerViewModel: PlayerViewModel,
     castViewModel: CastViewModel,
     epgViewModel: EpgViewModel?,
-    playlistViewModel: PlaylistViewModel?,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {

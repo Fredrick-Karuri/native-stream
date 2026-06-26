@@ -6,8 +6,7 @@
  * No business logic — delegates filter actions to ChannelFilterViewModel and
  * source actions to SourceViewModel.
  *
- * Also owns the selectedSource → deselect-channel side-effect that previously
- * lived as a LaunchedEffect in BrowseScreen.
+ * Also owns the selectedSource → deselect-channel side-effect
  */
 
 package com.nativestream.android.ui.viewmodel
@@ -23,9 +22,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class BrowseViewModel @Inject constructor(
-    private val sourceViewModel: SourceViewModel,
-) : ViewModel() {
+class BrowseViewModel @Inject constructor() : ViewModel() {
 
     // ── Sheet visibility ──────────────────────────────────────────────────────
 
@@ -81,21 +78,4 @@ class BrowseViewModel @Inject constructor(
 
     fun selectChannel(id: String?) { _selectedChannelId.value = id }
 
-    // ── Side-effects ──────────────────────────────────────────────────────────
-
-    init {
-        // Deselect channel when the user switches to a source it doesn't belong to.
-        // Mirrors the LaunchedEffect(selectedSource) that previously lived in BrowseScreen.
-        viewModelScope.launch {
-            sourceViewModel.selectedSource.collect { source ->
-                val currentId = _selectedChannelId.value ?: return@collect
-                if (source != null && !source.isAll) {
-                    // Channel ID format is "{sourceId}_{tvgId|streamUrl}" — prefix check is safe
-                    if (!currentId.startsWith(source.id)) {
-                        _selectedChannelId.value = null
-                    }
-                }
-            }
-        }
-    }
 }

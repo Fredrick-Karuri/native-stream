@@ -1,8 +1,11 @@
-// app/src/main/java/com/nativestream/android/ui/screens/settings/SettingsScreen.kt
-//
-// Settings Screen — adaptive layout:
-//   Compact  → single scrollable column (phone)
-//   Medium/Expanded → two-pane sidebar layout (tablet)
+/**
+ * app/src/main/java/com/nativestream/android/ui/screens/settings/SettingsScreen.kt
+ *
+ * Settings Screen — adaptive layout:
+ *   Compact       → single scrollable column (phone)
+ *   Expanded      → two-pane sidebar layout (tablet)
+ *
+ */
 
 package com.nativestream.android.ui.screens.settings
 
@@ -41,10 +44,10 @@ import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
+import com.nativestream.android.ui.viewmodel.SourceViewModel
 
-// Icon background colours matching design
 val COLOR_BLUE   = Color(0xFF0EA5E9).copy(alpha = 0.12f)
 val COLOR_GREEN  = Color(0xFF10B981).copy(alpha = 0.12f)
 val COLOR_AMBER  = Color(0xFFF59E0B).copy(alpha = 0.12f)
@@ -79,11 +82,12 @@ fun settingsFieldModifier(): Modifier {
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
-    settingsViewModel: SettingsViewModel = hiltViewModel(),
-    playlistViewModel: PlaylistViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel        = hiltViewModel(),
+    sourceViewModel:   SourceViewModel          = hiltViewModel(),
+    loadingViewModel:  ChannelLoadingViewModel  = hiltViewModel(),
 ) {
-    val dimens = NSDimens.current
-    val serverUrl    by settingsViewModel.serverUrl.collectAsState()
+    val dimens    = NSDimens.current
+    val serverUrl by settingsViewModel.serverUrl.collectAsState()
     LaunchedEffect(Unit) { settingsViewModel.checkHealth() }
 
     var proxyEnabled by remember { mutableStateOf(false) }
@@ -96,28 +100,26 @@ fun SettingsScreen(
     val scope             = rememberCoroutineScope()
     var showAddSource     by remember { mutableStateOf(false) }
 
-    var showEpgUrlDialog  by remember { mutableStateOf(false) }
-    var epgInput          by remember { mutableStateOf("") }
+    var showEpgUrlDialog by remember { mutableStateOf(false) }
+    var epgInput         by remember { mutableStateOf("") }
 
-    var editingSourceEpg  by remember { mutableStateOf<Pair<String, String?>?>(null) }
+    var editingSourceEpg by remember { mutableStateOf<Pair<String, String?>?>(null) }
 
     val windowSizeClass = LocalWindowSizeClass.current
     val isTablet = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
             && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
-    val useSidebar = isTablet
+
     val discoveredUrl by settingsViewModel.discoveredUrl.collectAsState()
     LaunchedEffect(discoveredUrl) {
         discoveredUrl?.let { settingsViewModel.confirmDiscoveredUrl(it) }
     }
 
-
     Scaffold(
         snackbarHost   = { SnackbarHost(snackbarHostState) },
         containerColor = NSColors.bg,
-    ) { paddingValues ->
+    ) { _ ->
         Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
 
-            // Top bar
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -130,10 +132,11 @@ fun SettingsScreen(
             }
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
-            if (useSidebar) {
+            if (isTablet) {
                 SettingsTwoPane(
                     settingsViewModel   = settingsViewModel,
-                    playlistViewModel   = playlistViewModel,
+                    sourceViewModel     = sourceViewModel,
+                    loadingViewModel    = loadingViewModel,
                     showAddSource       = showAddSource,
                     onShowAddSource     = { showAddSource = it },
                     showServerUrlDialog = showServerUrlDialog,
@@ -155,7 +158,8 @@ fun SettingsScreen(
             } else {
                 SettingsSingleColumn(
                     settingsViewModel   = settingsViewModel,
-                    playlistViewModel   = playlistViewModel,
+                    sourceViewModel     = sourceViewModel,
+                    loadingViewModel    = loadingViewModel,
                     showAddSource       = showAddSource,
                     onShowAddSource     = { showAddSource = it },
                     showServerUrlDialog = showServerUrlDialog,

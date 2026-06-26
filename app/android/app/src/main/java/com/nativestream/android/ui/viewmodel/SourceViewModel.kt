@@ -5,7 +5,6 @@
  * Dependencies: SettingsDataStore (persistence) and ChannelCache (clearing stale
  * cache on source removal). No network, no channel loading, no filter logic.
  *
- * PlaylistViewModel delegates to this during the facade period (SRP-002 → SRP-008).
  */
 
 package com.nativestream.android.ui.viewmodel

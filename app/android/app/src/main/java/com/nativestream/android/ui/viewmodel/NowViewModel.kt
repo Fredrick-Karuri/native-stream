@@ -9,9 +9,6 @@
  * isRefreshing) directly from EpgViewModel — this avoids the Hilt constraint
  * that prevents one @HiltViewModel from being constructor-injected into another.
  *
- * Replaces the LaunchedEffect(channels) { epgViewModel.updateChannels(channels) }
- * that previously lived in NowScreen, and removes NowScreen's dependency on
- * PlaylistViewModel entirely.
  */
 
 package com.nativestream.android.ui.viewmodel

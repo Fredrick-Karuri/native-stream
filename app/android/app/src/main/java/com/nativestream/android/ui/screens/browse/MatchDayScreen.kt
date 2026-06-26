@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.domain.model.SportCategory
+import com.nativestream.android.domain.repository.ChannelRepository
 import com.nativestream.android.ui.components.NSGroupHeader
 import com.nativestream.android.ui.components.NSProgressBar
 import com.nativestream.android.ui.components.NSPulseDot
@@ -49,7 +50,6 @@ import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSGradients
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.EpgViewModel
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -64,12 +64,12 @@ private val dateFormatter               = SimpleDateFormat("EEEE d MMM", Locale.
 @Composable
 fun MatchDayScreen(
     sport: SportCategory,
-    playlistViewModel: PlaylistViewModel,
+    channelRepository: ChannelRepository,
     epgViewModel: EpgViewModel,
     onSelectChannel: (Channel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val channels by playlistViewModel.channels.collectAsState()
+    val channels by channelRepository.channels.collectAsState()
 
     val allMatches = remember(channels, sport) {
         buildMatchItems(channels, sport, epgViewModel)

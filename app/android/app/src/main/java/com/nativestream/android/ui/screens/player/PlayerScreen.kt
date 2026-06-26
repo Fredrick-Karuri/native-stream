@@ -20,7 +20,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.nativestream.android.ui.foldable.rememberFoldPosture
 import com.nativestream.android.ui.viewmodel.CastViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 
 @Composable
@@ -29,7 +28,6 @@ fun PlayerScreen(
     castViewModel: CastViewModel,
     onDismiss: () -> Unit,
     epgViewModel: EpgViewModel?           = null,
-    playlistViewModel: PlaylistViewModel? = null,
     modifier: Modifier = Modifier,
 ) {
     val context       = LocalContext.current
@@ -48,11 +46,6 @@ fun PlayerScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(playlistViewModel) {
-        playlistViewModel?.channels?.collect { channels ->
-            playerViewModel.setChannelList(channels)
-        }
-    }
 
     DisposableEffect(Unit) {
         activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
@@ -66,7 +59,6 @@ fun PlayerScreen(
             playerViewModel   = playerViewModel,
             castViewModel     = castViewModel,
             epgViewModel      = epgViewModel,
-            playlistViewModel = playlistViewModel,
             onDismiss         = onDismiss,
             modifier          = modifier,
         )
@@ -75,7 +67,6 @@ fun PlayerScreen(
             playerViewModel   = playerViewModel,
             castViewModel     = castViewModel,
             epgViewModel      = epgViewModel,
-            playlistViewModel = playlistViewModel,
             onDismiss         = onDismiss,
             modifier          = modifier,
         )

@@ -53,7 +53,7 @@ class ChannelLoadingViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val channelCache: ChannelCache,
     private val channelRepository: ChannelRepositoryImpl,
-    private val sourceViewModel: SourceViewModel,
+
     @Named("io") private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
 
@@ -68,9 +68,12 @@ class ChannelLoadingViewModel @Inject constructor(
 
     private var autoRefreshJob: Job? = null
 
+    private val _sources = MutableStateFlow<List<PlaylistSource>>(emptyList())
+
     init {
         viewModelScope.launch {
-            sourceViewModel.sources.collect { sources ->
+            settingsDataStore.sources.collect { sources ->
+                _sources.value = sources
                 if (sources.isNotEmpty()) {
                     loadFromCacheThenRefresh(sources)
                 }
@@ -118,7 +121,7 @@ class ChannelLoadingViewModel @Inject constructor(
             }
             _error.value = null
             try {
-                val allChannels = fetchAllSourcesInParallel(sourceViewModel.sources.value)
+                val allChannels = fetchAllSourcesInParallel(_sources.value)
                 channelRepository.emit(allChannels)
             } catch (e: Exception) {
                 _error.value = e.message
@@ -186,7 +189,7 @@ class ChannelLoadingViewModel @Inject constructor(
         autoRefreshJob?.cancel()
         autoRefreshJob = viewModelScope.launch {
             while (true) {
-                val intervalMs = sourceViewModel.sources.value
+                val intervalMs = _sources.value
                     .filter { it.refreshIntervalHours > 0 }
                     .minOfOrNull { it.refreshIntervalHours * 3_600_000L }
                     ?: FALLBACK_REFRESH_INTERVAL_MS

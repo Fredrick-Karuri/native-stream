@@ -1,3 +1,11 @@
+/**
+ * app/src/main/java/com/nativestream/android/ui/screens/settings/SettingsSingleColumn.kt
+ *
+ * Single-column settings layout (phone).
+ * PlaylistViewModel replaced by SourceViewModel (CRUD) and
+ * ChannelLoadingViewModel (reload trigger).
+ */
+
 package com.nativestream.android.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
@@ -28,15 +36,16 @@ import com.adamglin.phosphoricons.regular.Play
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
+import com.nativestream.android.ui.viewmodel.SourceViewModel
 import kotlinx.coroutines.launch
-
 
 @Composable
 fun SettingsSingleColumn(
     settingsViewModel: SettingsViewModel,
-    playlistViewModel: PlaylistViewModel,
+    sourceViewModel: SourceViewModel,
+    loadingViewModel: ChannelLoadingViewModel,
     showAddSource: Boolean,
     onShowAddSource: (Boolean) -> Unit,
     showServerUrlDialog: Boolean,
@@ -58,7 +67,7 @@ fun SettingsSingleColumn(
     val dimens       = NSDimens.current
     val serverUrl    by settingsViewModel.serverUrl.collectAsState()
     val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
-    val sources      by playlistViewModel.sources.collectAsState()
+    val sources      by sourceViewModel.sources.collectAsState()
     val serverReachable by settingsViewModel.serverReachable.collectAsState()
 
     LazyColumn(
@@ -117,10 +126,10 @@ fun SettingsSingleColumn(
                         refreshHours = source.refreshIntervalHours,
                         isHealthy    = true,
                         onEpgEdit    = { epg -> onEditingSourceEpg(source.id to epg) },
-                        onRefresh    = { playlistViewModel.loadAll() },
+                        onRefresh    = { loadingViewModel.loadAll() },
                         onDelete     = {
-                            playlistViewModel.removeSource(source.id)
-                            playlistViewModel.loadAll()
+                            sourceViewModel.removeSource(source.id)
+                            loadingViewModel.loadAll()
                         },
                     )
                 }
@@ -191,20 +200,21 @@ fun SettingsSingleColumn(
     }
 
     SettingsDialogs(
-        settingsViewModel   = settingsViewModel,
-        playlistViewModel   = playlistViewModel,
-        showAddSource       = showAddSource,
-        onShowAddSource     = onShowAddSource,
+        settingsViewModel  = settingsViewModel,
+        sourceViewModel    = sourceViewModel,
+        loadingViewModel   = loadingViewModel,
+        showAddSource      = showAddSource,
+        onShowAddSource    = onShowAddSource,
         showServerUrlDialog = showServerUrlDialog,
-        onShowServerUrl     = onShowServerUrl,
-        urlInput            = urlInput,
-        onUrlInput          = onUrlInput,
-        showEpgUrlDialog    = showEpgUrlDialog,
-        onShowEpgUrl        = onShowEpgUrl,
-        epgInput            = epgInput,
-        onEpgInput          = onEpgInput,
-        editingSourceEpg    = editingSourceEpg,
-        onEditingSourceEpg  = onEditingSourceEpg,
-        sources             = sources,
+        onShowServerUrl    = onShowServerUrl,
+        urlInput           = urlInput,
+        onUrlInput         = onUrlInput,
+        showEpgUrlDialog   = showEpgUrlDialog,
+        onShowEpgUrl       = onShowEpgUrl,
+        epgInput           = epgInput,
+        onEpgInput         = onEpgInput,
+        editingSourceEpg   = editingSourceEpg,
+        onEditingSourceEpg = onEditingSourceEpg,
+        sources            = sources,
     )
 }

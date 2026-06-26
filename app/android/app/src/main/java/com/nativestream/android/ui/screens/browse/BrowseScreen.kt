@@ -7,7 +7,6 @@
  * Source CRUD    → SourceViewModel
  * Loading state  → ChannelLoadingViewModel
  *
- * PlaylistViewModel is no longer referenced here.
  */
 
 package com.nativestream.android.ui.screens.browse
@@ -46,6 +45,7 @@ import com.nativestream.android.ui.viewmodel.FavouritesViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import com.nativestream.android.ui.viewmodel.SourceViewModel
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import com.nativestream.android.domain.model.isAll
 import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.NSSourcePickerSheet
 import com.nativestream.android.ui.components.AddSourceSheet
@@ -112,6 +112,14 @@ fun BrowseScreen(
     val favouriteIds by favouritesViewModel.favouriteIds.collectAsState()
     LaunchedEffect(favouriteIds) {
         filterViewModel.updateFavouriteIds(favouriteIds)
+    }
+
+    LaunchedEffect(selectedSource) {
+        val source = selectedSource ?: return@LaunchedEffect
+        val currentId = browseViewModel.selectedChannelId.value ?: return@LaunchedEffect
+        if (!source.isAll && !currentId.startsWith(source.id)) {
+            browseViewModel.selectChannel(null)
+        }
     }
 
     // ── Layout ────────────────────────────────────────────────────────────────

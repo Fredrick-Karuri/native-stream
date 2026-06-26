@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.MoreExecutors
 import com.nativestream.android.data.player.NativeStreamPlaybackService
 import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
+import com.nativestream.android.domain.repository.ChannelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -57,6 +58,7 @@ private val SCORE_REGEX                    = Regex("""(\d+)\s*[–\-]\s*(\d+)"""
 class PlayerViewModel @Inject constructor(
     application: Application,
     private val apiClient: ApiClient,
+    private val channelRepository: ChannelRepository,
 ) : AndroidViewModel(application) {
 
     // ── Player (MediaController → service) ───────────────────────────────────
@@ -307,16 +309,16 @@ class PlayerViewModel @Inject constructor(
     }
 
 
-    // ── Sidebar channel list ────────────────────────────────────────
-    // Populated from PlaylistViewModel when sidebar opens.
+    // ── Sidebar channel list ──────────────────────────────────────────
+    // Sourced directly from ChannelRepository — no external setter needed.
 
-    private val _channelList =
-        MutableStateFlow<List<com.nativestream.android.domain.model.Channel>>(emptyList())
-    val channelList: StateFlow<List<com.nativestream.android.domain.model.Channel>> =
-        _channelList.asStateFlow()
+    private val _channelList = MutableStateFlow<List<Channel>>(emptyList())
+    val channelList: StateFlow<List<Channel>> = _channelList.asStateFlow()
 
-    fun setChannelList(channels: List<com.nativestream.android.domain.model.Channel>) {
-        _channelList.value = channels
+    init {
+        viewModelScope.launch {
+            channelRepository.channels.collect { _channelList.value = it }
+        }
     }
 
     // ── Sidebar visibility ────────────────────────────────────────────────────
