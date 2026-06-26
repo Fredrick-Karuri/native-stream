@@ -1,10 +1,10 @@
-// app/src/main/java/com/nativestream/android/ui/screens/browse/AddChannelSheet.kt
-//
-// Bottom sheet triggered from Browse :
-//   - Fields: Stream URL (required), Name (required), Group, TVG ID
-//   - Validation prevents empty submit
-//   - Inline error display on failure
-//   - Success → calls onDone() so caller reloads playlist
+/**
+ * app/src/main/java/com/nativestream/android/ui/screens/browse/AddChannelSheet.kt
+ *
+ * Bottom sheet for adding a single channel via the server API.
+ * Previously typed to PlaylistViewModel for the post-add reload —
+ * now accepts ChannelLoadingViewModel directly, which owns loadAll().
+ */
 
 package com.nativestream.android.ui.screens.browse
 
@@ -37,8 +37,8 @@ import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import com.nativestream.android.ui.viewmodel.ChannelManagerViewModel
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 
 private const val DEFAULT_GROUP = "General"
 
@@ -46,7 +46,7 @@ private const val DEFAULT_GROUP = "General"
 @Composable
 fun AddChannelSheet(
     onDone: () -> Unit,
-    playlistViewModel: PlaylistViewModel,
+    loadingViewModel: ChannelLoadingViewModel,
     modifier: Modifier = Modifier,
     channelManagerViewModel: ChannelManagerViewModel = hiltViewModel(),
 ) {
@@ -62,19 +62,19 @@ fun AddChannelSheet(
     val canSubmit = name.isNotBlank() && streamUrl.isNotBlank() && !isLoading
 
     ModalBottomSheet(
-        onDismissRequest  = onDone,
-        sheetState        = sheetState,
-        containerColor    = NSColors.surface,
-        modifier          = modifier,
+        onDismissRequest = onDone,
+        sheetState       = sheetState,
+        containerColor   = NSColors.surface,
+        modifier         = modifier,
     ) {
         AddChannelContent(
-            name           = name,
-            streamUrl      = streamUrl,
-            groupTitle     = groupTitle,
-            tvgId          = tvgId,
-            isLoading      = isLoading,
-            error          = serverError,
-            canSubmit      = canSubmit,
+            name               = name,
+            streamUrl          = streamUrl,
+            groupTitle         = groupTitle,
+            tvgId              = tvgId,
+            isLoading          = isLoading,
+            error              = serverError,
+            canSubmit          = canSubmit,
             onNameChange       = { name = it },
             onStreamUrlChange  = { streamUrl = it },
             onGroupTitleChange = { groupTitle = it },
@@ -90,7 +90,7 @@ fun AddChannelSheet(
                     streamUrl  = streamUrl,
                     keywords   = keywords,
                     onSuccess  = {
-                        playlistViewModel.loadAll()
+                        loadingViewModel.loadAll()
                         onDone()
                     },
                 )
@@ -127,15 +127,13 @@ private fun AddChannelContent(
     ) {
         Text(text = "Add Channel", style = NSType.heading(), color = NSColors.text)
 
-        // ── Fields ────────────────────────────────────────────────────────────
         Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
-            LabelledField(label = "Stream URL *", placeholder = "https://…", value = streamUrl, onChange = onStreamUrlChange)
-            LabelledField(label = "Name *",       placeholder = "e.g. NBC",   value = name,      onChange = onNameChange)
+            LabelledField(label = "Stream URL *", placeholder = "https://…",   value = streamUrl,  onChange = onStreamUrlChange)
+            LabelledField(label = "Name *",       placeholder = "e.g. NBC",    value = name,       onChange = onNameChange)
             LabelledField(label = "Group",        placeholder = "e.g. Sports", value = groupTitle, onChange = onGroupTitleChange)
-            LabelledField(label = "TVG ID",       placeholder = "optional",    value = tvgId,     onChange = onTvgIdChange)
+            LabelledField(label = "TVG ID",       placeholder = "optional",    value = tvgId,      onChange = onTvgIdChange)
         }
 
-        // ── Inline error ──────────────────────────────────────────────────────
         error?.let {
             Text(
                 text     = it,
@@ -150,25 +148,14 @@ private fun AddChannelContent(
             )
         }
 
-        // ── Action buttons ────────────────────────────────────────────────────
         Row(
             horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment     = Alignment.CenterVertically,
+            modifier              = Modifier.fillMaxWidth(),
         ) {
-            SheetButton(
-                label    = "Cancel",
-                enabled  = true,
-                isPrimary = false,
-                onClick  = onCancel,
-            )
+            SheetButton(label = "Cancel",                              enabled = true,      isPrimary = false, onClick = onCancel)
             Spacer(modifier = Modifier.width(dimens.spacing.sm))
-            SheetButton(
-                label     = if (isLoading) "Adding…" else "Add Channel",
-                enabled   = canSubmit,
-                isPrimary = true,
-                onClick   = onSubmit,
-            )
+            SheetButton(label = if (isLoading) "Adding…" else "Add Channel", enabled = canSubmit, isPrimary = true,  onClick = onSubmit)
         }
     }
 }
