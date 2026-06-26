@@ -2,8 +2,6 @@
  * app/src/main/java/com/nativestream/android/ui/screens/settings/SettingsTwoPane.kt
  *
  * Two-pane sidebar settings layout (tablet).
- * PlaylistViewModel replaced by SourceViewModel (CRUD) and
- * ChannelLoadingViewModel (reload trigger).
  */
 
 package com.nativestream.android.ui.screens.settings

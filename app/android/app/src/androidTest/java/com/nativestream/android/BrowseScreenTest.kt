@@ -13,7 +13,7 @@ import com.nativestream.android.domain.model.SportCategory
 import com.nativestream.android.ui.screens.browse.BrowseScreen
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.FavouritesViewModel
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
+import com.nativestream.android.domain.repository.ChannelRepository
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -30,7 +30,7 @@ class BrowseScreenTest {
     @get:Rule(order = 0) val hiltRule = HiltAndroidRule(this)
     @get:Rule(order = 1) val composeRule = createComposeRule()
 
-    private lateinit var playlistViewModel: PlaylistViewModel
+    private lateinit var channelRepository: ChannelRepository
     private lateinit var epgViewModel: EpgViewModel
     private lateinit var favouritesViewModel: FavouritesViewModel
     private lateinit var playerViewModel: PlayerViewModel
@@ -47,13 +47,12 @@ class BrowseScreenTest {
     @Before
     fun setUp() {
         hiltRule.inject()
-        playlistViewModel   = mockk(relaxed = true)
+        channelRepository = mockk(relaxed = true)
         epgViewModel        = mockk(relaxed = true)
         favouritesViewModel = mockk(relaxed = true)
         playerViewModel     = mockk(relaxed = true)
 
-        every { playlistViewModel.channels  } returns MutableStateFlow(sportsChannels)
-        every { playlistViewModel.isLoading } returns MutableStateFlow(false)
+        every { channelRepository.channels } returns MutableStateFlow(sportsChannels)
         every { favouritesViewModel.favouriteIds } returns MutableStateFlow(emptySet())
         every { playerViewModel.activeChannel    } returns MutableStateFlow(null)
         every { epgViewModel.activeSports(any()) } returns emptyList()
@@ -65,8 +64,8 @@ class BrowseScreenTest {
     @Test
     fun allChipSelectedByDefault() {
         composeRule.setContent {
-            BrowseScreen(playerViewModel = playerViewModel,
-                playlistViewModel = playlistViewModel,
+            BrowseScreen(
+                playerViewModel = playerViewModel,
                 epgViewModel = epgViewModel,
                 favouritesViewModel = favouritesViewModel)
         }
@@ -79,8 +78,8 @@ class BrowseScreenTest {
     @Test
     fun tappingGroupChip_filtersGridToThatGroupOnly() {
         composeRule.setContent {
-            BrowseScreen(playerViewModel = playerViewModel,
-                playlistViewModel = playlistViewModel,
+            BrowseScreen(
+                playerViewModel = playerViewModel,
                 epgViewModel = epgViewModel,
                 favouritesViewModel = favouritesViewModel)
         }
@@ -93,8 +92,8 @@ class BrowseScreenTest {
     @Test
     fun tappingGroupChip_showsCorrectChannelCountLabel() {
         composeRule.setContent {
-            BrowseScreen(playerViewModel = playerViewModel,
-                playlistViewModel = playlistViewModel,
+            BrowseScreen(
+                playerViewModel = playerViewModel,
                 epgViewModel = epgViewModel,
                 favouritesViewModel = favouritesViewModel)
         }
@@ -109,8 +108,8 @@ class BrowseScreenTest {
         every { epgViewModel.activeSports(any()) } returns listOf(SportCategory.FOOTBALL)
 
         composeRule.setContent {
-            BrowseScreen(playerViewModel = playerViewModel,
-                playlistViewModel = playlistViewModel,
+            BrowseScreen(
+                playerViewModel = playerViewModel,
                 epgViewModel = epgViewModel,
                 favouritesViewModel = favouritesViewModel)
         }

@@ -2,8 +2,6 @@
  * app/src/main/java/com/nativestream/android/ui/components/AddSourceSheet.kt
  *
  * Bottom sheet for adding a new playlist source.
- * Previously typed to PlaylistViewModel — now accepts SourceViewModel (CRUD)
- * and ChannelLoadingViewModel (reload trigger) separately, matching the SRP split.
  */
 
 package com.nativestream.android.ui.components

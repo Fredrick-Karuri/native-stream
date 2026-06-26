@@ -5,7 +5,6 @@
  * Channel bridge  → NowViewModel (observes ChannelRepository → EpgViewModel)
  * EPG bucket data → EpgViewModel (liveMatches, liveOnAir, startingSoon, isRefreshing)
  *
- * PlaylistViewModel is no longer referenced here.
  */
 
 package com.nativestream.android.ui.screens.now

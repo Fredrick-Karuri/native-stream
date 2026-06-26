@@ -2,8 +2,6 @@
  * app/src/main/java/com/nativestream/android/ui/screens/settings/SettingsSingleColumn.kt
  *
  * Single-column settings layout (phone).
- * PlaylistViewModel replaced by SourceViewModel (CRUD) and
- * ChannelLoadingViewModel (reload trigger).
  */
 
 package com.nativestream.android.ui.screens.settings

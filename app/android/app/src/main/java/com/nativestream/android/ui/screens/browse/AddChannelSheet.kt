@@ -2,8 +2,7 @@
  * app/src/main/java/com/nativestream/android/ui/screens/browse/AddChannelSheet.kt
  *
  * Bottom sheet for adding a single channel via the server API.
- * Previously typed to PlaylistViewModel for the post-add reload —
- * now accepts ChannelLoadingViewModel directly, which owns loadAll().
+ *
  */
 
 package com.nativestream.android.ui.screens.browse
