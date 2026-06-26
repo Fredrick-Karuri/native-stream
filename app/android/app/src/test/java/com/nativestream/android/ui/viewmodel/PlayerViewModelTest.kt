@@ -14,6 +14,7 @@ import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.data.remote.ChannelDetailResponse
 import com.nativestream.android.data.remote.LinkScoreResponse
 import com.nativestream.android.domain.model.Channel
+import com.nativestream.android.domain.repository.ChannelRepository
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -22,6 +23,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -49,6 +51,7 @@ class PlayerViewModelTest {
     private lateinit var fakePlayer: FakePlayer
     private lateinit var viewModel: PlayerViewModel
 
+
     private val testChannel = Channel.create(
         tvgId     = "bbc.one",
         name      = "BBC One",
@@ -60,10 +63,13 @@ class PlayerViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         application = mockk(relaxed = true)
+        val channelRepository: ChannelRepository = mockk(relaxed = true)
         every { application.packageName } returns "com.nativestream.android"
+        every { channelRepository.channels } returns MutableStateFlow(emptyList<Channel>())
+
         apiClient   = mockk()
         fakePlayer  = FakePlayer()
-        viewModel = PlayerViewModel(application, apiClient)
+        viewModel = PlayerViewModel(application, apiClient, channelRepository)
         viewModel.setPlayerForTest(fakePlayer)
     }
 
