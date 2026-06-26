@@ -31,6 +31,7 @@ struct SettingsScreen: View {
 
 
     @State private var selected: SettingsSection = .sources
+    @State private var showResetConfirm = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -82,10 +83,30 @@ struct SettingsScreen: View {
             }
             Spacer()
             serverHealthCard
+            Divider().overlay(NS.border).padding(.vertical, NS.Spacing.xs)
+            DestructiveNavItem(
+                icon:   "arrow.counterclockwise",
+                label:  "Reset App",
+                action: { showResetConfirm = true }
+            )
+
         }
         .padding(NS.Spacing.sm)
         .frame(width: NS.Settings.sidebarWidth)
         .background(NS.surface)
+        .confirmationDialog(
+            "Reset NativeStream?",
+            isPresented: $showResetConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Reset Everything", role: .destructive) {
+                playlistVM.resetAll()
+                settings.resetAll()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Clears all sources, settings, and server config. You'll go through onboarding again.")
+        }
     }
 
     private var serverHealthCard: some View {
@@ -172,6 +193,37 @@ struct SettingsNavItem: View {
                 RoundedRectangle(cornerRadius: NS.Radius.md)
                     .stroke(isActive ? NS.accentBorder : Color.clear, lineWidth: 0.5)
             )
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+}
+
+// add after SettingsNavItem
+
+struct DestructiveNavItem: View {
+    let icon: String
+    let label: String
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: NS.Spacing.sm) {
+                Image(systemName: icon)
+                    .font(.system(size: 13 * NS.scale))
+                    .foregroundStyle(isHovered ? NS.red : NS.text3)
+                    .frame(width: NS.Settings.navIconSize)
+                Text(label)
+                    .font(NS.Font.captionMed)
+                    .foregroundStyle(isHovered ? NS.red : NS.text2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, NS.Spacing.sm)
+            .frame(height: NS.Settings.navItemHeight)
+            .background(isHovered ? NS.red.opacity(0.08) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
+            .animation(.easeInOut(duration: 0.15), value: isHovered)
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }

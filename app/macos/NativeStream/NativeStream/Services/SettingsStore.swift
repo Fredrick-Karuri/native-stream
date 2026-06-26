@@ -63,5 +63,17 @@ final class SettingsStore {
         static let epgRefreshInterval = "epgRefreshInterval"
         static let serverURL          = "serverURL"
         static let onboardingComplete = "onboardingComplete"
+        static let allKeys: [String]  = [bufferPreset, epgURL, epgRefreshInterval, serverURL, onboardingComplete]
+    }
+
+    // MARK: - Reset
+
+    func resetAll() {
+        Keys.allKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
+        bufferPreset       = .balanced
+        epgURLString       = ""
+        epgRefreshInterval = .sixHours
+        serverURLString    = "http://localhost:8888"
+        onboardingComplete = false
     }
 }

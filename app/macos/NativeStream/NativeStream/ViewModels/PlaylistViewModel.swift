@@ -193,6 +193,16 @@ final class PlaylistViewModel {
         }
     }
 
+    func resetAll() {
+        stopAutoRefresh()
+        sources  = []
+        channels = []
+        groups   = [:]
+        sortedGroupNames = []
+        try? FileManager.default.removeItem(at: sourcesURL)
+        try? FileManager.default.removeItem(at: channelCacheURL)
+    }
+
     // MARK: - Persistence
 
     private var sourcesURL: URL {
