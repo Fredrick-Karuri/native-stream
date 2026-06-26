@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.ArrowCounterClockwise
 import com.adamglin.phosphoricons.regular.Cpu
 import com.adamglin.phosphoricons.regular.Database
 import com.adamglin.phosphoricons.regular.FileLock
@@ -79,6 +81,7 @@ fun SettingsTwoPane(
     val serverReachable by settingsViewModel.serverReachable.collectAsState()
 
     var selectedSection by rememberSaveable { mutableStateOf(SettingsSection.SERVER) }
+    var showResetConfirm by remember { mutableStateOf(false) }
 
     Row(modifier = Modifier.fillMaxSize()) {
 
@@ -162,6 +165,15 @@ fun SettingsTwoPane(
                                         }
                                     }
                                 },
+                            )
+                            SettingsDivider()
+                            SettingsIconRow(
+                                iconBackground = COLOR_RED,
+                                iconTint       = TINT_RED,
+                                icon           = PhosphorIcons.Regular.ArrowCounterClockwise,
+                                title          = "Reset App",
+                                subtitle       = "Clear all settings and restart onboarding",
+                                onClick        = { showResetConfirm = true },
                             )
                         }
                     }
@@ -265,6 +277,26 @@ fun SettingsTwoPane(
             }
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
+    }
+    if (showResetConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title   = { Text("Reset NativeStream?") },
+            text    = { Text("Clears all sources, settings, and server config. You'll go through onboarding again.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    settingsViewModel.resetAll(sourceViewModel)
+                    showResetConfirm = false
+                }) {
+                    Text("Reset Everything", color = NSColors.live)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showResetConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     SettingsDialogs(

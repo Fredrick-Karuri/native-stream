@@ -21,11 +21,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.ArrowCounterClockwise
 import com.adamglin.phosphoricons.regular.Cpu
 import com.adamglin.phosphoricons.regular.Database
 import com.adamglin.phosphoricons.regular.FileLock
@@ -67,6 +71,7 @@ fun SettingsSingleColumn(
     val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
     val sources      by sourceViewModel.sources.collectAsState()
     val serverReachable by settingsViewModel.serverReachable.collectAsState()
+    var showResetConfirm by remember { mutableStateOf(false) }
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
@@ -110,9 +115,17 @@ fun SettingsSingleColumn(
                         }
                     },
                 )
+                SettingsDivider()
+                SettingsIconRow(
+                    iconBackground = COLOR_RED,
+                    iconTint       = TINT_RED,
+                    icon           = PhosphorIcons.Regular.ArrowCounterClockwise,
+                    title          = "Reset App",
+                    subtitle       = "Clear all settings and restart onboarding",
+                    onClick        = { showResetConfirm = true },
+                )
             }
         }
-
         item {
             SettingsSection(label = "Playlist Sources") {
                 sources.forEachIndexed { index, source ->
@@ -215,4 +228,25 @@ fun SettingsSingleColumn(
         onEditingSourceEpg = onEditingSourceEpg,
         sources            = sources,
     )
+    if (showResetConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title   = { Text("Reset NativeStream?") },
+            text    = { Text("Clears all sources, settings, and server config. You'll go through onboarding again.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    settingsViewModel.resetAll(sourceViewModel)
+                    showResetConfirm = false
+                }) {
+                    Text("Reset Everything", color = NSColors.live)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showResetConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
 }

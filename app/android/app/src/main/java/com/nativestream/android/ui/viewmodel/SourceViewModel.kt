@@ -76,4 +76,13 @@ class SourceViewModel @Inject constructor(
             settingsDataStore.updateSource(source)
         }
     }
+
+    fun resetAll() {
+        viewModelScope.launch {
+            settingsDataStore.resetAll()
+            channelCache.clearAll()
+            _sources.value = emptyList()
+            _selectedSource.value = null
+        }
+    }
 }

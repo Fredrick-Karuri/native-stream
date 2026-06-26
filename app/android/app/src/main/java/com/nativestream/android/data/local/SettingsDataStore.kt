@@ -149,6 +149,9 @@ class SettingsDataStore @Inject constructor(
     suspend fun setSelectedSourceId(id: String) {
         store.edit { it[Keys.SELECTED_SOURCE_ID] = id }
     }
+    suspend fun resetAll() {
+        store.edit { it.clear() }
+    }
 }
 
 enum class BufferPreset { LOW, DEFAULT, HIGH }

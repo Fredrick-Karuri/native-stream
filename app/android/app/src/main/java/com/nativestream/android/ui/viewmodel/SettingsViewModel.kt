@@ -102,4 +102,10 @@ class SettingsViewModel @Inject constructor(
             onResult(success)
         }
     }
+    fun resetAll(sourceViewModel: SourceViewModel) {
+        viewModelScope.launch {
+            discoveryService.stop()
+            sourceViewModel.resetAll()
+        }
+    }
 }
