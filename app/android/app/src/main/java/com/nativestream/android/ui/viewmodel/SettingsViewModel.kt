@@ -24,6 +24,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
 @HiltViewModel
@@ -149,4 +150,13 @@ class SettingsViewModel @Inject constructor(
             sourceViewModel.resetAll()
         }
     }
+    suspend fun probePlaylistForEpg(url: String): String? =
+        withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                val data  = apiClient.fetchRawUrl(url)
+                val text  = data.toString(Charsets.UTF_8).take(2048)
+                val match = Regex("""x-tvg-url="([^"]+)"""").find(text)
+                match?.groupValues?.get(1)
+            }.getOrNull()
+        }
 }
