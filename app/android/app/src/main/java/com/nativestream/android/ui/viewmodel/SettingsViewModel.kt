@@ -18,6 +18,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.nativestream.android.data.remote.ServerDiscoveryService
+import com.nativestream.android.ui.screens.onboarding.OnboardingConnectionState
+import com.nativestream.android.ui.screens.onboarding.FailureReason
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -57,6 +60,44 @@ class SettingsViewModel @Inject constructor(
 
     private val _serverReachable = MutableStateFlow<Boolean>(true)
     val serverReachable: StateFlow<Boolean> = _serverReachable
+
+    private val _connectionState = MutableStateFlow<OnboardingConnectionState>(OnboardingConnectionState.Idle)
+    val connectionState: StateFlow<OnboardingConnectionState> = _connectionState
+
+    fun checkConnection(serverUrl: String) {
+        viewModelScope.launch {
+            _connectionState.value = OnboardingConnectionState.Checking
+            val healthDeferred   = async { runCatching { apiClient.health() } }
+            val playlistDeferred = async { runCatching { apiClient.playlistData() } }
+            val epgDeferred      = async { runCatching { apiClient.epgData() } }
+
+            val health   = healthDeferred.await()
+            val playlist = playlistDeferred.await()
+            val epg      = epgDeferred.await()
+
+            if (health.isFailure) {
+                _connectionState.value = OnboardingConnectionState.Failure(FailureReason.UNREACHABLE)
+                return@launch
+            }
+            if (playlist.isFailure || playlist.getOrNull()?.isEmpty() == true) {
+                _connectionState.value = OnboardingConnectionState.Failure(FailureReason.NO_PLAYLIST)
+                return@launch
+            }
+
+            val hasEpg = epg.getOrNull()?.isNotEmpty() == true
+            _connectionState.value = OnboardingConnectionState.Success(
+                channels        = health.getOrNull()?.channels ?: 0,
+                healthy         = health.getOrNull()?.healthy ?: 0,
+                hasEpg          = hasEpg,
+                epgFromPlaylist = false,
+            )
+        }
+    }
+
+    fun resetConnectionState() {
+        _connectionState.value = OnboardingConnectionState.Idle
+    }
+
 
     fun startDiscovery() = discoveryService.scan()
 
