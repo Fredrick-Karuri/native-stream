@@ -1,3 +1,9 @@
+/**
+ * app/src/main/java/com/nativestream/android/ui/screens/settings/SettingsDialogs.kt
+ *
+ * Dialogs and bottom sheets for the Settings screen.
+ */
+
 package com.nativestream.android.ui.screens.settings
 
 import androidx.compose.foundation.clickable
@@ -14,19 +20,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.nativestream.android.domain.model.PlaylistSource
 import com.nativestream.android.ui.components.AddSourceSheet
 import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
-
+import com.nativestream.android.ui.viewmodel.SourceViewModel
 
 @Composable
 fun SettingsDialogs(
     settingsViewModel: SettingsViewModel,
-    playlistViewModel: PlaylistViewModel,
+    sourceViewModel: SourceViewModel,
+    loadingViewModel: ChannelLoadingViewModel,
     showAddSource: Boolean,
     onShowAddSource: (Boolean) -> Unit,
     showServerUrlDialog: Boolean,
@@ -39,14 +47,15 @@ fun SettingsDialogs(
     onEpgInput: (String) -> Unit,
     editingSourceEpg: Pair<String, String?>?,
     onEditingSourceEpg: (Pair<String, String?>?) -> Unit,
-    sources: List<com.nativestream.android.domain.model.PlaylistSource>,
+    sources: List<PlaylistSource>,
 ) {
     val dimens = NSDimens.current
 
     if (showAddSource) {
         AddSourceSheet(
-            onDone            = { onShowAddSource(false) },
-            playlistViewModel = playlistViewModel,
+            onDone           = { onShowAddSource(false) },
+            sourceViewModel  = sourceViewModel,
+            loadingViewModel = loadingViewModel,
         )
     }
 
@@ -155,7 +164,7 @@ fun SettingsDialogs(
                         .clickable {
                             val updated = sources.find { it.id == sourceId }
                                 ?.copy(epgUrl = localEpgInput.trim().ifEmpty { null })
-                            updated?.let { playlistViewModel.updateSource(it) }
+                            updated?.let { sourceViewModel.updateSource(it) }
                             onEditingSourceEpg(null)
                         }
                         .padding(8.dp),
@@ -169,7 +178,7 @@ fun SettingsDialogs(
                     modifier = Modifier
                         .clickable {
                             val updated = sources.find { it.id == sourceId }?.copy(epgUrl = null)
-                            updated?.let { playlistViewModel.updateSource(it) }
+                            updated?.let { sourceViewModel.updateSource(it) }
                             onEditingSourceEpg(null)
                         }
                         .padding(8.dp),

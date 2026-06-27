@@ -1,3 +1,9 @@
+/**
+ * app/src/main/java/com/nativestream/android/ui/screens/settings/SettingsTwoPane.kt
+ *
+ * Two-pane sidebar settings layout (tablet).
+ */
+
 package com.nativestream.android.ui.screens.settings
 
 import androidx.compose.foundation.background
@@ -11,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,15 +28,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.imePadding
 import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.ArrowCounterClockwise
 import com.adamglin.phosphoricons.regular.Cpu
 import com.adamglin.phosphoricons.regular.Database
 import com.adamglin.phosphoricons.regular.FileLock
@@ -38,14 +46,16 @@ import com.adamglin.phosphoricons.regular.Play
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
+import com.nativestream.android.ui.viewmodel.SourceViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsTwoPane(
     settingsViewModel: SettingsViewModel,
-    playlistViewModel: PlaylistViewModel,
+    sourceViewModel: SourceViewModel,
+    loadingViewModel: ChannelLoadingViewModel,
     showAddSource: Boolean,
     onShowAddSource: (Boolean) -> Unit,
     showServerUrlDialog: Boolean,
@@ -67,10 +77,11 @@ fun SettingsTwoPane(
     val dimens       = NSDimens.current
     val serverUrl    by settingsViewModel.serverUrl.collectAsState()
     val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
-    val sources      by playlistViewModel.sources.collectAsState()
+    val sources      by sourceViewModel.sources.collectAsState()
+    val serverReachable by settingsViewModel.serverReachable.collectAsState()
 
     var selectedSection by rememberSaveable { mutableStateOf(SettingsSection.SERVER) }
-    val serverReachable by settingsViewModel.serverReachable.collectAsState()
+    var showResetConfirm by remember { mutableStateOf(false) }
 
     Row(modifier = Modifier.fillMaxSize()) {
 
@@ -102,7 +113,6 @@ fun SettingsTwoPane(
             }
         }
 
-        // Divider
         Box(
             modifier = Modifier
                 .width(0.5.dp)
@@ -172,10 +182,10 @@ fun SettingsTwoPane(
                                     refreshHours = source.refreshIntervalHours,
                                     isHealthy    = true,
                                     onEpgEdit    = { epg -> onEditingSourceEpg(source.id to epg) },
-                                    onRefresh    = { playlistViewModel.loadAll() },
+                                    onRefresh    = { loadingViewModel.loadAll() },
                                     onDelete     = {
-                                        playlistViewModel.removeSource(source.id)
-                                        playlistViewModel.loadAll()
+                                        sourceViewModel.removeSource(source.id)
+                                        loadingViewModel.loadAll()
                                     },
                                 )
                             }
@@ -244,7 +254,7 @@ fun SettingsTwoPane(
                                         vertical   = dimens.spacing.sm,
                                     ),
                             ) {
-                                RowIcon(background = COLOR_RED, tint = TINT_RED, icon = PhosphorIcons.Regular.FileLock)
+                                RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.FileLock)
                                 Spacer(modifier = Modifier.width(dimens.spacing.sm))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(text = "Enable proxy", style = NSType.bodyMedium(), color = NSColors.text)
@@ -255,27 +265,62 @@ fun SettingsTwoPane(
                         }
                     }
                 }
+                SettingsSection.SYSTEM -> {
+                    item {
+                        SettingsSection(label = "App Management") {
+                            SettingsIconRow(
+                                iconBackground = COLOR_RED,
+                                iconTint = TINT_RED,
+                                icon = PhosphorIcons.Regular.ArrowCounterClockwise,
+                                title = "Reset App",
+                                subtitle = "Clear all settings and restart onboarding",
+                                onClick = { showResetConfirm = true },
+                            )
+                        }
+                    }
+                }
+
             }
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
+    if (showResetConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title   = { Text("Reset NativeStream?") },
+            text    = { Text("Clears all sources, settings, and server config. You'll go through onboarding again.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    settingsViewModel.resetAll(sourceViewModel)
+                    showResetConfirm = false
+                }) {
+                    Text("Reset Everything", color = NSColors.live)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showResetConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
-    // ── Dialogs ───────────────────────────────────────────────────────────────
     SettingsDialogs(
-        settingsViewModel   = settingsViewModel,
-        playlistViewModel   = playlistViewModel,
-        showAddSource       = showAddSource,
-        onShowAddSource     = onShowAddSource,
+        settingsViewModel  = settingsViewModel,
+        sourceViewModel    = sourceViewModel,
+        loadingViewModel   = loadingViewModel,
+        showAddSource      = showAddSource,
+        onShowAddSource    = onShowAddSource,
         showServerUrlDialog = showServerUrlDialog,
-        onShowServerUrl     = onShowServerUrl,
-        urlInput            = urlInput,
-        onUrlInput          = onUrlInput,
-        showEpgUrlDialog    = showEpgUrlDialog,
-        onShowEpgUrl        = onShowEpgUrl,
-        epgInput            = epgInput,
-        onEpgInput          = onEpgInput,
-        editingSourceEpg    = editingSourceEpg,
-        onEditingSourceEpg  = onEditingSourceEpg,
-        sources             = sources,
+        onShowServerUrl    = onShowServerUrl,
+        urlInput           = urlInput,
+        onUrlInput         = onUrlInput,
+        showEpgUrlDialog   = showEpgUrlDialog,
+        onShowEpgUrl       = onShowEpgUrl,
+        epgInput           = epgInput,
+        onEpgInput         = onEpgInput,
+        editingSourceEpg   = editingSourceEpg,
+        onEditingSourceEpg = onEditingSourceEpg,
+        sources            = sources,
     )
 }

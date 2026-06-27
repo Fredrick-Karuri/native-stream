@@ -11,8 +11,9 @@ import androidx.compose.ui.test.performClick
 import com.nativestream.android.data.local.BufferPreset
 import com.nativestream.android.domain.model.PlaylistSource
 import com.nativestream.android.ui.screens.settings.SettingsScreen
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
+import com.nativestream.android.ui.viewmodel.SourceViewModel
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import io.mockk.every
@@ -29,7 +30,8 @@ class SettingsScreenTest {
     @get:Rule(order = 1) val composeRule = createComposeRule()
 
     private lateinit var settingsViewModel: SettingsViewModel
-    private lateinit var playlistViewModel: PlaylistViewModel
+    private lateinit var sourceViewModel: SourceViewModel
+    private lateinit var loadingViewModel: ChannelLoadingViewModel
 
     private val serverUrlFlow    = MutableStateFlow("http://192.168.1.42:8888")
     private val bufferPresetFlow = MutableStateFlow(BufferPreset.DEFAULT)
@@ -47,23 +49,25 @@ class SettingsScreenTest {
     fun setUp() {
         hiltRule.inject()
         settingsViewModel = mockk(relaxed = true)
-        playlistViewModel = mockk(relaxed = true)
+        sourceViewModel  = mockk(relaxed = true)
+        loadingViewModel = mockk(relaxed = true)
 
         every { settingsViewModel.serverUrl     } returns serverUrlFlow
         every { settingsViewModel.bufferPreset  } returns bufferPresetFlow
         every { settingsViewModel.epgUrl        } returns MutableStateFlow(null)
         every { settingsViewModel.onboardingComplete } returns MutableStateFlow(true)
         every { settingsViewModel.isLoading     } returns MutableStateFlow(false)
-        every { playlistViewModel.sources       } returns sourcesFlow
-        every { playlistViewModel.channels      } returns MutableStateFlow(emptyList())
-        every { playlistViewModel.isLoading     } returns MutableStateFlow(false)
+        every { sourceViewModel.sources    } returns sourcesFlow
+        every { loadingViewModel.isLoading } returns MutableStateFlow(false)
+
     }
 
     private fun setContent() {
         composeRule.setContent {
             SettingsScreen(
                 settingsViewModel = settingsViewModel,
-                playlistViewModel = playlistViewModel,
+                sourceViewModel   = sourceViewModel,
+                loadingViewModel  = loadingViewModel,
             )
         }
     }

@@ -12,7 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.nativestream.android.ui.screens.browse.AddChannelSheet
 import com.nativestream.android.ui.viewmodel.ChannelManagerViewModel
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import io.mockk.every
@@ -30,14 +30,14 @@ class AddChannelSheetTest {
     @get:Rule(order = 1) val composeRule = createComposeRule()
 
     private lateinit var channelManagerViewModel: ChannelManagerViewModel
-    private lateinit var playlistViewModel: PlaylistViewModel
+    private lateinit var loadingViewModel: ChannelLoadingViewModel
     private var dismissed = false
 
     @Before
     fun setUp() {
         hiltRule.inject()
         channelManagerViewModel = mockk(relaxed = true)
-        playlistViewModel       = mockk(relaxed = true)
+        loadingViewModel = mockk(relaxed = true)
         dismissed               = false
 
         every { channelManagerViewModel.isLoading } returns MutableStateFlow(false)
@@ -48,7 +48,7 @@ class AddChannelSheetTest {
         composeRule.setContent {
             AddChannelSheet(
                 onDone                  = { dismissed = true },
-                playlistViewModel       = playlistViewModel,
+                loadingViewModel        = loadingViewModel,
                 channelManagerViewModel = channelManagerViewModel,
             )
         }

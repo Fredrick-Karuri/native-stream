@@ -42,7 +42,6 @@ import com.nativestream.android.ui.screens.player.PlayerScreen
 import com.nativestream.android.ui.screens.settings.SettingsScreen
 import com.nativestream.android.ui.viewmodel.CastViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
 
@@ -52,7 +51,6 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val playerViewModel: PlayerViewModel     = hiltViewModel()
     val epgViewModel: EpgViewModel           = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
-    val playlistViewModel: PlaylistViewModel = hiltViewModel()
     val castViewModel: CastViewModel         = hiltViewModel()
 
     val hasActiveChannel   by playerViewModel.hasActiveChannel.collectAsState()
@@ -127,14 +125,12 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                             composable(AppDestination.Now.route) {
                                 NowScreen(
                                     playerViewModel = playerViewModel,
-                                    playlistViewModel = playlistViewModel,
                                     epgViewModel = epgViewModel,
                                 )
                             }
                             composable(AppDestination.Browse.route) {
                                 BrowseScreen(
                                     playerViewModel = playerViewModel,
-                                    playlistViewModel = playlistViewModel,
                                 )
                             }
                             composable(AppDestination.Settings.route) {
@@ -180,7 +176,6 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                     playerViewModel   = playerViewModel,
                     castViewModel     = castViewModel,
                     epgViewModel      = epgViewModel,
-                    playlistViewModel = playlistViewModel,
                     onDismiss         = { playerViewModel.hidePlayer() },
                 )
             }

@@ -13,7 +13,6 @@ import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.ui.screens.now.NowScreen
 import com.nativestream.android.ui.viewmodel.EpgViewModel
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -34,7 +33,6 @@ class NowScreenTest {
 
     // ── Fake ViewModels ───────────────────────────────────────────────────────
 
-    private lateinit var playlistViewModel: PlaylistViewModel
     private lateinit var epgViewModel: EpgViewModel
     private lateinit var playerViewModel: PlayerViewModel
 
@@ -52,13 +50,10 @@ class NowScreenTest {
     @Before
     fun setUp() {
         hiltRule.inject()
-        playlistViewModel = mockk(relaxed = true)
         epgViewModel      = mockk(relaxed = true)
         playerViewModel   = mockk(relaxed = true)
 
         // Default: empty, not loading
-        every { playlistViewModel.channels  } returns MutableStateFlow(emptyList())
-        every { playlistViewModel.isLoading } returns MutableStateFlow(false)
         every { epgViewModel.isReady        } returns MutableStateFlow(false)
         every { epgViewModel.currentProgramme(any()) } returns null
         every { epgViewModel.nextProgramme(any())    } returns null
@@ -72,7 +67,6 @@ class NowScreenTest {
         composeRule.setContent {
             NowScreen(
                 playerViewModel   = playerViewModel,
-                playlistViewModel = playlistViewModel,
                 epgViewModel      = epgViewModel,
             )
         }
@@ -81,12 +75,9 @@ class NowScreenTest {
 
     @Test
     fun loadingState_showsCircularProgressIndicator() {
-        every { playlistViewModel.isLoading } returns MutableStateFlow(true)
-
         composeRule.setContent {
             NowScreen(
                 playerViewModel   = playerViewModel,
-                playlistViewModel = playlistViewModel,
                 epgViewModel      = epgViewModel,
             )
         }
@@ -99,14 +90,12 @@ class NowScreenTest {
         val channel   = liveChannel("sky.sports.1")
         val programme = liveProgramme("sky.sports.1", "Arsenal vs Chelsea")
 
-        every { playlistViewModel.channels } returns MutableStateFlow(listOf(channel))
         every { epgViewModel.isReady        } returns MutableStateFlow(true)
         every { epgViewModel.currentProgramme(channel) } returns programme
 
         composeRule.setContent {
             NowScreen(
                 playerViewModel   = playerViewModel,
-                playlistViewModel = playlistViewModel,
                 epgViewModel      = epgViewModel,
             )
         }
@@ -118,14 +107,12 @@ class NowScreenTest {
         val channel   = liveChannel("bbc.news", "News")
         val programme = liveProgramme("bbc.news", "BBC News at Six")
 
-        every { playlistViewModel.channels } returns MutableStateFlow(listOf(channel))
         every { epgViewModel.isReady        } returns MutableStateFlow(true)
         every { epgViewModel.currentProgramme(channel) } returns programme
 
         composeRule.setContent {
             NowScreen(
                 playerViewModel   = playerViewModel,
-                playlistViewModel = playlistViewModel,
                 epgViewModel      = epgViewModel,
             )
         }
@@ -140,13 +127,11 @@ class NowScreenTest {
                         liveProgramme("news.$i", "Programme $i")
             }
         }
-        every { playlistViewModel.channels } returns MutableStateFlow(channels)
         every { epgViewModel.isReady        } returns MutableStateFlow(true)
 
         composeRule.setContent {
             NowScreen(
                 playerViewModel   = playerViewModel,
-                playlistViewModel = playlistViewModel,
                 epgViewModel      = epgViewModel,
             )
         }
@@ -162,7 +147,6 @@ class NowScreenTest {
         composeRule.setContent {
             NowScreen(
                 playerViewModel   = playerViewModel,
-                playlistViewModel = playlistViewModel,
                 epgViewModel      = epgViewModel,
             )
         }

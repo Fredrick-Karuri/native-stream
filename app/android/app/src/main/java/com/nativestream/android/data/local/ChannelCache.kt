@@ -115,4 +115,12 @@ class ChannelCache @Inject constructor(
             Log.d(TAG, "Cache cleared for $sourceId")
         }
     }
+    suspend fun clearAll() {
+        withContext(Dispatchers.IO) {
+            cacheDir.listFiles()?.filter {
+                it.name.startsWith(CACHE_FILE_PREFIX) || it.name.startsWith(META_FILE_PREFIX)
+            }?.forEach { it.delete() }
+            Log.d(TAG, "All channel caches cleared")
+        }
+    }
 }

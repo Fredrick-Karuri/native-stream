@@ -1,9 +1,13 @@
-// app/src/main/java/com/nativestream/android/ui/screens/browse/BrowseScreen.kt
-//
-// Browse Screen
-// - Top bar: "Browse" title + search icon (mobile style)
-// - Chips: icon-above-label square pills matching design
-// - Grid: real ChannelCard, adaptive 2-column, correct height
+/**
+ * app/src/main/java/com/nativestream/android/ui/screens/browse/BrowseScreen.kt
+ *
+ * Browse screen — wired to the post-SRP ViewModel split.
+ * UI state       → BrowseViewModel
+ * Filter state   → ChannelFilterViewModel
+ * Source CRUD    → SourceViewModel
+ * Loading state  → ChannelLoadingViewModel
+ *
+ */
 
 package com.nativestream.android.ui.screens.browse
 
@@ -15,15 +19,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.windowsizeclass.WindowHeightSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.runtime.derivedStateOf
 import com.adamglin.phosphoricons.RegularGroup
 import com.adamglin.phosphoricons.regular.Basketball
 import com.adamglin.phosphoricons.regular.Football
@@ -34,16 +37,17 @@ import com.adamglin.phosphoricons.regular.TennisBall
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.SportCategory
 import com.nativestream.android.ui.theme.NSColors
+import com.nativestream.android.ui.viewmodel.BrowseViewModel
+import com.nativestream.android.ui.viewmodel.ChannelFilterViewModel
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.FavouritesViewModel
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
+import com.nativestream.android.ui.viewmodel.SourceViewModel
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import com.nativestream.android.ui.LocalWindowSizeClass
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.LaunchedEffect
-import com.nativestream.android.ui.components.NSSourcePickerSheet
 import com.nativestream.android.domain.model.isAll
+import com.nativestream.android.ui.LocalWindowSizeClass
+import com.nativestream.android.ui.components.NSSourcePickerSheet
 import com.nativestream.android.ui.components.AddSourceSheet
 
 val Regular = RegularGroup
@@ -53,118 +57,123 @@ data class ChannelSection(val name: String, val channels: List<Channel>)
 fun BrowseScreen(
     playerViewModel: PlayerViewModel,
     modifier: Modifier = Modifier,
-    playlistViewModel: PlaylistViewModel  = hiltViewModel(),
-    epgViewModel: EpgViewModel            = hiltViewModel(),
-    favouritesViewModel: FavouritesViewModel = hiltViewModel(),
+    browseViewModel:   BrowseViewModel          = hiltViewModel(),
+    filterViewModel:   ChannelFilterViewModel   = hiltViewModel(),
+    sourceViewModel:   SourceViewModel          = hiltViewModel(),
+    loadingViewModel:  ChannelLoadingViewModel  = hiltViewModel(),
+    epgViewModel:      EpgViewModel             = hiltViewModel(),
+    favouritesViewModel: FavouritesViewModel    = hiltViewModel(),
 ) {
-    val channels by playlistViewModel.filteredChannels.collectAsState()
-    val isLoading by playlistViewModel.isLoading.collectAsState()
+    // ── Loading / refresh state ───────────────────────────────────────────────
+    val isLoading    by loadingViewModel.isLoading.collectAsState()
+    val isRefreshing by loadingViewModel.isRefreshing.collectAsState()
 
-    var showAddChannel by remember { mutableStateOf(false) }
+    // ── Source state ──────────────────────────────────────────────────────────
+    val sources        by sourceViewModel.sources.collectAsState()
+    val selectedSource by sourceViewModel.selectedSource.collectAsState()
 
-    var searchActive by remember { mutableStateOf(false) }
+    // ── Filter state ──────────────────────────────────────────────────────────
+    val filteredSections  by filterViewModel.filteredSections.collectAsState()
+    val selectedGroup     by filterViewModel.selectedGroup.collectAsState()
+    val selectedSubGroup  by filterViewModel.selectedSubGroup.collectAsState()
+    val selectedSport     by filterViewModel.selectedSport.collectAsState()
+    val showFavouritesOnly by filterViewModel.showFavouritesOnly.collectAsState()
+    val subGroups         by filterViewModel.subGroups.collectAsState()
+    val filteredChannels  by filterViewModel.filteredChannels.collectAsState()
 
-    var showPlayUrl by remember { mutableStateOf(false) }
+    // ── UI state ──────────────────────────────────────────────────────────────
+    val showAddChannel   by browseViewModel.showAddChannel.collectAsState()
+    val showPlayUrl      by browseViewModel.showPlayUrl.collectAsState()
+    val showSourcePicker by browseViewModel.showSourcePicker.collectAsState()
+    val showAddSource    by browseViewModel.showAddSource.collectAsState()
+    val searchActive     by browseViewModel.searchActive.collectAsState()
+    val searchText       by browseViewModel.searchText.collectAsState()
+    val selectedChannelId by browseViewModel.selectedChannelId.collectAsState()
 
-    var selectedChannelId by rememberSaveable { mutableStateOf<String?>(null) }
-    val selectedChannel = channels.find { it.id == selectedChannelId }
+    val selectedChannel = remember(selectedChannelId, filteredChannels) {
+        filteredChannels.find { it.id == selectedChannelId }
+    }
 
-    var showSourcePicker by remember { mutableStateOf(false) }
-    val sources          by playlistViewModel.sources.collectAsState()
-    val selectedSource   by playlistViewModel.selectedSource.collectAsState()
-
-    val subGroups        by playlistViewModel.subGroups.collectAsState()
-
-    var showAddSource by remember { mutableStateOf(false) }
-
-    val filteredSections  by playlistViewModel.filteredSections.collectAsState()
-    val selectedGroup     by playlistViewModel.selectedGroup.collectAsState()
-    val selectedSubGroup  by playlistViewModel.selectedSubGroup.collectAsState()
-    val selectedSport     by playlistViewModel.selectedSport.collectAsState()
-    val showFavouritesOnly by playlistViewModel.showFavouritesOnly.collectAsState()
-    var searchText        by remember { mutableStateOf("") }  // local only for text field
-    val favouriteIds      by favouritesViewModel.favouriteIds.collectAsState()
-
+    // ── Derived ───────────────────────────────────────────────────────────────
     val groups by remember {
         derivedStateOf {
-            channels.map { it.groupTitle }.distinct().sorted()
+            filteredChannels.map { it.groupTitle }.distinct().sorted()
         }
     }
     val activeSports by remember {
         derivedStateOf {
             if (selectedGroup?.lowercase()?.contains("sport") == true)
-                epgViewModel.activeSports(channels)
+                epgViewModel.activeSports(filteredChannels)
             else emptyList()
         }
     }
-    val isRefreshing by playlistViewModel.isRefreshing.collectAsState()
 
-    // Deselect channel if it no longer belongs to the newly selected source
+    // ── Sync favourites into filter VM ────────────────────────────────────────
+    val favouriteIds by favouritesViewModel.favouriteIds.collectAsState()
+    LaunchedEffect(favouriteIds) {
+        filterViewModel.updateFavouriteIds(favouriteIds)
+    }
+
     LaunchedEffect(selectedSource) {
-        val source = selectedSource
-        val current = channels.find { it.id == selectedChannelId }
-        if (current != null && source != null && !source.isAll) {
-            if (current.sourceId != source.id) selectedChannelId = null
+        val source = selectedSource ?: return@LaunchedEffect
+        val currentId = browseViewModel.selectedChannelId.value ?: return@LaunchedEffect
+        if (!source.isAll && !currentId.startsWith(source.id)) {
+            browseViewModel.selectChannel(null)
         }
     }
-    LaunchedEffect(favouriteIds) {
-        playlistViewModel.updateFavouriteIds(favouriteIds)
-    }
+
+    // ── Layout ────────────────────────────────────────────────────────────────
+    val windowSizeClass = LocalWindowSizeClass.current
+    val isTablet = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
+            && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
-            modifier = modifier
-            .fillMaxSize()
-            .background(NSColors.bg)
+            modifier = Modifier
+                .fillMaxSize()
+                .background(NSColors.bg),
         ) {
-
-            // ── Top bar — mobile style: title + search icon ───────────────────────
             BrowseTopBar(
                 searchActive   = searchActive,
                 searchText     = searchText,
-                onSearchClick  = { searchActive = true },
-                onSearchChange = { searchText = it; playlistViewModel.setSearchQuery(it) },
-                onSearchClose  = { searchActive = false; searchText = ""; playlistViewModel.setSearchQuery("") },
-                onPlayUrl      = { showPlayUrl = true },
-                onAddChannel   = { showAddChannel = true },
+                onSearchClick  = { browseViewModel.activateSearch() },
+                onSearchChange = { browseViewModel.setSearchText(it) { text -> filterViewModel.setSearchQuery(text) } },
+                onSearchClose  = { browseViewModel.closeSearch { filterViewModel.setSearchQuery("") } },
+                onPlayUrl      = { browseViewModel.openPlayUrl() },
+                onAddChannel   = { browseViewModel.openAddChannel() },
                 selectedSource = selectedSource,
-                onSourceClick  = { showSourcePicker = true },
+                onSourceClick  = { browseViewModel.openSourcePicker() },
                 isRefreshing   = isRefreshing,
             )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
-            // ── Sport + group chips — hidden on Expanded (lives in list pane instead) ──
-            val windowSizeClass = LocalWindowSizeClass.current
-            val isTablet = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
-                    && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
-            val useDetail = isTablet
-
-            if (!useDetail) BrowseFilterRow(
-                sources        = sources,
-                selectedSource = selectedSource,
-                groups         = groups,
-                selectedGroup  = selectedGroup,
-                activeSports   = activeSports,
-                selectedSport  = selectedSport,
-                onPillClick    = { showSourcePicker = true },
-                onSelectAll        = { playlistViewModel.clearFilters() },
-                onSelectGroup      = { playlistViewModel.setSelectedGroup(it) },
-                onSelectSubGroup   = { playlistViewModel.setSelectedSubGroup(it) },
-                onSelectSport      = { playlistViewModel.setSelectedSport(it) },
-                onToggleFavourites = { playlistViewModel.toggleFavourites() },
-                showFavouritesOnly  = showFavouritesOnly,
-                subGroups        = subGroups,
-                selectedSubGroup = selectedSubGroup,
+            if (!isTablet) BrowseFilterRow(
+                sources            = sources,
+                selectedSource     = selectedSource,
+                groups             = groups,
+                selectedGroup      = selectedGroup,
+                activeSports       = activeSports,
+                selectedSport      = selectedSport,
+                onPillClick        = { browseViewModel.openSourcePicker() },
+                onSelectAll        = { filterViewModel.clearFilters() },
+                onSelectGroup      = { filterViewModel.setSelectedGroup(it) },
+                onSelectSubGroup   = { filterViewModel.setSelectedSubGroup(it) },
+                onSelectSport      = { filterViewModel.setSelectedSport(it) },
+                onToggleFavourites = { filterViewModel.toggleFavourites() },
+                showFavouritesOnly = showFavouritesOnly,
+                subGroups          = subGroups,
+                selectedSubGroup   = selectedSubGroup,
             )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+
             when {
                 isLoading -> BrowseLoadingView()
-                useDetail -> BrowseMasterDetail(
-                    sections = filteredSections,
-                    isEmptyState    = filteredSections.isEmpty(),
+                isTablet  -> BrowseMasterDetail(
+                    sections            = filteredSections,
+                    isEmptyState        = filteredSections.isEmpty(),
                     emptySearchText     = searchText,
                     selectedChannel     = selectedChannel,
-                    onSelectChannel     = { selectedChannelId = it.id },
+                    onSelectChannel     = { browseViewModel.selectChannel(it.id) },
                     playerViewModel     = playerViewModel,
                     epgViewModel        = epgViewModel,
                     favouritesViewModel = favouritesViewModel,
@@ -176,12 +185,12 @@ fun BrowseScreen(
                     selectedSubGroup    = selectedSubGroup,
                     activeSports        = activeSports,
                     selectedSport       = selectedSport,
-                    onPillClick         = { showSourcePicker = true },
-                    onSelectAll        = { playlistViewModel.clearFilters() },
-                    onSelectGroup      = { playlistViewModel.setSelectedGroup(it) },
-                    onSelectSubGroup   = { playlistViewModel.setSelectedSubGroup(it) },
-                    onSelectSport      = { playlistViewModel.setSelectedSport(it) },
-                    onToggleFavourites = { playlistViewModel.toggleFavourites() },
+                    onPillClick         = { browseViewModel.openSourcePicker() },
+                    onSelectAll         = { filterViewModel.clearFilters() },
+                    onSelectGroup       = { filterViewModel.setSelectedGroup(it) },
+                    onSelectSubGroup    = { filterViewModel.setSelectedSubGroup(it) },
+                    onSelectSport       = { filterViewModel.setSelectedSport(it) },
+                    onToggleFavourites  = { filterViewModel.toggleFavourites() },
                     showFavouritesOnly  = showFavouritesOnly,
                 )
                 filteredSections.isEmpty() -> BrowseEmptyView(searchText)
@@ -197,31 +206,32 @@ fun BrowseScreen(
         if (showPlayUrl) {
             PlayURLSheet(
                 playerViewModel = playerViewModel,
-                onDismiss = { showPlayUrl = false },
-                onPlay    = { playerViewModel.showPlayer() },
+                onDismiss       = { browseViewModel.closePlayUrl() },
+                onPlay          = { playerViewModel.showPlayer() },
             )
         }
         if (showAddSource) {
             AddSourceSheet(
-                onDone            = { showAddSource = false },
-                playlistViewModel = playlistViewModel,
+                onDone           = { browseViewModel.closeAddSource() },
+                sourceViewModel  = sourceViewModel,
+                loadingViewModel = loadingViewModel,
             )
         }
         if (showSourcePicker) {
             NSSourcePickerSheet(
                 sources        = sources,
                 selectedSource = selectedSource,
-                onSelectSource = { playlistViewModel.selectSource(it) },
-                onAddPlaylist  = { showSourcePicker = false; showAddSource = true },
-                onDismiss      = { showSourcePicker = false },
+                onSelectSource = { sourceViewModel.selectSource(it) },
+                onAddPlaylist  = { browseViewModel.navigateToAddSource() },
+                onDismiss      = { browseViewModel.closeSourcePicker() },
             )
         }
     }
 
     if (showAddChannel) {
         AddChannelSheet(
-            onDone            = { showAddChannel = false },
-            playlistViewModel = playlistViewModel,
+            onDone           = { browseViewModel.closeAddChannel() },
+            loadingViewModel = loadingViewModel,
         )
     }
 }

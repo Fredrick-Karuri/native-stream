@@ -1,5 +1,10 @@
-package com.nativestream.android.ui.components
+/**
+ * app/src/main/java/com/nativestream/android/ui/components/AddSourceSheet.kt
+ *
+ * Bottom sheet for adding a new playlist source.
+ */
 
+package com.nativestream.android.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,25 +23,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.nativestream.android.domain.model.PlaylistSource
-import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.screens.browse.SheetButton
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
+import com.nativestream.android.ui.viewmodel.SourceViewModel
 import java.util.UUID
+
+private const val DEFAULT_REFRESH_INTERVAL_HOURS = 6
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddSourceSheet(
     onDone: () -> Unit,
-    playlistViewModel: PlaylistViewModel,
+    sourceViewModel: SourceViewModel,
+    loadingViewModel: ChannelLoadingViewModel,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var name     by remember { mutableStateOf("") }
-    var url      by remember { mutableStateOf("") }
-    var refresh  by remember { mutableStateOf("6") }
-    var epgUrl by remember { mutableStateOf("") }
+    var name    by remember { mutableStateOf("") }
+    var url     by remember { mutableStateOf("") }
+    var refresh by remember { mutableStateOf(DEFAULT_REFRESH_INTERVAL_HOURS.toString()) }
+    var epgUrl  by remember { mutableStateOf("") }
 
     ModalBottomSheet(
         onDismissRequest = onDone,
@@ -45,7 +53,9 @@ fun AddSourceSheet(
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.xl),
-            modifier = Modifier.fillMaxWidth().padding(NSDimens.current.spacing.xxl),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(NSDimens.current.spacing.xxl),
         ) {
             Text("Add Playlist Source", style = NSType.heading(), color = NSColors.text)
 
@@ -63,7 +73,7 @@ fun AddSourceSheet(
             }
             Column(verticalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.xs)) {
                 Text("Refresh interval (hours)", style = NSType.caption(), color = NSColors.text3)
-                NSTextField(value = refresh, onValueChange = { refresh = it }, placeholder = "6")
+                NSTextField(value = refresh, onValueChange = { refresh = it }, placeholder = DEFAULT_REFRESH_INTERVAL_HOURS.toString())
             }
 
             Row(modifier = Modifier.fillMaxWidth()) {
@@ -74,17 +84,17 @@ fun AddSourceSheet(
                     isPrimary = true,
                     enabled   = name.isNotBlank() && url.isNotBlank(),
                     onClick   = {
-                        playlistViewModel.addSource(
+                        sourceViewModel.addSource(
                             PlaylistSource(
-                                id = UUID.randomUUID().toString(),
-                                name = name.trim(),
-                                colorHex = PlaylistSource.COLOR_BLUE,
-                                url = url.trim(),
+                                id                   = UUID.randomUUID().toString(),
+                                name                 = name.trim(),
+                                colorHex             = PlaylistSource.COLOR_BLUE,
+                                url                  = url.trim(),
                                 epgUrl               = epgUrl.trim().ifEmpty { null },
-                                refreshIntervalHours = refresh.toIntOrNull() ?: 6,
+                                refreshIntervalHours = refresh.toIntOrNull() ?: DEFAULT_REFRESH_INTERVAL_HOURS,
                             )
                         )
-                        playlistViewModel.loadAll()
+                        loadingViewModel.loadAll()
                         onDone()
                     },
                 )

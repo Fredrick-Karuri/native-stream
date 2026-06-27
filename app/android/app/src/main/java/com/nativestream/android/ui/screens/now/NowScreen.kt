@@ -1,9 +1,11 @@
-// app/src/main/java/com/nativestream/android/ui/screens/now/NowScreen.kt
-//
-// Now Screen
-// Section headers match design: pulse dot for matches, TV icon for on air, clock for soon.
-// "Show all / Show less" toggle for Live on Air.
-// AND-TABLET-004: two-column layout on Expanded width.
+/**
+ * app/src/main/java/com/nativestream/android/ui/screens/now/NowScreen.kt
+ *
+ * Now Screen — wired to the post-SRP ViewModel split.
+ * Channel bridge  → NowViewModel (observes ChannelRepository → EpgViewModel)
+ * EPG bucket data → EpgViewModel (liveMatches, liveOnAir, startingSoon, isRefreshing)
+ *
+ */
 
 package com.nativestream.android.ui.screens.now
 
@@ -25,9 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import com.adamglin.PhosphorIcons
-import com.adamglin.phosphoricons.regular.Television
-import com.adamglin.phosphoricons.regular.Clock
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -46,7 +45,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
+import com.adamglin.phosphoricons.regular.Clock
+import com.adamglin.phosphoricons.regular.Television
 import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.NSGroupHeader
 import com.nativestream.android.ui.components.NSPulseDot
@@ -55,7 +57,7 @@ import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.EpgViewModel
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
+import com.nativestream.android.ui.viewmodel.NowViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 
 private const val LIVE_ON_AIR_INITIAL_VISIBLE = 10
@@ -65,33 +67,30 @@ private val SECTION_ICON_SIZE = 13.dp
 fun NowScreen(
     playerViewModel: PlayerViewModel,
     modifier: Modifier = Modifier,
-    playlistViewModel: PlaylistViewModel = hiltViewModel(),
-    epgViewModel: EpgViewModel           = hiltViewModel(),
+    nowViewModel: NowViewModel   = hiltViewModel(),
+    epgViewModel: EpgViewModel   = hiltViewModel(),
 ) {
-    val channels by playlistViewModel.filteredChannels.collectAsState()
-    val isLoading by playlistViewModel.isLoading.collectAsState()
+    // Bridge channel list from ChannelRepository into EpgViewModel.
+    // NowViewModel owns this side-effect so it survives recomposition.
+    LaunchedEffect(Unit) {
+        nowViewModel.bridgeChannelsToEpg(epgViewModel)
+    }
 
     val liveMatches  by epgViewModel.liveMatches.collectAsState()
     val liveOnAir    by epgViewModel.liveOnAir.collectAsState()
     val startingSoon by epgViewModel.startingSoon.collectAsState()
+    val isRefreshing by epgViewModel.isRefreshing.collectAsState()
 
     val liveCount = liveMatches.size + liveOnAir.size
     val soonCount = startingSoon.size
 
-    val isRefreshing by epgViewModel.isRefreshing.collectAsState()
-
-    LaunchedEffect(channels) {
-        epgViewModel.updateChannels(channels)
-    }
-
     Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
-        NowTopBar(liveCount = liveCount, soonCount = soonCount,isRefreshing = isRefreshing,)
+        NowTopBar(liveCount = liveCount, soonCount = soonCount, isRefreshing = isRefreshing)
         Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
         when {
-            isLoading                        -> LoadingView()
             liveCount == 0 && soonCount == 0 -> EmptyView()
-            else                             -> NowContent(
+            else -> NowContent(
                 liveMatches  = liveMatches,
                 liveOnAir    = liveOnAir,
                 startingSoon = startingSoon,
@@ -124,7 +123,6 @@ private fun NowTopBar(liveCount: Int, soonCount: Int, isRefreshing: Boolean = fa
             )
         }
         Spacer(modifier = Modifier.weight(1f))
-        // Pill chip — "11 live · 5 soon"
         Text(
             text  = "$liveCount live · $soonCount soon",
             style = NSType.caption(),
@@ -148,9 +146,8 @@ private fun NowContent(
     val windowSizeClass = LocalWindowSizeClass.current
     val isTablet = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
             && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
-    val useColumns = isTablet
 
-    if (useColumns) {
+    if (isTablet) {
         NowContentTwoColumn(liveMatches, liveOnAir, startingSoon, onSelect)
     } else {
         NowContentSingleColumn(liveMatches, liveOnAir, startingSoon, onSelect)
@@ -172,13 +169,11 @@ private fun NowContentSingleColumn(
             .fillMaxSize()
             .padding(dimens.spacing.lg),
     ) {
-        // ── Matches live ──────────────────────────────────────────────────────
         if (liveMatches.isNotEmpty()) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
-                    // Pulse dot + header — matches design
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
                     ) {
                         NSPulseDot()
@@ -196,12 +191,10 @@ private fun NowContentSingleColumn(
             }
         }
 
-        // ── Live on air ───────────────────────────────────────────────────────
         if (liveOnAir.isNotEmpty()) {
             item { LiveOnAirSection(liveOnAir = liveOnAir, onSelect = onSelect) }
         }
 
-        // ── Starting soon ─────────────────────────────────────────────────────
         if (startingSoon.isNotEmpty()) {
             item { StartingSoonSection(startingSoon = startingSoon, onSelect = onSelect) }
         }
@@ -231,15 +224,14 @@ private fun NowContentTwoColumn(
             .padding(dimens.spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(columnSpacing),
     ) {
-        // Left — Matches live (only shown if content exists)
         if (liveMatches.isNotEmpty()) {
             LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
+                modifier            = Modifier.weight(1f).fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(dimens.spacing.md),
             ) {
                 item {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                        verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
                     ) {
                         NSPulseDot()
@@ -260,7 +252,6 @@ private fun NowContentTwoColumn(
             }
         }
 
-        // Right — Live on air + Starting soon (full width if no matches)
         LazyColumn(
             modifier = if (liveMatches.isEmpty()) Modifier.fillMaxSize()
             else Modifier.weight(1f).fillMaxHeight(),
@@ -289,7 +280,7 @@ private fun LiveOnAirSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
         ) {
             Icon(
@@ -301,8 +292,7 @@ private fun LiveOnAirSection(
             NSGroupHeader(title = "Live on air", count = liveOnAir.size)
         }
 
-        val visible = if (showAllOnAir) liveOnAir
-        else liveOnAir.take(LIVE_ON_AIR_INITIAL_VISIBLE)
+        val visible = if (showAllOnAir) liveOnAir else liveOnAir.take(LIVE_ON_AIR_INITIAL_VISIBLE)
 
         Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.sm)) {
             visible.forEach { item ->
@@ -315,8 +305,7 @@ private fun LiveOnAirSection(
         }
 
         if (liveOnAir.size > LIVE_ON_AIR_INITIAL_VISIBLE) {
-            val label = if (showAllOnAir) "Show less"
-            else "Show all ${liveOnAir.size}"
+            val label = if (showAllOnAir) "Show less" else "Show all ${liveOnAir.size}"
             Text(
                 text     = label,
                 style    = NSType.captionMedium(),
@@ -338,7 +327,7 @@ private fun StartingSoonSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
         ) {
             Icon(
@@ -356,25 +345,12 @@ private fun StartingSoonSection(
 // ── States ────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun LoadingView() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        CircularProgressIndicator(color = NSColors.accent, strokeWidth = 2.dp)
-        Spacer(modifier = Modifier.height(NSDimens.current.spacing.md))
-        Text(text = "Loading…", style = NSType.caption(), color = NSColors.text3)
-    }
-}
-
-@Composable
 private fun EmptyView() {
     val dimens = NSDimens.current
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize().padding(dimens.spacing.xl),
+        modifier            = Modifier.fillMaxSize().padding(dimens.spacing.xl),
     ) {
         Text(text = "📺", fontSize = 36.sp)
         Spacer(modifier = Modifier.height(dimens.spacing.md))

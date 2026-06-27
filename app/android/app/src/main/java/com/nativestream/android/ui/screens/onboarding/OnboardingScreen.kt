@@ -43,8 +43,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.nativestream.android.domain.model.PlaylistSource
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
+import com.nativestream.android.ui.viewmodel.SourceViewModel
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -60,8 +61,9 @@ private enum class OnboardingStep { SERVER_CHECK, CHANNEL_SETUP, EPG_SETUP, COMP
 fun OnboardingScreen(
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
-    settingsViewModel: SettingsViewModel  = hiltViewModel(),
-    playlistViewModel: PlaylistViewModel  = hiltViewModel(),
+    settingsViewModel:   SettingsViewModel        = hiltViewModel(),
+    sourceViewModel: SourceViewModel = hiltViewModel(),
+    loadingViewModel: ChannelLoadingViewModel = hiltViewModel(),
 ) {
     val scope  = rememberCoroutineScope()
     val dimens = NSDimens.current
@@ -140,8 +142,8 @@ fun OnboardingScreen(
                     onConfirmDiscovered = { url ->
                         settingsViewModel.confirmDiscoveredUrl(url)
                         scope.launch {
-                            if (playlistViewModel.sources.value.isEmpty()) {
-                                playlistViewModel.addSource(
+                            if (sourceViewModel.sources.value.isEmpty()) {
+                                sourceViewModel.addSource(
                                     PlaylistSource(
                                         id                   = UUID.randomUUID().toString(),
                                         name                 = "StreamServer",
@@ -163,8 +165,8 @@ fun OnboardingScreen(
                             isChecking = false
                             if (reachable) {
                                 settingsViewModel.setServerUrl(serverUrlInput)
-                                if (playlistViewModel.sources.value.isEmpty()) {
-                                    playlistViewModel.addSource(
+                                if (sourceViewModel.sources.value.isEmpty()) {
+                                    sourceViewModel.addSource(
                                         PlaylistSource(
                                             id                   = UUID.randomUUID().toString(),
                                             name                 = "StreamServer",
@@ -188,7 +190,7 @@ fun OnboardingScreen(
                     onSkip             = { step = OnboardingStep.EPG_SETUP },
                     onAddAndContinue   = {
                         if (playlistUrlInput.isNotBlank()) {
-                            playlistViewModel.addSource(
+                            sourceViewModel.addSource(
                                 PlaylistSource(
                                     id                   = UUID.randomUUID().toString(),
                                     name                 = playlistUrlInput.substringAfterLast("/").ifEmpty { "Playlist" },
@@ -197,7 +199,7 @@ fun OnboardingScreen(
                                     refreshIntervalHours = DEFAULT_REFRESH_HOURS,
                                 )
                             )
-                            playlistViewModel.loadAll()
+                            loadingViewModel.loadAll()
                         }
                         step = OnboardingStep.EPG_SETUP
                     },

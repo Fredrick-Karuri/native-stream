@@ -10,8 +10,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.nativestream.android.ui.screens.onboarding.OnboardingScreen
-import com.nativestream.android.ui.viewmodel.PlaylistViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
+import com.nativestream.android.ui.viewmodel.SourceViewModel
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import io.mockk.every
@@ -29,7 +30,8 @@ class OnboardingScreenTest {
     @get:Rule(order = 1) val composeRule = createComposeRule()
 
     private lateinit var settingsViewModel: SettingsViewModel
-    private lateinit var playlistViewModel: PlaylistViewModel
+    private lateinit var sourceViewModel: SourceViewModel
+    private lateinit var loadingViewModel: ChannelLoadingViewModel
     private var completed = false
 
     private val serverUrlFlow = MutableStateFlow("http://192.168.1.42:8888")
@@ -38,13 +40,13 @@ class OnboardingScreenTest {
     fun setUp() {
         hiltRule.inject()
         settingsViewModel = mockk(relaxed = true)
-        playlistViewModel = mockk(relaxed = true)
         completed         = false
+        sourceViewModel  = mockk(relaxed = true)
+        loadingViewModel = mockk(relaxed = true)
+        every { sourceViewModel.sources      } returns MutableStateFlow(emptyList())
+        every { loadingViewModel.isLoading   } returns MutableStateFlow(false)
 
         every { settingsViewModel.serverUrl } returns serverUrlFlow
-        every { playlistViewModel.sources   } returns MutableStateFlow(emptyList())
-        every { playlistViewModel.channels  } returns MutableStateFlow(emptyList())
-        every { playlistViewModel.isLoading } returns MutableStateFlow(false)
     }
 
     private fun setContent() {
@@ -52,7 +54,8 @@ class OnboardingScreenTest {
             OnboardingScreen(
                 onComplete        = { completed = true },
                 settingsViewModel = settingsViewModel,
-                playlistViewModel = playlistViewModel,
+                sourceViewModel   = sourceViewModel,
+                loadingViewModel  = loadingViewModel,
             )
         }
     }
