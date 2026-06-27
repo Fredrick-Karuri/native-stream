@@ -59,11 +59,17 @@ actor APIClient {
     
     func probePlaylistForEpg(url: URL) async -> URL? {
         guard let data = try? await fetchRawURL(url),
-              let text = String(data: data.prefix(2048), encoding: .utf8) else { return nil }
-        guard let match = text.range(of: #"x-tvg-url="([^"]+)""#, options: .regularExpression) else { return nil }
-        let inner = text[match]
-        guard let valueRange = inner.range(of: #"(?<=")[^"]+"#, options: .regularExpression) else { return nil }
-        return URL(string: String(inner[valueRange]))
+              let text = String(data: data.prefix(8192), encoding: .utf8) ??
+                         String(data: data.prefix(8192), encoding: .isoLatin1) else { return nil }
+
+        let header = text.components(separatedBy: .newlines).first ?? text
+
+        for key in ["url-tvg", "x-tvg-url"] {
+            if let value = M3UParser.extractAttribute(key, from: header) {
+                return URL(string: value)
+            }
+        }
+        return nil
     }
     
     func fetchRawURL(_ url: URL) async throws -> Data {

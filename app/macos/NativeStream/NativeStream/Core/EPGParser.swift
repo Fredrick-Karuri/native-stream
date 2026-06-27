@@ -1,7 +1,6 @@
-// EPGParser.swift — FX-001, FX-002
+// EPGParser.swift
 import Foundation
 
-// MARK: - Parser (FX-001: plain final class, no actor)
 
 final class EPGParser: NSObject {
 

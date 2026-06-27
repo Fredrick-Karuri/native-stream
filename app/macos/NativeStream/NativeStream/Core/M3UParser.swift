@@ -69,7 +69,7 @@ actor M3UParser {
             if line.isEmpty { continue }
 
             if i == 0 && line.hasPrefix("#EXTM3U") {
-                if let value = extractAttribute("url-tvg", from: line),
+                if let value = M3UParser.extractAttribute("url-tvg", from: line),
                    let url = URL(string: value) {
                     epgURL = url
                 }
@@ -134,17 +134,17 @@ actor M3UParser {
         var meta = ChannelMetadata(name: name.isEmpty ? "Unknown Channel" : name)
 
         // Extract tvg-id
-        if let value = extractAttribute("tvg-id", from: attrSection) {
+        if let value = M3UParser.extractAttribute("tvg-id", from: attrSection) {
             meta.tvgId = value
         }
 
         // Extract group-title
-        if let value = extractAttribute("group-title", from: attrSection) {
+        if let value = M3UParser.extractAttribute("group-title", from: attrSection) {
             meta.groupTitle = value.isEmpty ? "Uncategorised" : value
         }
 
         // Extract tvg-logo
-        if let value = extractAttribute("tvg-logo", from: attrSection),
+        if let value = M3UParser.extractAttribute("tvg-logo", from: attrSection),
            let logoURL = URL(string: value) {
             meta.logoURL = logoURL
         }
@@ -154,7 +154,7 @@ actor M3UParser {
 
     /// Extracts a quoted attribute value from EXTINF attribute string.
     /// Handles both double-quoted and unquoted values.
-    private func extractAttribute(_ key: String, from string: String) -> String? {
+    nonisolated static func extractAttribute(_ key: String, from string: String) -> String? {
         // Match key="value" or key='value'
         let patterns = [
             "\(key)=\"([^\"]*)\"",
