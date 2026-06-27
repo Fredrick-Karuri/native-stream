@@ -32,7 +32,14 @@ final class ServerDiscoveryService {
         discoveredURL = nil
         isScanning    = true
 
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(10))
+            guard let self, self.isScanning, self.discoveredURL == nil else { return }
+            self.stopScanning()
+        }
+
         let params  = NWParameters()
+        
         params.includePeerToPeer = true
         let browser = NWBrowser(for: .bonjourWithTXTRecord(type: serviceType, domain: "local"), using: params)
         self.browser = browser
