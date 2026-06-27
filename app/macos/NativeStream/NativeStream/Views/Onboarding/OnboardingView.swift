@@ -1,132 +1,348 @@
-// OnboardingView.swift — FX-016
+// OnboardingView.swift
+
 import SwiftUI
 
-enum OnboardingStep {
-    case serverCheck
-    case channelSetup
-    case epgSetup
-    case complete
+private enum OnboardingStep {
+    case splash, server, playlist, epg
 }
+
+private let iptvOrgEPG = "https://iptv-org.github.io/epg/guides/en/xmltv.xml"
 
 struct OnboardingView: View {
 
-    @Environment(SettingsStore.self)         private var settings
-    @Environment(PlaylistViewModel.self)     private var playlistVM
-    @Environment(ServerHealthViewModel.self) private var serverHealth
+    @Environment(SettingsStore.self)          private var settings
+    @Environment(PlaylistViewModel.self)      private var playlistVM
+    @Environment(ServerHealthViewModel.self)  private var serverHealth
     @Environment(ServerDiscoveryService.self) private var discovery
 
-
-    @State private var step: OnboardingStep = .serverCheck
-    @State private var isChecking = false
-    @State private var playlistURLInput = ""
-    @State private var epgURLInput = ""
+    @State private var step             = OnboardingStep.splash
+    @State private var urlInput         = ""
+    @State private var foundEpgURL: URL? = nil
 
     var onComplete: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                ForEach(0..<3) { i in
-                    Capsule()
-                        .fill(stepIndex >= i ? NS.accent : NS.border2)
-                        .frame(width: stepIndex == i ? 24 : 8, height: 6)
-                        .animation(.spring(response: 0.3), value: stepIndex)
-                }
-            }
-            .padding(.top, NS.Spacing.xxl)
-
-            Spacer()
-
-            Group {
+        ZStack {
+            NS.bg.ignoresSafeArea()
+            ZStack {
                 switch step {
-                case .serverCheck:  serverCheckStep
-                case .channelSetup: channelSetupStep
-                case .epgSetup:     epgSetupStep
-                case .complete:     completeStep
+                case .splash:
+                    SplashStep(onComplete: {
+                        urlInput = settings.serverURLString
+                        withAnimation { step = .server }
+                    })
+
+                case .server:
+                    ServerStep(
+                        urlInput:        $urlInput,
+                        connectionState: serverHealth.connectionState,
+                        discovery:       discovery,
+                        onConnect:       { url in
+                            settings.serverURLString = url
+                            Task {
+                                await APIClient.shared.setBaseURL(URL(string: url)!)
+                                await serverHealth.checkConnection(serverURL: URL(string: url)!)
+                            }
+                        },
+                        onAdvance: {
+                            // auto-add server playlist
+                            if playlistVM.sources.isEmpty {
+                                if let url = settings.serverURL {
+                                    playlistVM.addSource(PlaylistSource(
+                                        label:           "StreamServer",
+                                        url:             url.appendingPathComponent("playlist.m3u"),
+                                        refreshInterval: .sixHours
+                                    ))
+                                }
+                            }
+                            withAnimation { step = .playlist }
+                        },
+                        onSkip: {
+                            settings.onboardingComplete = true
+                            onComplete()
+                        }
+                    )
+
+                case .playlist:
+                    PlaylistStep(
+                        connectionState: serverHealth.connectionState,
+                        onSourceAdded:   { url in
+                            playlistVM.addSource(PlaylistSource(
+                                label:           url.host ?? "Playlist",
+                                url:             url,
+                                refreshInterval: .sixHours
+                            ))
+                            Task { await playlistVM.loadAll() }
+                        },
+                        onAdvance: { epgURL in
+                            foundEpgURL = epgURL
+                            let success = serverHealth.connectionState.asSuccess
+                            let hasEpg  = success?.hasEpg == true
+                                       || success?.epgFromPlaylist == true
+                                       || epgURL != nil
+                            if hasEpg {
+                                if let epgURL { settings.epgURLString = epgURL.absoluteString }
+                                settings.onboardingComplete = true
+                                onComplete()
+                            } else {
+                                withAnimation { step = .epg }
+                            }
+                        },
+                        onSkip: {
+                            let success = serverHealth.connectionState.asSuccess
+                            let hasEpg  = success?.hasEpg == true || success?.epgFromPlaylist == true
+                            if hasEpg {
+                                settings.onboardingComplete = true
+                                onComplete()
+                            } else {
+                                withAnimation { step = .epg }
+                            }
+                        }
+                    )
+
+                case .epg:
+                    EPGStep(
+                        onSave: { epgURLString in
+                            if !epgURLString.isEmpty {
+                                settings.epgURLString = epgURLString
+                            }
+                            settings.onboardingComplete = true
+                            onComplete()
+                        },
+                        onSkip: {
+                            settings.onboardingComplete = true
+                            onComplete()
+                        }
+                    )
                 }
             }
             .transition(.asymmetric(
                 insertion: .move(edge: .trailing).combined(with: .opacity),
                 removal:   .move(edge: .leading).combined(with: .opacity)
             ))
-            .animation(.easeInOut(duration: 0.3), value: step)
-
-            Spacer()
         }
-        .frame(width: 500, height: 440)
-        .background(NS.bg)
-        .onAppear { discovery.scan() }
+        .frame(width: 560, height: 480)
+        .onChange(of: serverHealth.connectionState) { _, state in
+            if case .success = state, step == .server {
+                withAnimation { step = .playlist }
+            }
+        }
         .onChange(of: discovery.discoveredURL) { _, url in
-            guard let url else { return }
-            settings.confirmDiscoveredURL(url)
+            guard let url, step == .server else { return }
+            urlInput = url.absoluteString
+        }
+        .onAppear { serverHealth.resetConnectionState() }
+    }
+}
+
+// MARK: - Splash
+
+private struct SplashStep: View {
+    let onComplete: () -> Void
+    @State private var opacity = 0.0
+
+    var body: some View {
+        VStack(spacing: NS.Spacing.xl) {
+            Image(systemName: "play.tv.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(NS.accent)
+            Text("NativeStream")
+                .font(NS.Font.display)
+                .foregroundStyle(NS.text)
+            Text("Your live TV. On every screen.")
+                .font(NS.Font.body)
+                .foregroundStyle(NS.text3)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(NS.bg)
+        .opacity(opacity)
+        .task {
+            withAnimation(.easeIn(duration: 0.4)) { opacity = 1.0 }
+            try? await Task.sleep(for: .seconds(2))
+            onComplete()
         }
     }
+}
 
-    // MARK: - Step 1: Server check
+// MARK: - Server
 
-    private var serverCheckStep: some View {
+private struct ServerStep: View {
+    @Binding var urlInput: String
+    let connectionState: OnboardingConnectionState
+    let discovery: ServerDiscoveryService
+    let onConnect: (String) -> Void
+    let onAdvance: () -> Void
+    let onSkip: () -> Void
+
+    @State private var showServer   = false
+    @State private var showPlaylist = false
+    @State private var showEpg      = false
+
+    var body: some View {
         VStack(spacing: NS.Spacing.xl) {
             Image(systemName: "server.rack")
                 .font(.system(size: 48))
                 .foregroundStyle(NS.accent)
 
-            Text("Welcome to NativeStream")
+            Text("Connect to your server")
                 .font(NS.Font.display)
                 .foregroundStyle(NS.text)
 
-            if let found = discovery.discoveredURL {
-                // Server found via mDNS
-                Text("Server found on your network!")
-                    .font(NS.Font.body)
-                    .foregroundStyle(NS.text3)
+            switch connectionState {
+            case .checking, .success:
+                narrativeProgress
 
-                Text(found.absoluteString)
-                    .font(NS.Font.monoSm)
-                    .foregroundStyle(NS.accent)
+            case .failure(let reason):
+                failureState(reason: reason)
 
-                HStack(spacing: NS.Spacing.md) {
-                    Button("Enter manually") { withAnimation { step = .channelSetup } }
-                        .buttonStyle(.bordered)
-
-                    Button("Use this server") {
-                        settings.confirmDiscoveredURL(found)
-                        withAnimation { step = .channelSetup }
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-            } else {
-                // Scanning / manual fallback
-                Text(discovery.isScanning
-                     ? "Scanning your network for NativeStream server…\nOr enter the server URL manually."
-                     : "Make sure StreamServer is running.\nOr enter the server URL manually.")
-                    .font(NS.Font.body)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(NS.text3)
-
-                if discovery.isScanning {
-                    ProgressView().controlSize(.small)
-                }
-
-                NSCodeBlock(code: "make run-server")
-
-                HStack(spacing: NS.Spacing.md) {
-                    Button("Skip") { withAnimation { step = .channelSetup } }
-                        .buttonStyle(.bordered)
-
-                    Button(isChecking ? "Checking…" : "Check Connection") {
-                        Task { await checkServer() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isChecking)
-                }
+            case .idle:
+                idleInput
             }
         }
         .padding(NS.Spacing.xxl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(NS.bg)
+        .onChange(of: connectionState) { _, state in
+            if case .success(_, _, let hasEpg, _) = state {
+                Task {
+                    withAnimation { showServer = true }
+                    try? await Task.sleep(for: .milliseconds(300))
+                    withAnimation { showPlaylist = true }
+                    try? await Task.sleep(for: .milliseconds(300))
+                    if hasEpg { withAnimation { showEpg = true } }
+                    try? await Task.sleep(for: .milliseconds(600))
+                    onAdvance()
+                }
+            }
+        }
     }
 
-    // MARK: - Step 2: Channel setup (FX-016: inline URL entry)
+    private var idleInput: some View {
+        VStack(spacing: NS.Spacing.lg) {
+            if discovery.isScanning && discovery.discoveredURL == nil {
+                HStack(spacing: NS.Spacing.sm) {
+                    ProgressView().controlSize(.small)
+                    Text("Scanning your network…")
+                        .font(NS.Font.body)
+                        .foregroundStyle(NS.text3)
+                }
+            } else if let found = discovery.discoveredURL {
+                Text("Server found on your network!")
+                    .font(NS.Font.body)
+                    .foregroundStyle(NS.accent)
+            } else {
+                Text("Enter your NativeStream server address.")
+                    .font(NS.Font.body)
+                    .foregroundStyle(NS.text3)
+            }
 
-    private var channelSetupStep: some View {
+            NSTextField(placeholder: "http://192.168.1.42:8888", text: $urlInput)
+                .frame(maxWidth: 340)
+
+            NSCodeBlock(code: "make run-server")
+
+            HStack(spacing: NS.Spacing.md) {
+                if discovery.discoveredURL == nil {
+                    Button(discovery.isScanning ? "Scanning…" : "Scan Network") {
+                        discovery.scan()
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(discovery.isScanning)
+                }
+                Button("Connect") {
+                    onConnect(urlInput)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(urlInput.isEmpty)
+            }
+
+            Button("Skip for now") { onSkip() }
+                .buttonStyle(.plain)
+                .font(NS.Font.monoSm)
+                .foregroundStyle(NS.text3.opacity(0.5))
+        }
+    }
+
+    private var narrativeProgress: some View {
+        VStack(alignment: .leading, spacing: NS.Spacing.sm) {
+            if showServer {
+                Text("✓ Server reached")
+                    .font(NS.Font.captionMed)
+                    .foregroundStyle(NS.accent)
+                    .transition(.opacity)
+            }
+            if showPlaylist {
+                let channels = connectionState.asSuccess?.channels ?? 0
+                Text("✓ Playlist found — \(channels) channels")
+                    .font(NS.Font.captionMed)
+                    .foregroundStyle(NS.accent)
+                    .transition(.opacity)
+            }
+            if showEpg {
+                Text("✓ TV Guide found")
+                    .font(NS.Font.captionMed)
+                    .foregroundStyle(NS.accent)
+                    .transition(.opacity)
+            }
+            if case .checking = connectionState {
+                ProgressView().controlSize(.small)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func failureState(reason: FailureReason) -> some View {
+        VStack(alignment: .leading, spacing: NS.Spacing.sm) {
+            Text("✗ Couldn't reach \(urlInput)")
+                .font(NS.Font.captionMed)
+                .foregroundStyle(NS.red)
+
+            let suggestions: [String] = {
+                switch reason {
+                case .unreachable: return [
+                    "Is the server running? Try: make run-server",
+                    "Are you on the same WiFi network?",
+                    "Check the IP in your server's terminal output",
+                ]
+                case .noPlaylist: return [
+                    "Server reached but no playlist found",
+                    "Check StreamServer is running: make run-server",
+                ]
+                case .unknown: return [
+                    "Something went wrong — check the server logs",
+                ]
+                }
+            }()
+
+            ForEach(suggestions, id: \.self) { s in
+                Text("→ \(s)")
+                    .font(NS.Font.caption)
+                    .foregroundStyle(NS.text3)
+            }
+
+            Button("Try again") { onConnect(urlInput) }
+                .buttonStyle(.borderedProminent)
+                .padding(.top, NS.Spacing.sm)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Playlist
+
+private struct PlaylistStep: View {
+    let connectionState: OnboardingConnectionState
+    let onSourceAdded: (URL) -> Void
+    let onAdvance: (URL?) -> Void
+    let onSkip: () -> Void
+
+    @State private var playlistInput = ""
+    @State private var isProbing     = false
+    @State private var foundEpg: URL? = nil
+    @State private var isAdded       = false
+
+    var body: some View {
         VStack(spacing: NS.Spacing.xl) {
             Image(systemName: "list.bullet.rectangle")
                 .font(.system(size: 48))
@@ -136,138 +352,108 @@ struct OnboardingView: View {
                 .font(NS.Font.display)
                 .foregroundStyle(NS.text)
 
-            Text("Paste your M3U playlist URL below.\nThis is usually your StreamServer's playlist endpoint.")
+            Text("Your server playlist was added automatically.\nWant to add another M3U source?")
                 .font(NS.Font.body)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(NS.text3)
 
-            TextField("http://localhost:8888/playlist.m3u", text: $playlistURLInput)
-                .textFieldStyle(.roundedBorder)
+            NSTextField(placeholder: "http://192.168.1.42:8888/playlist.m3u", text: $playlistInput)
                 .frame(maxWidth: 340)
-
-            HStack(spacing: NS.Spacing.md) {
-                Button("Skip") { withAnimation { step = .epgSetup } }
-                    .buttonStyle(.bordered)
-
-                Button("Add & Continue") {
-                    addPlaylistSource()
-                    withAnimation { step = .epgSetup }
+                .onChange(of: playlistInput) { _, _ in
+                    foundEpg = nil
+                    isAdded  = false
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(playlistURLInput.isEmpty)
+
+            if isAdded {
+                VStack(spacing: NS.Spacing.sm) {
+                    Text("✓ Playlist added")
+                        .font(NS.Font.captionMed)
+                        .foregroundStyle(NS.accent)
+                    if let epg = foundEpg {
+                        Text("✓ TV Guide found — will be added automatically")
+                            .font(NS.Font.captionMed)
+                            .foregroundStyle(NS.accent)
+                    } else {
+                        Text("No TV Guide found in this playlist")
+                            .font(NS.Font.monoSm)
+                            .foregroundStyle(NS.text3)
+                    }
+                    Button("Continue") { onAdvance(foundEpg) }
+                        .buttonStyle(.borderedProminent)
+                }
+                .transition(.opacity)
+            } else {
+                if isProbing {
+                    Text("Checking for TV Guide…")
+                        .font(NS.Font.monoSm)
+                        .foregroundStyle(NS.text3)
+                }
+                HStack(spacing: NS.Spacing.md) {
+                    Button("Skip for now") { onSkip() }
+                        .buttonStyle(.bordered)
+                    Button(isProbing ? "Checking…" : "Add Source") {
+                        guard let url = URL(string: playlistInput.trimmingCharacters(in: .whitespaces)),
+                              url.scheme != nil else { return }
+                        Task {
+                            isProbing = true
+                            let epg   = await APIClient.shared.probePlaylistForEpg(url: url)
+                            foundEpg  = epg
+                            isProbing = false
+                            isAdded   = true
+                            onSourceAdded(url)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(playlistInput.isEmpty || isProbing)
+                }
             }
         }
         .padding(NS.Spacing.xxl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(NS.bg)
+        .animation(.easeInOut(duration: 0.3), value: isAdded)
     }
+}
 
-    // MARK: - Step 3: EPG setup
+// MARK: - EPG
 
-    private var epgSetupStep: some View {
+private struct EPGStep: View {
+    let onSave: (String) -> Void
+    let onSkip: () -> Void
+
+    @State private var epgInput = ""
+
+    var body: some View {
         VStack(spacing: NS.Spacing.xl) {
             Image(systemName: "tv.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(NS.accent)
 
-            Text("Set Up TV Guide")
+            Text("Add a TV Guide")
                 .font(NS.Font.display)
                 .foregroundStyle(NS.text)
 
-            Text("Enter your EPG URL so NativeStream can show\nwhat's on and upcoming match times.")
+            Text("A TV Guide shows upcoming match times and what's on.\nYour server didn't return one automatically.")
                 .font(NS.Font.body)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(NS.text3)
 
-            TextField("http://localhost:8888/epg.xml", text: $epgURLInput)
-                .textFieldStyle(.roundedBorder)
+            NSTextField(placeholder: "http://192.168.1.42:8888/epg.xml", text: $epgInput)
                 .frame(maxWidth: 340)
 
-            Text("Or use a public source like https://iptv-org.github.io/epg/")
-                .font(NS.Font.monoSm)
-                .foregroundStyle(NS.text3)
+            Button("Use IPTV-org guide") { epgInput = iptvOrgEPG }
+                .buttonStyle(.bordered)
 
             HStack(spacing: NS.Spacing.md) {
-                Button("Skip") { withAnimation { step = .complete } }
+                Button("Skip for now") { onSkip() }
                     .buttonStyle(.bordered)
-
-                Button("Save & Finish") {
-                    if !epgURLInput.isEmpty {
-                        settings.epgURLString = epgURLInput
-                    }
-                    withAnimation { step = .complete }
-                }
-                .buttonStyle(.borderedProminent)
+                Button("Add Guide") { onSave(epgInput) }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(epgInput.isEmpty)
             }
         }
         .padding(NS.Spacing.xxl)
-    }
-
-    // MARK: - Step 4: Complete
-
-    private var completeStep: some View {
-        VStack(spacing: NS.Spacing.xl) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(NS.green)
-
-            Text("You're all set!")
-                .font(NS.Font.display)
-                .foregroundStyle(NS.text)
-
-            Text("NativeStream is ready. Your channels are loading now.\nSelect any channel to start watching.")
-                .font(NS.Font.body)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(NS.text3)
-
-            Button("Start Watching") {
-                settings.onboardingComplete = true
-                onComplete()
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-        }
-        .padding(NS.Spacing.xxl)
-    }
-
-    // MARK: - Helpers
-
-    private var stepIndex: Int {
-        switch step {
-        case .serverCheck:  return 0
-        case .channelSetup: return 1
-        case .epgSetup:     return 2
-        case .complete:     return 2
-        }
-    }
-
-    private func checkServer() async {
-        isChecking = true
-        defer { isChecking = false }
-        guard let url = settings.serverURL else { return }
-        await serverHealth.check(serverURL: url)
-        if serverHealth.isConnected {
-            // Auto-add server playlist if no sources configured
-            if playlistVM.sources.isEmpty {
-                let serverPlaylist = url.appendingPathComponent("playlist.m3u")
-                playlistVM.addSource(PlaylistSource(
-                    label: "StreamServer",
-                    url: serverPlaylist,
-                    refreshInterval: .sixHours
-                ))
-            }
-            withAnimation { step = .channelSetup }
-        }
-    }
-
-    private func addPlaylistSource() {
-        guard let url = URL(string: playlistURLInput.trimmingCharacters(in: .whitespaces)),
-              url.scheme != nil else { return }
-        let label = url.host ?? "Playlist"
-        playlistVM.addSource(PlaylistSource(
-            label: label,
-            url: url,
-            refreshInterval: .sixHours
-        ))
-        // FX-016: trigger load immediately so channels appear on complete screen
-        Task { await playlistVM.loadAll() }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(NS.bg)
     }
 }

@@ -56,6 +56,21 @@ actor APIClient {
     func playlistData() async throws -> Data {
         try await rawGet("playlist.m3u")
     }
+    
+    func probePlaylistForEpg(url: URL) async -> URL? {
+        guard let data = try? await fetchRawURL(url),
+              let text = String(data: data.prefix(2048), encoding: .utf8) else { return nil }
+        guard let match = text.range(of: #"x-tvg-url="([^"]+)""#, options: .regularExpression) else { return nil }
+        let inner = text[match]
+        guard let valueRange = inner.range(of: #"(?<=")[^"]+"#, options: .regularExpression) else { return nil }
+        return URL(string: String(inner[valueRange]))
+    }
+    
+    func fetchRawURL(_ url: URL) async throws -> Data {
+        var req = URLRequest(url: url)
+        req.cachePolicy = .useProtocolCachePolicy
+        return try await execute(req)
+    }
 
     func epgData() async throws -> Data {
         try await rawGet("epg.xml")

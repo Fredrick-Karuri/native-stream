@@ -16,6 +16,39 @@ final class ServerHealthViewModel {
 
     var status: ServerStatus = .unknown
     var isChecking = false
+    var connectionState: OnboardingConnectionState = .idle
+    
+    func checkConnection(serverURL: URL) async {
+        connectionState = .checking
+        async let healthTask   = try? APIClient.shared.health()
+        async let playlistTask = try? APIClient.shared.playlistData()
+        async let epgTask      = try? APIClient.shared.epgData()
+
+        let health   = await healthTask
+        let playlist = await playlistTask
+        let epg      = await epgTask
+
+        guard let h = health else {
+            connectionState = .failure(.unreachable)
+            return
+        }
+        guard let p = playlist, !p.isEmpty else {
+            connectionState = .failure(.noPlaylist)
+            return
+        }
+        let hasEpg = epg?.isEmpty == false
+        connectionState = .success(
+            channels:        h.channels,
+            healthy:         h.healthy,
+            hasEpg:          hasEpg,
+            epgFromPlaylist: false
+        )
+    }
+
+    func resetConnectionState() {
+        connectionState = .idle
+    }
+
 
     private var checkTask: Task<Void, Never>?
 
