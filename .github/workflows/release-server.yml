@@ -94,24 +94,28 @@ jobs:
 
             ## Installation
 
-            **1. Download and extract**
+            Download the archive for your platform using the command below, then follow steps 2 and 3.
 
-            Pick the archive for your platform and run:
-
+            **macOS — Apple Silicon**
             ```bash
-            # macOS — Apple Silicon
             curl -L https://github.com/Fredrick-Karuri/native-stream/releases/download/server%2Fv${{ steps.parse_tag.outputs.version }}/nativestream-server-darwin-arm64.tar.gz | tar -xz
             sudo mv nativestream-server-darwin-arm64 /usr/local/bin/nativestream-server
+            ```
 
-            # macOS — Intel
+            **macOS — Intel**
+            ```bash
             curl -L https://github.com/Fredrick-Karuri/native-stream/releases/download/server%2Fv${{ steps.parse_tag.outputs.version }}/nativestream-server-darwin-amd64.tar.gz | tar -xz
             sudo mv nativestream-server-darwin-amd64 /usr/local/bin/nativestream-server
+            ```
 
-            # Linux — amd64
+            **Linux — x64**
+            ```bash
             curl -L https://github.com/Fredrick-Karuri/native-stream/releases/download/server%2Fv${{ steps.parse_tag.outputs.version }}/nativestream-server-linux-amd64.tar.gz | tar -xz
             sudo mv nativestream-server-linux-amd64 /usr/local/bin/nativestream-server
+            ```
 
-            # Linux — arm64 (Raspberry Pi)
+            **Linux — ARM64 (Raspberry Pi)**
+            ```bash
             curl -L https://github.com/Fredrick-Karuri/native-stream/releases/download/server%2Fv${{ steps.parse_tag.outputs.version }}/nativestream-server-linux-arm64.tar.gz | tar -xz
             sudo mv nativestream-server-linux-arm64 /usr/local/bin/nativestream-server
             ```
@@ -119,28 +123,25 @@ jobs:
             Verify your download against `checksums.txt` before running.
 
             **2. Run it**
-
             ```bash
             nativestream-server
             ```
 
-            **3. Optional — install as a background service (auto-starts on login/boot)**
-
+            **3. Optional — run as a background service (auto-starts on login/boot)**
             ```bash
             nativestream-server --install-service
             ```
 
             To uninstall later:
-
             ```bash
             nativestream-server --uninstall-service
             sudo rm /usr/local/bin/nativestream-server
             ```
           files: |
-            dist/nativestream-server-darwin-arm64.tar.gz
-            dist/nativestream-server-darwin-amd64.tar.gz
-            dist/nativestream-server-linux-amd64.tar.gz
-            dist/nativestream-server-linux-arm64.tar.gz
-            dist/checksums.txt
+            dist/nativestream-server-darwin-arm64.tar.gz#macOS Apple Silicon
+            dist/nativestream-server-darwin-amd64.tar.gz#macOS Intel
+            dist/nativestream-server-linux-amd64.tar.gz#Linux x64
+            dist/nativestream-server-linux-arm64.tar.gz#Linux ARM64
+            dist/checksums.txt#Checksums
           draft: false
           prerelease: false
