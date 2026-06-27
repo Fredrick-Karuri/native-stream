@@ -37,27 +37,28 @@ jobs:
         run: go test -race ./...
 
       - name: Build release binaries
+        working-directory: app/server
         run: |
           VERSION=${{ steps.parse_tag.outputs.version }}
-          mkdir -p dist
+          mkdir -p ../../dist
 
-          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -C app/server \
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build \
             -ldflags="-s -w -X main.version=${VERSION}" \
             -o ../../dist/nativestream-server-darwin-arm64 ./cmd/
 
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -C app/server \
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build \
             -ldflags="-s -w -X main.version=${VERSION}" \
             -o ../../dist/nativestream-server-darwin-amd64 ./cmd/
 
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -C app/server \
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
             -ldflags="-s -w -X main.version=${VERSION}" \
             -o ../../dist/nativestream-server-linux-amd64 ./cmd/
 
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C app/server \
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
             -ldflags="-s -w -X main.version=${VERSION}" \
             -o ../../dist/nativestream-server-linux-arm64 ./cmd/
 
-          cd dist
+          cd ../../dist
           tar -czf nativestream-server-darwin-arm64.tar.gz nativestream-server-darwin-arm64
           tar -czf nativestream-server-darwin-amd64.tar.gz nativestream-server-darwin-amd64
           tar -czf nativestream-server-linux-amd64.tar.gz  nativestream-server-linux-amd64
@@ -133,14 +134,14 @@ jobs:
 
             To uninstall later:
             ```bash
-            nativestream-server --uninstall-service`
+            nativestream-server --uninstall-service
             sudo rm /usr/local/bin/nativestream-server
             ```
           files: |
-            dist/nativestream-server-darwin-arm64.tar.gz
-            dist/nativestream-server-darwin-amd64.tar.gz
-            dist/nativestream-server-linux-amd64.tar.gz
-            dist/nativestream-server-linux-arm64.tar.gz
-            dist/checksums.txt
+            dist/nativestream-server-darwin-arm64.tar.gz#macOS Apple Silicon
+            dist/nativestream-server-darwin-amd64.tar.gz#macOS Intel
+            dist/nativestream-server-linux-amd64.tar.gz#Linux x64
+            dist/nativestream-server-linux-arm64.tar.gz#Linux ARM64
+            dist/checksums.txt#Checksums
           draft: false
           prerelease: false
