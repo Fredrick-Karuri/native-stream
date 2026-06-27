@@ -119,8 +119,13 @@ fun SettingsScreen(
     Scaffold(
         snackbarHost   = { SnackbarHost(snackbarHostState) },
         containerColor = NSColors.bg,
-    ) { _ ->
-        Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
+    ) { innerPadding ->
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(NSColors.bg)
+        ) {
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
