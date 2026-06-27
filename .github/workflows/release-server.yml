@@ -11,90 +11,74 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      packages: write
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Get full history for precise changelogs
+          fetch-depth: 0
 
       - name: Extract Version from Tag
         id: parse_tag
         run: |
-          # Input tag looks like: refs/tags/server/v1.2.3
-          # Strips down to: 1.2.3
+          # github.ref_name for tag server/v1.2.3 is exactly "server/v1.2.3"
           RAW_TAG=${{ github.ref_name }}
-          TAG_NAME=${RAW_TAG##*/}
-          VERSION=${TAG_NAME#server/v}
+          VERSION=${RAW_TAG#server/v}
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "tag=${RAW_TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: app/server/go.mod
+          cache-dependency-path: app/server/go.sum
 
       - name: Run server tests
         working-directory: app/server
         run: go test -race ./...
 
       - name: Build release binaries
+        working-directory: app/server
         run: |
           VERSION=${{ steps.parse_tag.outputs.version }}
-          mkdir -p dist
+          mkdir -p ../../dist
 
-          # darwin arm64 (Apple Silicon)
-          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 \
-            go build -C app/server \
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build \
             -ldflags="-s -w -X main.version=${VERSION}" \
             -o ../../dist/nativestream-server-darwin-arm64 ./cmd/
 
-          # darwin amd64 (Intel Mac)
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 \
-            go build -C app/server \
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build \
             -ldflags="-s -w -X main.version=${VERSION}" \
             -o ../../dist/nativestream-server-darwin-amd64 ./cmd/
 
-          # linux amd64 (Docker / VPS)
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-            go build -C app/server \
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
             -ldflags="-s -w -X main.version=${VERSION}" \
             -o ../../dist/nativestream-server-linux-amd64 ./cmd/
 
-          # linux arm64 (Raspberry Pi)
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
-            go build -C app/server \
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
             -ldflags="-s -w -X main.version=${VERSION}" \
             -o ../../dist/nativestream-server-linux-arm64 ./cmd/
 
-          # Create tarballs
-          cd dist
+          cd ../../dist
           tar -czf nativestream-server-darwin-arm64.tar.gz nativestream-server-darwin-arm64
           tar -czf nativestream-server-darwin-amd64.tar.gz nativestream-server-darwin-amd64
           tar -czf nativestream-server-linux-amd64.tar.gz  nativestream-server-linux-amd64
           tar -czf nativestream-server-linux-arm64.tar.gz  nativestream-server-linux-arm64
-
-          # Generate SHA256 checksums
           shasum -a 256 *.tar.gz > checksums.txt
 
       - name: Generate Scoped Changelog
         id: changelog
         run: |
-          # Find the previous server tag to compare history accurately
           PREV_TAG=$(git describe --tags --abbrev=0 --match "server/v*" "${{ github.ref_name }}^" 2>/dev/null || echo "")
           if [ -z "$PREV_TAG" ]; then
             RANGE="HEAD"
           else
             RANGE="${PREV_TAG}..HEAD"
           fi
-
-          # Target ONLY the server directory
           CHANGELOG=$(git log ${RANGE} \
             --pretty=format:"- %s (%h)" \
             --no-merges \
             -- app/server/ \
             | head -50)
-
           echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
           echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
@@ -103,17 +87,54 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.parse_tag.outputs.tag }}
-          name: Server Release ${{ steps.parse_tag.outputs.version }}
+          name: Server v${{ steps.parse_tag.outputs.version }}
           body: |
             ## Server Changes
-
             ${{ steps.changelog.outputs.changelog }}
 
             ## Installation
 
-            ### Docker
+            **1. Download and extract**
+
+            Pick the archive for your platform and run:
+
             ```bash
-            docker pull ghcr.io/ github.repository /nativestream-server:{{ steps.parse_tag.outputs.version }}
+            # macOS — Apple Silicon
+            curl -L https://github.com/Fredrick-Karuri/native-stream/releases/download/server%2Fv${{ steps.parse_tag.outputs.version }}/nativestream-server-darwin-arm64.tar.gz | tar -xz
+            sudo mv nativestream-server-darwin-arm64 /usr/local/bin/nativestream-server
+
+            # macOS — Intel
+            curl -L https://github.com/Fredrick-Karuri/native-stream/releases/download/server%2Fv${{ steps.parse_tag.outputs.version }}/nativestream-server-darwin-amd64.tar.gz | tar -xz
+            sudo mv nativestream-server-darwin-amd64 /usr/local/bin/nativestream-server
+
+            # Linux — amd64
+            curl -L https://github.com/Fredrick-Karuri/native-stream/releases/download/server%2Fv${{ steps.parse_tag.outputs.version }}/nativestream-server-linux-amd64.tar.gz | tar -xz
+            sudo mv nativestream-server-linux-amd64 /usr/local/bin/nativestream-server
+
+            # Linux — arm64 (Raspberry Pi)
+            curl -L https://github.com/Fredrick-Karuri/native-stream/releases/download/server%2Fv${{ steps.parse_tag.outputs.version }}/nativestream-server-linux-arm64.tar.gz | tar -xz
+            sudo mv nativestream-server-linux-arm64 /usr/local/bin/nativestream-server
+            ```
+
+            Verify your download against `checksums.txt` before running.
+
+            **2. Run it**
+
+            ```bash
+            nativestream-server
+            ```
+
+            **3. Optional — install as a background service (auto-starts on login/boot)**
+
+            ```bash
+            nativestream-server --install-service
+            ```
+
+            To uninstall later:
+
+            ```bash
+            nativestream-server --uninstall-service
+            sudo rm /usr/local/bin/nativestream-server
             ```
           files: |
             dist/nativestream-server-darwin-arm64.tar.gz

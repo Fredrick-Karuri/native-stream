@@ -55,10 +55,11 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: app/server/go.mod
+          cache-dependency-path: app/server/go.sum
 
       - name: Read version
         id: version
-        run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(cat app/server/VERSION)" >> "$GITHUB_OUTPUT"
 
       - name: Build linux/amd64
         working-directory: app/server
