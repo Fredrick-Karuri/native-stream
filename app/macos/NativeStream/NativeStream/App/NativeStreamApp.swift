@@ -26,11 +26,13 @@ struct NativeStreamApp: App {
         WindowGroup {
             Group {
                 if !settings.onboardingComplete {
-                    OnboardingView { settings.onboardingComplete = true }
+                    OnboardingView { }
                         .environment(settings)
                         .environment(serverHealth)
                         .environment(playlistVM)
                         .environment(discoveryService)
+                        .onAppear { serverHealth.resetConnectionState() }
+
                 } else {
                     AppShell()
                         .environment(playlistVM)

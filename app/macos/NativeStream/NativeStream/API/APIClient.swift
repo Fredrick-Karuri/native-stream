@@ -56,6 +56,27 @@ actor APIClient {
     func playlistData() async throws -> Data {
         try await rawGet("playlist.m3u")
     }
+    
+    func probePlaylistForEpg(url: URL) async -> URL? {
+        guard let data = try? await fetchRawURL(url),
+              let text = String(data: data.prefix(8192), encoding: .utf8) ??
+                         String(data: data.prefix(8192), encoding: .isoLatin1) else { return nil }
+
+        let header = text.components(separatedBy: .newlines).first ?? text
+
+        for key in ["url-tvg", "x-tvg-url"] {
+            if let value = M3UParser.extractAttribute(key, from: header) {
+                return URL(string: value)
+            }
+        }
+        return nil
+    }
+    
+    func fetchRawURL(_ url: URL) async throws -> Data {
+        var req = URLRequest(url: url)
+        req.cachePolicy = .useProtocolCachePolicy
+        return try await execute(req)
+    }
 
     func epgData() async throws -> Data {
         try await rawGet("epg.xml")

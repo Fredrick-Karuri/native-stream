@@ -75,17 +75,13 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     if (isLoading) return
 
     if (!onboardingComplete) {
-        OnboardingScreen(onComplete = { settingsViewModel.setOnboardingComplete(true) })
+        LaunchedEffect(Unit) { settingsViewModel.resetConnectionState() }
+        OnboardingScreen(onComplete = { })
         return
     }
 
     LaunchedEffect(Unit) {
         playerViewModel.connectToService()
-    }
-    LaunchedEffect(settingsViewModel.discoveredUrl) {
-        settingsViewModel.discoveredUrl.collect { url ->
-            if (url != null) settingsViewModel.confirmDiscoveredUrl(url)
-        }
     }
 
     // Outer Box — true window bounds, no inset padding.
