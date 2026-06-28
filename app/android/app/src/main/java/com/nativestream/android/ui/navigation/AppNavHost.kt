@@ -41,6 +41,7 @@ import com.nativestream.android.ui.screens.onboarding.OnboardingScreen
 import com.nativestream.android.ui.screens.player.PlayerScreen
 import com.nativestream.android.ui.screens.settings.SettingsScreen
 import com.nativestream.android.ui.viewmodel.CastViewModel
+import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
@@ -52,6 +53,8 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val epgViewModel: EpgViewModel           = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val castViewModel: CastViewModel         = hiltViewModel()
+    val loadingViewModel: ChannelLoadingViewModel = hiltViewModel()
+
 
     val hasActiveChannel   by playerViewModel.hasActiveChannel.collectAsState()
     val isPlayerVisible    by playerViewModel.isPlayerVisible.collectAsState()

@@ -57,7 +57,6 @@ import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.EpgViewModel
-import com.nativestream.android.ui.viewmodel.NowViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 
 private const val LIVE_ON_AIR_INITIAL_VISIBLE = 10
@@ -66,15 +65,9 @@ private val SECTION_ICON_SIZE = 13.dp
 @Composable
 fun NowScreen(
     playerViewModel: PlayerViewModel,
+    epgViewModel: EpgViewModel,
     modifier: Modifier = Modifier,
-    nowViewModel: NowViewModel   = hiltViewModel(),
-    epgViewModel: EpgViewModel   = hiltViewModel(),
 ) {
-    // Bridge channel list from ChannelRepository into EpgViewModel.
-    // NowViewModel owns this side-effect so it survives recomposition.
-    LaunchedEffect(Unit) {
-        nowViewModel.bridgeChannelsToEpg(epgViewModel)
-    }
 
     val liveMatches  by epgViewModel.liveMatches.collectAsState()
     val liveOnAir    by epgViewModel.liveOnAir.collectAsState()

@@ -18,6 +18,7 @@ import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.domain.model.SportCategory
+import com.nativestream.android.domain.repository.ChannelRepository
 import com.nativestream.android.ui.screens.now.ChannelWithProgramme
 import com.nativestream.android.ui.screens.now.NowBuckets
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,8 +55,10 @@ class EpgViewModel @Inject constructor(
     private val epgParser: EpgParser,
     private val settingsDataStore: SettingsDataStore,
     private val epgIndexCache: EpgIndexCache,
+    private val channelRepository: ChannelRepository,
     @Named("io") private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
+
 
     // ── Public state ──────────────────────────────────────────────────────────
 
@@ -96,6 +99,13 @@ class EpgViewModel @Inject constructor(
             loadFromCacheThenRefresh()
         }
         startIndexRebuildTimer()
+        Log.d(TAG, "EpgViewModel init, repo=${channelRepository.hashCode()}")
+        viewModelScope.launch {
+            channelRepository.channels.collect { channels ->
+                Log.d(TAG, "channelRepository emitted: ${channels.size}")
+                updateChannels(channels)
+            }
+        }
     }
 
     private suspend fun loadFromCacheThenRefresh() {
