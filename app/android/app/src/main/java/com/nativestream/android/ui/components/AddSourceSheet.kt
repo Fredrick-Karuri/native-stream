@@ -94,7 +94,6 @@ fun AddSourceSheet(
                                 refreshIntervalHours = refresh.toIntOrNull() ?: DEFAULT_REFRESH_INTERVAL_HOURS,
                             )
                         )
-                        loadingViewModel.loadAll()
                         onDone()
                     },
                 )

@@ -70,11 +70,17 @@ class ChannelLoadingViewModel @Inject constructor(
 
     private val _sources = MutableStateFlow<List<PlaylistSource>>(emptyList())
 
+    private  var lastLoadedSourceSignature: Set<String> = emptySet()
+
     init {
         viewModelScope.launch {
             settingsDataStore.sources.collect { sources ->
                 _sources.value = sources
-                if (sources.isNotEmpty()) {
+                // Only trigger a load when sources are added/removed/url-changed,
+                // not when metadata (channelCount, epgUrl) is written back mid-fetch.
+                val signature = sources.map { "${it.id}|${it.url}" }.toSet()
+                if (sources.isNotEmpty() && signature != lastLoadedSourceSignature) {
+                    lastLoadedSourceSignature = signature
                     loadFromCacheThenRefresh(sources)
                 }
             }
@@ -100,11 +106,15 @@ class ChannelLoadingViewModel @Inject constructor(
                 }
             }
 
+            val hasExistingChannels = channelRepository.channels.value.isNotEmpty()
+
             if (cachedChannels.isNotEmpty()) {
                 channelRepository.emit(cachedChannels)
                 loadAll(isBackgroundRefresh = true)
             } else {
-                loadAll(isBackgroundRefresh = false)
+                // If we already have channels rendered, and the user adds another source, treat
+                // the fetch as a background refresh so the list stays visible.
+                loadAll(isBackgroundRefresh = hasExistingChannels)
             }
         }
     }
@@ -112,12 +122,16 @@ class ChannelLoadingViewModel @Inject constructor(
     // ── Load ──────────────────────────────────────────────────────────────────
 
     fun loadAll(isBackgroundRefresh: Boolean = false) {
-        if (_isLoading.value) return
+        if (_isLoading.value && !isBackgroundRefresh) return
         viewModelScope.launch {
             if (isBackgroundRefresh) {
                 _isRefreshing.value = true
             } else {
                 _isLoading.value = true
+                // Only clear for a true cold boot so the UI doesn't blank during refresh
+                if (channelRepository.channels.value.isEmpty()) {
+                    channelRepository.emit(emptyList())
+                }
             }
             _error.value = null
             try {
