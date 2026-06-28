@@ -16,11 +16,14 @@ import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.PlaylistSource
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.domain.model.SportCategory
+import com.nativestream.android.domain.repository.ChannelRepository
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -87,6 +90,11 @@ class EpgViewModelTest {
 
     private lateinit var fakeStore: EpgStore
 
+    val fakeChannelRepository = object : ChannelRepository {
+        override val channels = MutableStateFlow<List<Channel>>(emptyList()).asStateFlow()
+    }
+
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
@@ -113,7 +121,8 @@ class EpgViewModelTest {
         coEvery { epgIndexCache.writeIndex(any(), any(), any()) } returns Unit
         coEvery { epgIndexCache.clear(any()) } returns Unit
 
-        viewModel = EpgViewModel(apiClient, epgParser, settingsDataStore,epgIndexCache,testDispatcher)
+        viewModel = EpgViewModel(apiClient, epgParser, settingsDataStore, epgIndexCache, fakeChannelRepository, testDispatcher)
+
         viewModel.cancelBackgroundWorkForTest()
 
     }
@@ -169,7 +178,8 @@ class EpgViewModelTest {
             fakeSource.copy(id = "b"),
         )
         every { settingsDataStore.sources } returns flowOf(sources)
-        val vm = EpgViewModel(apiClient, epgParser, settingsDataStore, epgIndexCache, testDispatcher)
+        val vm = EpgViewModel(apiClient, epgParser, settingsDataStore, epgIndexCache, fakeChannelRepository, testDispatcher)
+
         vm.cancelBackgroundWorkForTest()
         vm.load()
         advanceUntilIdle()
