@@ -7,6 +7,8 @@
 package com.nativestream.android.ui.viewmodel
 
 import android.app.Application
+import android.content.Context
+import android.os.PowerManager
 import android.app.PictureInPictureParams
 import android.util.Log
 import android.util.Rational
@@ -154,6 +156,11 @@ class PlayerViewModel @Inject constructor(
     private var retryCount = 0
     private var retryJob: Job? = null
     private var controlsHideJob: Job? = null
+    private val wakeLock: PowerManager.WakeLock? by lazy {
+        (getApplication<Application>().getSystemService(Context.POWER_SERVICE) as? PowerManager)
+            ?.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "NativeStream::Playback")
+            ?.apply { setReferenceCounted(false) }
+    }
 
     // ── Playback controls ─────────────────────────────────────────────────────
 
@@ -164,6 +171,7 @@ class PlayerViewModel @Inject constructor(
         retryCount = 0
         loadStream(channel)
         scheduleControlsHide()
+        if (wakeLock?.isHeld == false) wakeLock?.acquire()
     }
 
     fun playUrl(url: String, headers: Map<String, String> = emptyMap()) {
@@ -209,6 +217,7 @@ class PlayerViewModel @Inject constructor(
         _activeChannel.value = null
         _playerError.value = null
         retryJob?.cancel()
+        if (wakeLock?.isHeld == true) wakeLock?.release()
     }
 
     fun retryManually() {
@@ -305,6 +314,7 @@ class PlayerViewModel @Inject constructor(
         super.onCleared()
         retryJob?.cancel()
         controlsHideJob?.cancel()
+        if (wakeLock?.isHeld == true) wakeLock?.release()
         MediaController.releaseFuture(controllerFuture!!)
     }
 
