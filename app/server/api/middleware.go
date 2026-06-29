@@ -7,6 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+	"net"
+	"bufio"
+	"fmt"
 )
 
 // LoggingMiddleware logs every request with method, path, status, and duration.
@@ -53,4 +56,12 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.status = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := rw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("underlying ResponseWriter does not implement http.Hijacker")
+	}
+	return h.Hijack()
 }

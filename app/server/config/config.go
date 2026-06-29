@@ -158,7 +158,7 @@ func Defaults() Config {
 	home, _ := os.UserHomeDir()
 	base := filepath.Join(home, ".config", "nativestream")
 	return Config{
-		Server: ServerConfig{Host: "127.0.0.1", Port: 8888},
+		Server: ServerConfig{Host: "0.0.0.0", Port: 8889},
 		Store: StoreConfig{
 			SnapshotPath:     filepath.Join(base, "channels.json"),
 			SnapshotInterval: 5 * time.Minute,
@@ -198,6 +198,7 @@ func Load() (Config, error) {
 	// Docker: explicit config path overrides everything.
 	if p := os.Getenv("NATIVESTREAM_CONFIG"); p != "" {
 		return loadFile(cfg, p)
+		
 	}
 	// Docker: data directory for snapshots/cache.
 	if d := os.Getenv("NATIVESTREAM_DATA"); d != "" {

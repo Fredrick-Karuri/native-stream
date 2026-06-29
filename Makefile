@@ -15,6 +15,9 @@ build-server:
 	cd $(SERVER_DIR) && go build -o nativestream-server ./cmd/
 	@echo "✓ Binary: $(SERVER_BIN)"
 
+server-dev:
+	cd app/server && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml go run ./cmd
+
 run-server: build-server
 	@echo "→ Starting server on http://127.0.0.1:8888"
 	$(SERVER_BIN)
