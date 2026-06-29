@@ -78,7 +78,7 @@ fun PlaylistScreen(
             )
 
             // EPG discovery hint
-            AnimatedVisibility(visible = foundEpg != null) {
+            AnimatedVisibility(visible = foundEpg != null && !isAdded) {
                 Text(
                     text  = "✓ TV Guide found in this playlist — will be added automatically",
                     style = NSType.monoSmall(),

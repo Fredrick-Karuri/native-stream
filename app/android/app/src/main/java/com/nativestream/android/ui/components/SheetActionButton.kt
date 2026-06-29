@@ -3,6 +3,8 @@ package com.nativestream.android.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Alignment as Alignment
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -10,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -29,15 +32,20 @@ internal fun SheetActionButton(
         isPrimary && !enabled -> NSColors.text3
         else                  -> NSColors.text2
     }
-    Text(
-        text     = label,
-        style    = NSType.captionMedium(),
-        color    = textColor,
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
             .clip(RoundedCornerShape(dimens.radius.md))
             .background(background)
             .border(0.5.dp, borderColor, RoundedCornerShape(dimens.radius.md))
             .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = dimens.spacing.md, vertical = 6.dp),
-    )
+    ) {
+        Text(
+            text      = label,
+            style     = NSType.captionMedium(),
+            color     = textColor,
+            textAlign = TextAlign.Center,
+        )
+    }
 }

@@ -43,6 +43,21 @@ private const val INITIAL_WARNING_CAPACITY  = 16
 @Singleton
 class M3uParser @Inject constructor() {
 
+    companion object {
+        /** Extract only the EPG url-tvg from the M3U header — cheap, no full parse. */
+        fun extractEpgUrl(bytes: ByteArray): String? {
+            val text = bytes.toString(Charsets.UTF_8).let {
+                if (it.contains('\uFFFD')) bytes.toString(Charsets.ISO_8859_1) else it
+            }
+            val firstLine = text.lineSequence().firstOrNull { it.isNotBlank() } ?: return null
+            if (!firstLine.trimStart().startsWith(HEADER_PREFIX)) return null
+            return DOUBLE_QUOTE_PATTERN.findAll(firstLine)
+                .find { it.groupValues[1] == ATTR_URL_TVG }?.groupValues?.get(2)
+                ?: SINGLE_QUOTE_PATTERN.findAll(firstLine)
+                    .find { it.groupValues[1] == ATTR_URL_TVG }?.groupValues?.get(2)
+        }
+    }
+
     /**
      * Parse M3U content from a raw [ByteArray].
      * UTF-8 is attempted first; ISO-8859-1 (Latin-1) used as fallback — mirrors Swift behaviour.

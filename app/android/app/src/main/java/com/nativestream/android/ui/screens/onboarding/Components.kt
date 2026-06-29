@@ -3,6 +3,7 @@ package com.nativestream.android.ui.screens.onboarding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,8 +38,11 @@ fun StepButtons(
     onSkip: () -> Unit,
     onPrimary: () -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.md)) {
-        SheetActionButton(label = skipLabel,    isPrimary = false, enabled = true,           onClick = onSkip)
-        SheetActionButton(label = primaryLabel, isPrimary = true,  enabled = primaryEnabled, onClick = onPrimary)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.md),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        SheetActionButton(label = skipLabel,    isPrimary = false, enabled = true,           onClick = onSkip,    modifier = Modifier.weight(1f))
+        SheetActionButton(label = primaryLabel, isPrimary = true,  enabled = primaryEnabled, onClick = onPrimary, modifier = Modifier.weight(1f))
     }
 }

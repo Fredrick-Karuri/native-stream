@@ -20,6 +20,7 @@ import javax.inject.Inject
 import com.nativestream.android.data.remote.ServerDiscoveryService
 import com.nativestream.android.ui.screens.onboarding.OnboardingConnectionState
 import com.nativestream.android.ui.screens.onboarding.FailureReason
+import com.nativestream.android.data.parser.M3uParser
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -67,6 +68,7 @@ class SettingsViewModel @Inject constructor(
 
     fun checkConnection(serverUrl: String) {
         viewModelScope.launch {
+            apiClient.setBaseUrl(serverUrl)
             _connectionState.value = OnboardingConnectionState.Checking
             val healthDeferred   = async { runCatching { apiClient.health() } }
             val playlistDeferred = async { runCatching { apiClient.playlistData() } }
@@ -153,10 +155,8 @@ class SettingsViewModel @Inject constructor(
     suspend fun probePlaylistForEpg(url: String): String? =
         withContext(kotlinx.coroutines.Dispatchers.IO) {
             runCatching {
-                val data  = apiClient.fetchRawUrl(url)
-                val text  = data.toString(Charsets.UTF_8).take(2048)
-                val match = Regex("""x-tvg-url="([^"]+)"""").find(text)
-                match?.groupValues?.get(1)
+                val data = apiClient.fetchRawUrl(url)
+                M3uParser.extractEpgUrl(data)
             }.getOrNull()
         }
 }

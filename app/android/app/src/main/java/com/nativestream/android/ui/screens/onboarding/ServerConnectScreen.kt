@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -102,6 +103,7 @@ fun ServerConnectScreen(
                         reason    = connectionState.reason,
                         serverUrl = urlInput,
                         onRetry   = { onConnect(urlInput) },
+                        onSkip    = onSkip,
                     )
                 }
 
@@ -171,7 +173,7 @@ private fun IdleServerInput(
                 isPrimary = false,
                 enabled   = !scanning,
                 onClick   = onScan,
-                modifier  = Modifier.weight(1f),
+                modifier  = Modifier.weight(1f).heightIn(min = 48.dp),
             )
         }
         SheetActionButton(
@@ -179,15 +181,17 @@ private fun IdleServerInput(
             isPrimary = true,
             enabled   = urlInput.isNotBlank(),
             onClick   = onConnect,
-            modifier  = Modifier.weight(1f),
+            modifier  = Modifier.weight(1f).heightIn(min = 48.dp),
         )
     }
 
     Text(
         text     = "Skip for now",
-        style    = NSType.monoSmall(),
-        color    = NSColors.text3.copy(alpha = 0.5f),
-        modifier = Modifier.clickable(onClick = onSkip),
+        style    = NSType.body(),
+        color    = NSColors.text3,
+        modifier = Modifier
+            .clickable(onClick = onSkip)
+            .padding(vertical = 8.dp),
     )
 }
 
@@ -251,6 +255,7 @@ private fun FailureState(
     reason: FailureReason,
     serverUrl: String,
     onRetry: () -> Unit,
+    onSkip: () -> Unit,
 ) {
     val dimens = NSDimens.current
     Column(
@@ -289,6 +294,12 @@ private fun FailureState(
             isPrimary = true,
             enabled   = true,
             onClick   = onRetry,
+        )
+        Text(
+            text     = "Skip for now",
+            style    = NSType.monoSmall(),
+            color    = NSColors.text3.copy(alpha = 0.5f),
+            modifier = Modifier.clickable(onClick = onSkip),
         )
     }
 }
