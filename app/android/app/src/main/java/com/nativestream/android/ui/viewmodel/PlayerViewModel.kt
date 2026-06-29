@@ -144,6 +144,8 @@ class PlayerViewModel @Inject constructor(
         .map { it != null }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
+    val currentChannel: StateFlow<Channel?> = _activeChannel
+
     private val _resizeMode = MutableStateFlow(AspectRatioFrameLayout.RESIZE_MODE_FIT)
 
     val resizeMode: StateFlow<Int> = _resizeMode.asStateFlow()
@@ -182,6 +184,17 @@ class PlayerViewModel @Inject constructor(
             streamHeaders = headers,
         )
         play(temporaryChannel)
+    }
+
+    fun playFromRemote(channelId: String, streamUrl: String) {
+        viewModelScope.launch {
+            val channel = channelRepository.channels.value.find { it.id == channelId }
+            if (channel != null) {
+                play(channel)
+            } else {
+                playUrl(streamUrl)
+            }
+        }
     }
 
     fun showPlayer() {

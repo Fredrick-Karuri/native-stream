@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import com.adamglin.phosphoricons.regular.MonitorPlay
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -53,9 +54,11 @@ import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.NSGroupHeader
 import com.nativestream.android.ui.components.NSPulseDot
 import com.nativestream.android.ui.foldable.rememberFoldPosture
+import com.nativestream.android.ui.screens.player.CastSheet
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
+import com.nativestream.android.ui.viewmodel.ControlViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 
@@ -66,6 +69,7 @@ private val SECTION_ICON_SIZE = 13.dp
 fun NowScreen(
     playerViewModel: PlayerViewModel,
     epgViewModel: EpgViewModel,
+    controlViewModel: ControlViewModel = hiltViewModel(),
     modifier: Modifier = Modifier,
 ) {
 
@@ -74,11 +78,30 @@ fun NowScreen(
     val startingSoon by epgViewModel.startingSoon.collectAsState()
     val isRefreshing by epgViewModel.isRefreshing.collectAsState()
 
-    val liveCount = liveMatches.size + liveOnAir.size
-    val soonCount = startingSoon.size
+    val liveCount       = liveMatches.size + liveOnAir.size
+    val soonCount       = startingSoon.size
+    val currentChannel  by playerViewModel.currentChannel.collectAsState()
+    var showCastSheet   by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
-        NowTopBar(liveCount = liveCount, soonCount = soonCount, isRefreshing = isRefreshing)
+        NowTopBar(
+            liveCount    = liveCount,
+            soonCount    = soonCount,
+            isRefreshing = isRefreshing,
+            onCast       = { showCastSheet = true },
+        )
+
+        if (showCastSheet) {
+            CastSheet(
+                controlViewModel = controlViewModel,
+                currentChannel   = currentChannel,
+                onDismiss        = { showCastSheet = false },
+                onPullBackReady  = { channelId, streamUrl ->
+                    playerViewModel.playFromRemote(channelId, streamUrl)
+                    showCastSheet = false
+                },
+            )
+        }
         Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
         when {
@@ -96,7 +119,12 @@ fun NowScreen(
 // ── Top bar ───────────────────────────────────────────────────────────────────
 
 @Composable
-private fun NowTopBar(liveCount: Int, soonCount: Int, isRefreshing: Boolean = false) {
+private fun NowTopBar(
+    liveCount: Int,
+    soonCount: Int,
+    isRefreshing: Boolean = false,
+    onCast: () -> Unit = {},
+) {
     val dimens = NSDimens.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -116,6 +144,15 @@ private fun NowTopBar(liveCount: Int, soonCount: Int, isRefreshing: Boolean = fa
             )
         }
         Spacer(modifier = Modifier.weight(1f))
+        Icon(
+            imageVector        = PhosphorIcons.Regular.MonitorPlay,
+            contentDescription = "Cast to device",
+            tint               = NSColors.text3,
+            modifier           = Modifier
+                .size(20.dp)
+                .clickable { onCast() },
+        )
+        Spacer(modifier = Modifier.width(dimens.spacing.sm))
         Text(
             text  = "$liveCount live · $soonCount soon",
             style = NSType.caption(),

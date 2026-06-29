@@ -17,6 +17,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.nativestream.android.domain.model.PlaylistSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -32,6 +33,8 @@ private object Keys {
     val ONBOARDING_COMPLETE  = booleanPreferencesKey("onboarding_complete")
     val PLAYLIST_SOURCES     = stringPreferencesKey("playlist_sources")
     val SELECTED_SOURCE_ID = stringPreferencesKey("selected_source_id")
+    val CONTROL_DEVICE_ID = stringPreferencesKey("control_device_id")
+
 }
 
 private object Defaults {
@@ -148,6 +151,12 @@ class SettingsDataStore @Inject constructor(
     }
     suspend fun setSelectedSourceId(id: String) {
         store.edit { it[Keys.SELECTED_SOURCE_ID] = id }
+    }
+    suspend fun getControlDeviceId(): String =
+        store.data.map { it[Keys.CONTROL_DEVICE_ID] ?: "" }.first()
+
+    suspend fun setControlDeviceId(id: String) {
+        store.edit { it[Keys.CONTROL_DEVICE_ID] = id }
     }
     suspend fun resetAll() {
         store.edit { it.clear() }

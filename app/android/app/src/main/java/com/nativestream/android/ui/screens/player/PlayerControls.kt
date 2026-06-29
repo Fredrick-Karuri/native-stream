@@ -24,6 +24,7 @@ import com.adamglin.phosphoricons.regular.ArrowsOut
 import com.adamglin.phosphoricons.regular.ArrowsIn
 import com.adamglin.phosphoricons.regular.SkipBack
 import com.adamglin.phosphoricons.regular.SkipForward
+import com.adamglin.phosphoricons.regular.MonitorPlay
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import com.nativestream.android.ui.LocalWindowSizeClass
 import com.adamglin.PhosphorIcons
@@ -70,6 +71,7 @@ fun PlayerControlsOverlay(
     modifier: Modifier = Modifier,
     isCastAvailable: Boolean = false,
     onCast: () -> Unit = {},
+    onLmcCast: () -> Unit = {},
     resizeMode: Int,
     onToggleResize: () -> Unit,
     channel: Channel?,
@@ -130,6 +132,20 @@ fun PlayerControlsOverlay(
                     videoQuality?.let { quality ->
                         QualityBadge(label = quality)
                     }
+                    if (isCastAvailable) {
+                        ControlButton(
+                            icon               = PhosphorIcons.Regular.Screencast,
+                            contentDescription = "Cast",
+                            onClick            = onCast,
+                            size               = secondarySize,
+                        )
+                    }
+                    ControlButton(
+                        icon               = PhosphorIcons.Regular.MonitorPlay,
+                        contentDescription = "Send to device",
+                        onClick            = onLmcCast,
+                        size               = secondarySize,
+                    )
                     ControlButton(
                         icon               = Icons.Default.Close,
                         contentDescription = "Stop",
@@ -184,14 +200,6 @@ fun PlayerControlsOverlay(
                         onClick            = { playerViewModel.toggleMute() },
                         size               = secondarySize,
                     )
-                    if (isCastAvailable){
-                        ControlButton(
-                            icon               = PhosphorIcons.Regular.Screencast,
-                            contentDescription = "Cast",
-                            onClick            = onCast,
-                            size               = secondarySize,
-                        )
-                    }
                     ControlButton(
                         icon               = PhosphorIcons.Regular.PictureInPicture,
                         contentDescription = "Picture in picture",

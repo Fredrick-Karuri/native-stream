@@ -9,6 +9,8 @@ import android.content.Context
 import com.nativestream.android.data.cast.CastManager
 import com.nativestream.android.data.local.SettingsDataStore
 import com.nativestream.android.data.remote.ApiClient
+import com.nativestream.android.data.remote.ControlDiscoveryService
+import com.nativestream.android.data.remote.ControlSession
 import com.nativestream.android.data.remote.ServerDiscoveryService
 import dagger.Module
 import dagger.Provides
@@ -41,4 +43,14 @@ object AppModule {
         @ApplicationContext context: Context,
         apiClient: ApiClient,
     ): ServerDiscoveryService = ServerDiscoveryService(context, apiClient)
+
+    @Provides @Singleton
+    fun provideControlSession(
+        settingsDataStore: SettingsDataStore,
+    ): ControlSession = ControlSession(settingsDataStore)
+
+    @Provides @Singleton
+    fun provideControlDiscoveryService(
+        @ApplicationContext context: Context,
+    ): ControlDiscoveryService = ControlDiscoveryService(context)
 }
