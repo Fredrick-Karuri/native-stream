@@ -144,13 +144,13 @@ class ControlViewModel @Inject constructor(
 
     // ── Outbound commands ─────────────────────────────────────────────────────
 
-    fun play(targetDeviceId: String, channelId: String, streamUrl: String) {
+    fun play(targetDeviceId: String, channelId: String, channelName: String, streamUrl: String) {
         controlSession.send(
             buildEnvelope(
                 type    = MessageType.PLAY,
                 from    = deviceId,
                 to      = targetDeviceId,
-                payload = PlayPayload(channelId, streamUrl),
+                payload = PlayPayload(channelId, channelName, streamUrl),
             )
         )
     }

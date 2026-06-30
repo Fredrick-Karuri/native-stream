@@ -99,14 +99,15 @@ struct RegisterPayload: Codable {
 
 struct PlayPayload: Codable {
     let channelID: String
+    let channelName: String
     let streamURL: String
 
     enum CodingKeys: String, CodingKey {
-        case channelID = "channel_id"
-        case streamURL = "stream_url"
+        case channelID   = "channel_id"
+        case channelName = "channel_name"
+        case streamURL   = "stream_url"
     }
 }
-
 struct PullBackPayload: Codable {
     let fromDevice: String
 

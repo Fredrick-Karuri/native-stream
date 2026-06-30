@@ -69,8 +69,9 @@ type RegisterPayload struct {
 
 // PlayPayload instructs a target to begin playback.
 type PlayPayload struct {
-	ChannelID string `json:"channel_id"`
-	StreamURL string `json:"stream_url"`
+	ChannelID   string `json:"channel_id"`
+	ChannelName string `json:"channel_name"`
+	StreamURL   string `json:"stream_url"`
 }
 
 // PullBackPayload is sent by a controller to request the target's stream.

@@ -63,8 +63,9 @@ data class RegisterPayload(
 
 @Serializable
 data class PlayPayload(
-    @SerialName("channel_id") val channelId: String,
-    @SerialName("stream_url") val streamUrl: String,
+    @SerialName("channel_id")   val channelId: String,
+    @SerialName("channel_name") val channelName: String,
+    @SerialName("stream_url")   val streamUrl: String,
 )
 
 @Serializable

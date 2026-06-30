@@ -71,16 +71,11 @@ final class ControlViewModel {
     private func handlePlay(_ envelope: Envelope, playerVM: PlayerViewModel) async {
         guard let payload = envelope.decoding(as: PlayPayload.self) else { return }
         lastPlayWasRemote = true
-        guard let detail = try? await APIClient.shared.getChannel(id: payload.channelID) else {
-            // Fall back to raw stream URL if channel lookup fails
-            playerVM.playURL(payload.streamURL)
-            return
-        }
         let channel = Channel(
-            tvgId: detail.tvgID,
-            name: detail.name,
-            groupTitle: detail.groupTitle,
-            streamURL: URL(string: payload.streamURL) ?? URL(string: detail.activeLink?.url ?? "")!,
+            tvgId: "",
+            name: payload.channelName,
+            groupTitle: "Remote",
+            streamURL: URL(string: payload.streamURL) ?? URL(string: "about:blank")!,
             streamHeaders: [:]
         )
         try? await playerVM.play(channel: channel)

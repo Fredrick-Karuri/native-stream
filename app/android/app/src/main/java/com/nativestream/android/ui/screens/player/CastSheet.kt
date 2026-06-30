@@ -159,8 +159,7 @@ fun CastSheet(
                     pullBackState  = pullBackState,
                     onPlay         = {
                         val channel = currentChannel ?: return@DeviceRow
-                        val streamUrl = channel.streamUrl?.toString() ?: return@DeviceRow
-                        controlViewModel.play(session.deviceId, channel.id, streamUrl)
+                        controlViewModel.play(session.deviceId, channel.id, channel.name, channel.streamUrl)
                         onDismiss()
                     },
                     onStop         = {
