@@ -56,7 +56,8 @@ fun CastSheet(
     controlViewModel: ControlViewModel,
     currentChannel: Channel?,
     onDismiss: () -> Unit,
-    onPullBackReady: (channelId: String, streamUrl: String) -> Unit,
+    onPullBackReady: (channelId: String, channelName: String, streamUrl: String) -> Unit,
+    onStopLocalPlayback: () -> Unit,
 ) {
     val dimens        = NSDimens.current
     val sheetState    = rememberModalBottomSheetState()
@@ -69,7 +70,7 @@ fun CastSheet(
     LaunchedEffect(pullBackState) {
         if (pullBackState is PullBackState.Ready) {
             val ready = pullBackState as PullBackState.Ready
-            onPullBackReady(ready.channelId, ready.streamUrl)
+            onPullBackReady(ready.channelId, ready.channelName, ready.streamUrl)
             controlViewModel.resetPullBackState()
             onDismiss()
         }
@@ -160,6 +161,7 @@ fun CastSheet(
                     onPlay         = {
                         val channel = currentChannel ?: return@DeviceRow
                         controlViewModel.play(session.deviceId, channel.id, channel.name, channel.streamUrl)
+                        onStopLocalPlayback()
                         onDismiss()
                     },
                     onStop         = {

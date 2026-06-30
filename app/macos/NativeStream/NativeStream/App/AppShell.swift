@@ -104,6 +104,7 @@ struct AppShell: View {
         Task {
             await controlVM.broadcastState(
                 channelID: playerVM.currentChannel?.id ?? "",
+                channelName: playerVM.currentChannel?.name ?? "",
                 streamURL: playerVM.currentChannel?.streamURL.absoluteString ?? "",
                 playing:   playerVM.isPlaying
             )

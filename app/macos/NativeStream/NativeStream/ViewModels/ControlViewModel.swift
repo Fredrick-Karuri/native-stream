@@ -43,10 +43,10 @@ final class ControlViewModel {
         controlSession.disconnect()
     }
 
-    func broadcastState(channelID: String, streamURL: String, playing: Bool) async {
+    func broadcastState(channelID: String, channelName: String, streamURL: String, playing: Bool) async {
         guard let envelope = Envelope.encoding(
             type: .stateUpdate, from: deviceID, to: "broadcast",
-            payload: StateUpdatePayload(channelID: channelID, streamURL: streamURL, playing: playing)
+            payload: StateUpdatePayload(channelID: channelID, channelName: channelName, streamURL: streamURL, playing: playing)
         ) else { return }
         await controlSession.send(envelope)
     }

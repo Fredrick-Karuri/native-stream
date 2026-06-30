@@ -76,6 +76,7 @@ struct SessionInfo: Codable, Identifiable {
     let name: String
     let kind: DeviceKind
     let channelID: String
+    let channelName: String
     let streamURL: String
     let playing: Bool
     let connectedAt: String
@@ -84,6 +85,7 @@ struct SessionInfo: Codable, Identifiable {
         case deviceID    = "device_id"
         case name, kind
         case channelID   = "channel_id"
+        case channelName = "channel_name"
         case streamURL   = "stream_url"
         case playing
         case connectedAt = "connected_at"
@@ -118,22 +120,26 @@ struct PullBackPayload: Codable {
 
 struct PullBackAckPayload: Codable {
     let channelID: String
+    let channelName: String
     let streamURL: String
 
     enum CodingKeys: String, CodingKey {
-        case channelID = "channel_id"
-        case streamURL = "stream_url"
+        case channelID   = "channel_id"
+        case channelName = "channel_name"
+        case streamURL   = "stream_url"
     }
 }
 
 struct StateUpdatePayload: Codable {
     let channelID: String
+    let channelName: String
     let streamURL: String
     let playing: Bool
 
     enum CodingKeys: String, CodingKey {
-        case channelID = "channel_id"
-        case streamURL = "stream_url"
+        case channelID   = "channel_id"
+        case channelName = "channel_name"
+        case streamURL   = "stream_url"
         case playing
     }
 }

@@ -35,7 +35,8 @@ private const val DEVICE_ID_KEY = "lmc_device_id"
 sealed class PullBackState {
     object Idle      : PullBackState()
     object Requesting: PullBackState()
-    data class Ready(val channelId: String, val streamUrl: String) : PullBackState()
+    data class Ready(val channelId: String, val channelName: String, val streamUrl: String) : PullBackState()
+
 }
 
 @HiltViewModel
@@ -126,8 +127,9 @@ class ControlViewModel @Inject constructor(
         runCatching {
             val payload = envelope.decodePayload<PullBackAckPayload>() ?: return
             _pullBackState.value = PullBackState.Ready(
-                channelId = payload.channelId,
-                streamUrl = payload.streamUrl,
+                channelId   = payload.channelId,
+                channelName = payload.channelName,
+                streamUrl   = payload.streamUrl,
             )
         }
     }

@@ -54,6 +54,7 @@ type SessionInfo struct {
 	Name        string     `json:"name"`
 	Kind        DeviceKind `json:"kind"`
 	ChannelID   string     `json:"channel_id"`
+	ChannelName string     `json:"channel_name"`
 	StreamURL   string     `json:"stream_url"`
 	Playing     bool       `json:"playing"`
 	ConnectedAt time.Time  `json:"connected_at"`
@@ -81,15 +82,17 @@ type PullBackPayload struct {
 
 // PullBackAckPayload is sent by the server to the requesting controller.
 type PullBackAckPayload struct {
-	ChannelID string `json:"channel_id"`
-	StreamURL string `json:"stream_url"`
+	ChannelID   string `json:"channel_id"`
+	ChannelName string `json:"channel_name"`
+	StreamURL   string `json:"stream_url"`
 }
 
 // StateUpdatePayload is broadcast by a target on every playback state change.
 type StateUpdatePayload struct {
-	ChannelID string `json:"channel_id"`
-	StreamURL string `json:"stream_url"`
-	Playing   bool   `json:"playing"`
+	ChannelID   string `json:"channel_id"`
+	ChannelName string `json:"channel_name"`
+	StreamURL   string `json:"stream_url"`
+	Playing     bool   `json:"playing"`
 }
 
 // SessionListPayload wraps the current session list for broadcast.

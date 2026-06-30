@@ -173,9 +173,10 @@ func (h *Hub) applyStateUpdate(env Envelope) {
 	}
 	h.mu.Lock()
 	if c, ok := h.clients[env.From]; ok {
-		c.Session.ChannelID = payload.ChannelID
-		c.Session.StreamURL = payload.StreamURL
-		c.Session.Playing   = payload.Playing
+		c.Session.ChannelID   = payload.ChannelID
+		c.Session.ChannelName = payload.ChannelName
+		c.Session.StreamURL   = payload.StreamURL
+		c.Session.Playing     = payload.Playing
 	}
 	h.mu.Unlock()
 }
@@ -200,8 +201,9 @@ func (h *Hub) handlePullBack(ctx context.Context, env Envelope) {
 
 	// Build ack with target's current stream state
 	ack, err := NewEnvelope(MsgPullBackAck, serverDeviceID, env.From, PullBackAckPayload{
-		ChannelID: target.Session.ChannelID,
-		StreamURL: target.Session.StreamURL,
+		ChannelID:   target.Session.ChannelID,
+		ChannelName: target.Session.ChannelName,
+		StreamURL:   target.Session.StreamURL,
 	})
 	if err != nil {
 		slog.Warn("lmc: pull_back_ack build failed", "err", err)

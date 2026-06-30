@@ -48,6 +48,7 @@ data class SessionInfo(
     val name:                                    String,
     val kind:                                    DeviceKind,
     @SerialName("channel_id")   val channelId:   String,
+    @SerialName("channel_name") val channelName: String,
     @SerialName("stream_url")   val streamUrl:   String,
     val playing:                                 Boolean,
     @SerialName("connected_at") val connectedAt: String,
@@ -75,14 +76,16 @@ data class PullBackPayload(
 
 @Serializable
 data class PullBackAckPayload(
-    @SerialName("channel_id") val channelId: String,
-    @SerialName("stream_url") val streamUrl: String,
+    @SerialName("channel_id")   val channelId: String,
+    @SerialName("channel_name") val channelName: String,
+    @SerialName("stream_url")   val streamUrl: String,
 )
 
 @Serializable
 data class StateUpdatePayload(
-    @SerialName("channel_id") val channelId: String,
-    @SerialName("stream_url") val streamUrl: String,
+    @SerialName("channel_id")   val channelId: String,
+    @SerialName("channel_name") val channelName: String,
+    @SerialName("stream_url")   val streamUrl: String,
     val playing: Boolean,
 )
 

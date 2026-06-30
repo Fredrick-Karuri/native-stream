@@ -96,10 +96,11 @@ fun NowScreen(
                 controlViewModel = controlViewModel,
                 currentChannel   = currentChannel,
                 onDismiss        = { showCastSheet = false },
-                onPullBackReady  = { channelId, streamUrl ->
-                    playerViewModel.playFromRemote(channelId, streamUrl)
+                onPullBackReady  = { channelId, channelName, streamUrl ->
+                    playerViewModel.playFromRemote(channelId, channelName, streamUrl)
                     showCastSheet = false
                 },
+                onStopLocalPlayback = { playerViewModel.stop() },
             )
         }
         Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
