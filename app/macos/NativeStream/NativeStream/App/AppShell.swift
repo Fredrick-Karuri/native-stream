@@ -11,6 +11,7 @@ struct AppShell: View {
     @Environment(FavouritesManager.self)     private var favourites
     @Environment(ServerHealthViewModel.self) private var serverHealth
     @Environment(ControlViewModel.self)      private var controlVM
+    @Environment(ToastCenter.self)           private var toastCenter
 
     @State private var destination: AppDestination = .now
     @State private var browserVM = BrowserViewModel()
@@ -21,7 +22,6 @@ struct AppShell: View {
     
     @State private var keyMonitorEngine = GlobalKeyMonitor()
     @State private var isPlayerSidebarOpen = true
-    @State private var playedViaRemote = false
 
 
     var body: some View {
@@ -31,13 +31,8 @@ struct AppShell: View {
             }
 
             ZStack(alignment: .bottomTrailing) {
-                VStack(spacing: 0) {
-                    if playedViaRemote && playerVM.currentChannel != nil {
-                        remoteSessionBanner
-                    }
-                    destinationContent
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                destinationContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 if playerVM.currentChannel != nil && !showPlayer {
                     MiniPlayerWidget(onExpand: { showPlayer = true }, onClose: { playerVM.stop() })
@@ -47,6 +42,9 @@ struct AppShell: View {
                             removal:   .move(edge: .bottom).combined(with: .opacity)
                         ))
                 }
+
+                ToastOverlay(toasts: toastCenter.toasts, onDismiss: { toastCenter.dismiss($0) })
+                            .frame(maxHeight: .infinity, alignment: .top)
             }
         }
         .background(NS.bg)
@@ -88,15 +86,21 @@ struct AppShell: View {
         }
         .onChange(of: playerVM.currentChannel?.id) { oldValue, newValue in
             broadcastPlayerState()
-            playedViaRemote = controlVM.lastPlayWasRemote
-            controlVM.lastPlayWasRemote = false
+            if controlVM.lastPlayWasRemote {
+                controlVM.lastPlayWasRemote = false
+                toastCenter.show("Playing via remote command", style: .success)
+            }
             if newValue == nil && oldValue != nil {
                 closePlayerView()
             }
         }
+        .onChange(of: controlVM.sessions.count) { oldCount, newCount in
+            guard newCount > oldCount,
+                  let latest = controlVM.sessions.last else { return }
+            toastCenter.show("\(latest.name) connected", style: .info)
+        }
         .onChange(of: playerVM.isPlaying) { _, _ in
             broadcastPlayerState()
-            if !playerVM.isPlaying { playedViaRemote = false }
         }
     }
     
@@ -109,30 +113,6 @@ struct AppShell: View {
                 playing:   playerVM.isPlaying
             )
         }
-    }
-
-    private var remoteSessionBanner: some View {
-        HStack(spacing: NS.Spacing.sm) {
-            Image(systemName: "iphone.gen3")
-                .font(.system(size: 12))
-                .foregroundStyle(NS.accent)
-            Text("Playing via remote command")
-                .font(NS.Font.captionMed)
-                .foregroundStyle(NS.accent)
-            Spacer()
-            Button {
-                playedViaRemote = false
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10))
-                    .foregroundStyle(NS.text3)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, NS.Spacing.md)
-        .padding(.vertical, NS.Spacing.sm)
-        .background(NS.accentGlow)
-        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     // MARK: - Helpers
