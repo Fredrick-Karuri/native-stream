@@ -89,6 +89,9 @@ struct AppShell: View {
             if controlVM.lastPlayWasRemote {
                 controlVM.lastPlayWasRemote = false
                 toastCenter.show("Playing via remote command", style: .success)
+                if newValue != nil {
+                    withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
+                }
             }
             if newValue == nil && oldValue != nil {
                 closePlayerView()
