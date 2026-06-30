@@ -23,14 +23,45 @@ enum DeviceKind: String, Codable {
     case tv // reserved for future TV client
 }
 
+enum JSONValue: Codable {
+    case object([String: JSONValue])
+    case array([JSONValue])
+    case string(String)
+    case number(Double)
+    case bool(Bool)
+    case null
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let v = try? c.decode([String: JSONValue].self) { self = .object(v) }
+        else if let v = try? c.decode([JSONValue].self) { self = .array(v) }
+        else if let v = try? c.decode(String.self) { self = .string(v) }
+        else if let v = try? c.decode(Double.self) { self = .number(v) }
+        else if let v = try? c.decode(Bool.self) { self = .bool(v) }
+        else { self = .null }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch self {
+        case .object(let v): try c.encode(v)
+        case .array(let v): try c.encode(v)
+        case .string(let v): try c.encode(v)
+        case .number(let v): try c.encode(v)
+        case .bool(let v): try c.encode(v)
+        case .null: try c.encodeNil()
+        }
+    }
+}
+
 struct Envelope: Codable {
     let type: MessageType
     let from: String
     let to: String
     let auth: String?
-    let payload: String
+    let payload: JSONValue
 
-    init(type: MessageType, from: String, to: String, auth: String? = nil, payload: String = "{}") {
+    init(type: MessageType, from: String, to: String, auth: String? = nil, payload: JSONValue = .object([:])) {
         self.type = type
         self.from = from
         self.to = to
@@ -117,12 +148,13 @@ extension Envelope {
         type: MessageType, from: String, to: String, payload: T
     ) -> Envelope? {
         guard let data = try? JSONEncoder().encode(payload),
-              let json = String(data: data, encoding: .utf8) else { return nil }
-        return Envelope(type: type, from: from, to: to, payload: json)
+              let value = try? JSONDecoder().decode(JSONValue.self, from: data)
+        else { return nil }
+        return Envelope(type: type, from: from, to: to, payload: value)
     }
 
     func decoding<T: Decodable>(as type: T.Type) -> T? {
-        guard let data = payload.data(using: .utf8) else { return nil }
+        guard let data = try? JSONEncoder().encode(payload) else { return nil }
         return try? JSONDecoder().decode(T.self, from: data)
     }
 }

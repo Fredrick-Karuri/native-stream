@@ -19,6 +19,8 @@ import com.nativestream.android.domain.model.control.PullBackAckPayload
 import com.nativestream.android.domain.model.control.PullBackPayload
 import com.nativestream.android.domain.model.control.SessionInfo
 import com.nativestream.android.domain.model.control.SessionListPayload
+import com.nativestream.android.domain.model.control.buildEnvelope
+import com.nativestream.android.domain.model.control.decodePayload
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -114,7 +116,7 @@ class ControlViewModel @Inject constructor(
 
     private fun handleSessionList(envelope: Envelope) {
         runCatching {
-            val payload = json.decodeFromString<SessionListPayload>(envelope.payload)
+            val payload = envelope.decodePayload<SessionListPayload>() ?: return
             // Exclude self and other controllers — show only targets
             _sessions.value = payload.sessions.filter { it.kind != DeviceKind.CONTROLLER }
         }
@@ -122,7 +124,7 @@ class ControlViewModel @Inject constructor(
 
     private fun handlePullBackAck(envelope: Envelope) {
         runCatching {
-            val payload = json.decodeFromString<PullBackAckPayload>(envelope.payload)
+            val payload = envelope.decodePayload<PullBackAckPayload>() ?: return
             _pullBackState.value = PullBackState.Ready(
                 channelId = payload.channelId,
                 streamUrl = payload.streamUrl,
@@ -136,7 +138,6 @@ class ControlViewModel @Inject constructor(
                 type    = MessageType.PONG,
                 from    = deviceId,
                 to      = "server",
-                payload = "{}",
             )
         )
     }
@@ -144,13 +145,12 @@ class ControlViewModel @Inject constructor(
     // ── Outbound commands ─────────────────────────────────────────────────────
 
     fun play(targetDeviceId: String, channelId: String, streamUrl: String) {
-        val payload = json.encodeToString(PlayPayload(channelId, streamUrl))
         controlSession.send(
-            Envelope(
+            buildEnvelope(
                 type    = MessageType.PLAY,
                 from    = deviceId,
                 to      = targetDeviceId,
-                payload = payload,
+                payload = PlayPayload(channelId, streamUrl),
             )
         )
     }
@@ -158,23 +158,21 @@ class ControlViewModel @Inject constructor(
     fun stop(targetDeviceId: String) {
         controlSession.send(
             Envelope(
-                type    = MessageType.STOP,
-                from    = deviceId,
-                to      = targetDeviceId,
-                payload = "{}",
+                type = MessageType.STOP,
+                from = deviceId,
+                to   = targetDeviceId,
             )
         )
     }
 
     fun pullBack(fromDeviceId: String) {
         _pullBackState.value = PullBackState.Requesting
-        val payload = json.encodeToString(PullBackPayload(fromDevice = fromDeviceId))
         controlSession.send(
-            Envelope(
+            buildEnvelope(
                 type    = MessageType.PULL_BACK,
                 from    = deviceId,
                 to      = "server",
-                payload = payload,
+                payload = PullBackPayload(fromDevice = fromDeviceId),
             )
         )
     }

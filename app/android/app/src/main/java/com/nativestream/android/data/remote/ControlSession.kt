@@ -13,6 +13,7 @@ import com.nativestream.android.domain.model.control.DeviceKind
 import com.nativestream.android.domain.model.control.Envelope
 import com.nativestream.android.domain.model.control.MessageType
 import com.nativestream.android.domain.model.control.RegisterPayload
+import com.nativestream.android.domain.model.control.buildEnvelope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -80,14 +81,11 @@ class ControlSession @Inject constructor(
                 Log.d(TAG, "WebSocket connected")
 
                 // Register as controller immediately on open
-                val envelope = Envelope(
+                val envelope = buildEnvelope(
                     type    = MessageType.REGISTER,
                     from    = deviceId,
                     to      = "server",
-                    auth    = null,
-                    payload = json.encodeToString(
-                        RegisterPayload(name = deviceName, kind = DeviceKind.CONTROLLER)
-                    ),
+                    payload = RegisterPayload(name = deviceName, kind = DeviceKind.CONTROLLER),
                 )
                 ws.send(json.encodeToString(envelope))
             }

@@ -7,6 +7,8 @@ package com.nativestream.android.domain.model.control
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 enum class MessageType {
@@ -34,7 +36,10 @@ data class Envelope(
     val from:    String,
     val to:      String,
     val auth:    String? = null,
-    val payload: String = "{}",
+    // JsonElement round-trips as a real nested JSON value (object/array/etc.)
+    // matching Go's json.RawMessage on the wire, instead of being
+    // double-encoded as a JSON string.
+    val payload: JsonElement = JsonObject(emptyMap()),
 )
 
 @Serializable
@@ -84,3 +89,34 @@ data class StateUpdatePayload(
 data class SessionListPayload(
     val sessions: List<SessionInfo>,
 )
+
+// ── Envelope helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Builds an Envelope with [payload] encoded into a real JsonElement so it
+ * matches Go's json.RawMessage on the wire instead of being stringified.
+ */
+inline fun <reified T> buildEnvelope(
+    type: MessageType,
+    from: String,
+    to: String,
+    payload: T,
+    auth: String? = null,
+): Envelope {
+    val element = kotlinx.serialization.json.Json.encodeToJsonElement(
+        kotlinx.serialization.serializer<T>(), payload
+    )
+    return Envelope(type = type, from = from, to = to, auth = auth, payload = element)
+}
+
+/**
+ * Decodes the Envelope's payload into [T].
+ */
+inline fun <reified T> Envelope.decodePayload(): T? =
+    try {
+        kotlinx.serialization.json.Json.decodeFromJsonElement(
+            kotlinx.serialization.serializer<T>(), payload
+        )
+    } catch (e: Exception) {
+        null
+    }
