@@ -124,6 +124,7 @@ func (h *Hub) handleEnvelope(ctx context.Context, env Envelope) {
 	switch env.Type {
 	case MsgStateUpdate:
 		h.applyStateUpdate(env)
+		h.broadcastSessionList(ctx)
 		// state_update is hub-internal — no forwarding needed
 	case MsgPullBack:
 		h.handlePullBack(ctx, env)

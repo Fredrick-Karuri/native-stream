@@ -86,10 +86,13 @@ struct AppShell: View {
         .onReceive(NotificationCenter.default.publisher(for: .openPlayURL)) { _ in
             showPlayURL = true
         }
-        .onChange(of: playerVM.currentChannel?.id) { _, _ in
+        .onChange(of: playerVM.currentChannel?.id) { oldValue, newValue in
             broadcastPlayerState()
             playedViaRemote = controlVM.lastPlayWasRemote
             controlVM.lastPlayWasRemote = false
+            if newValue == nil && oldValue != nil {
+                closePlayerView()
+            }
         }
         .onChange(of: playerVM.isPlaying) { _, _ in
             broadcastPlayerState()
