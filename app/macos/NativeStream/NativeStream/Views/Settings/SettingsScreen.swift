@@ -27,6 +27,7 @@ struct SettingsScreen: View {
     @Environment(PlaylistViewModel.self)     private var playlistVM
     @Environment(ServerHealthViewModel.self) private var serverHealth
     @Environment(ServerDiscoveryService.self) private var discovery
+    @Environment(ControlViewModel.self)       private var controlVM
     @Environment(\.scenePhase) private var scenePhase
 
 
@@ -83,6 +84,9 @@ struct SettingsScreen: View {
             }
             Spacer()
             serverHealthCard
+            if !controlVM.sessions.isEmpty {
+                controllerIndicator
+            }
             Divider().overlay(NS.border).padding(.vertical, NS.Spacing.xs)
             DestructiveNavItem(
                 icon:   "arrow.counterclockwise",
@@ -147,6 +151,23 @@ struct SettingsScreen: View {
             settings.confirmDiscoveredURL(url)
             Task { await serverHealth.check(serverURL: url) }
         }
+    }
+    
+    private var controllerIndicator: some View {
+        HStack(spacing: NS.Spacing.sm) {
+            Circle()
+                .fill(NS.accent)
+                .frame(width: 6, height: 6)
+            Text(controlVM.sessions.count == 1
+                 ? "\(controlVM.sessions[0].name) connected"
+                 : "\(controlVM.sessions.count) controllers connected")
+                .font(NS.Font.monoSm)
+                .foregroundStyle(NS.text3)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, NS.Spacing.sm)
+        .padding(.vertical, NS.Spacing.xs)
     }
 
 

@@ -10,6 +10,7 @@ struct AppShell: View {
     @Environment(SettingsStore.self)         private var settings
     @Environment(FavouritesManager.self)     private var favourites
     @Environment(ServerHealthViewModel.self) private var serverHealth
+    @Environment(ControlViewModel.self)      private var controlVM
 
     @State private var destination: AppDestination = .now
     @State private var browserVM = BrowserViewModel()
@@ -20,6 +21,7 @@ struct AppShell: View {
     
     @State private var keyMonitorEngine = GlobalKeyMonitor()
     @State private var isPlayerSidebarOpen = true
+    @State private var playedViaRemote = false
 
 
     var body: some View {
@@ -29,8 +31,13 @@ struct AppShell: View {
             }
 
             ZStack(alignment: .bottomTrailing) {
-                destinationContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                VStack(spacing: 0) {
+                    if playedViaRemote && playerVM.currentChannel != nil {
+                        remoteSessionBanner
+                    }
+                    destinationContent
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 if playerVM.currentChannel != nil && !showPlayer {
                     MiniPlayerWidget(onExpand: { showPlayer = true }, onClose: { playerVM.stop() })
@@ -79,6 +86,49 @@ struct AppShell: View {
         .onReceive(NotificationCenter.default.publisher(for: .openPlayURL)) { _ in
             showPlayURL = true
         }
+        .onChange(of: playerVM.currentChannel?.id) { _, _ in
+            broadcastPlayerState()
+            playedViaRemote = controlVM.lastPlayWasRemote
+            controlVM.lastPlayWasRemote = false
+        }
+        .onChange(of: playerVM.isPlaying) { _, _ in
+            broadcastPlayerState()
+            if !playerVM.isPlaying { playedViaRemote = false }
+        }
+    }
+    
+    private func broadcastPlayerState() {
+        Task {
+            await controlVM.broadcastState(
+                channelID: playerVM.currentChannel?.id ?? "",
+                streamURL: playerVM.currentChannel?.streamURL.absoluteString ?? "",
+                playing:   playerVM.isPlaying
+            )
+        }
+    }
+
+    private var remoteSessionBanner: some View {
+        HStack(spacing: NS.Spacing.sm) {
+            Image(systemName: "iphone.gen3")
+                .font(.system(size: 12))
+                .foregroundStyle(NS.accent)
+            Text("Playing via remote command")
+                .font(NS.Font.captionMed)
+                .foregroundStyle(NS.accent)
+            Spacer()
+            Button {
+                playedViaRemote = false
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10))
+                    .foregroundStyle(NS.text3)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, NS.Spacing.md)
+        .padding(.vertical, NS.Spacing.sm)
+        .background(NS.accentGlow)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     // MARK: - Helpers
