@@ -46,7 +46,6 @@ import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.ControlViewModel
 import com.nativestream.android.ui.viewmodel.PullBackState
 
-private val DEVICE_ROW_HEIGHT    = 72.dp
 private val DEVICE_ICON_SIZE     = 20.dp
 private val SHEET_CORNER_RADIUS  = 16.dp
 
@@ -192,51 +191,59 @@ private fun DeviceRow(
     val isPlaying      = session.playing
     val isPullingBack  = pullBackState is PullBackState.Requesting
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(DEVICE_ROW_HEIGHT)
             .background(NSColors.surface2, RoundedCornerShape(dimens.radius.lg))
-            .padding(horizontal = dimens.spacing.md),
+            .padding(dimens.spacing.md),
+        verticalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
     ) {
-        NSHealthDot(score = if (isPlaying) 1.0 else 0.3)
-        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            NSHealthDot(score = if (isPlaying) 1.0 else 0.3)
+            Spacer(modifier = Modifier.width(dimens.spacing.sm))
 
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text  = session.name,
-                style = NSType.bodyMedium(),
-                color = NSColors.text,
-            )
-            Text(
-                text  = if (isPlaying) "Playing: ${session.channelId}"
-                else "Idle",
-                style = NSType.monoSmall(),
-                color = if (isPlaying) NSColors.accent else NSColors.text3,
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text  = session.name,
+                    style = NSType.bodyMedium(),
+                    color = NSColors.text,
+                )
+                Text(
+                    text     = if (isPlaying) "Playing: ${session.channelName}" else "Idle",
+                    style    = NSType.monoSmall(),
+                    color    = if (isPlaying) NSColors.accent else NSColors.text3,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+        ) {
             if (isPlaying) {
                 SheetActionButton(
                     label     = if (isPullingBack) "Pulling…" else "Pull Back",
                     isPrimary = false,
                     enabled   = !isPullingBack,
                     onClick   = onPullBack,
+                    modifier  = Modifier.weight(1f),
                 )
                 SheetActionButton(
                     label     = "Stop",
                     isPrimary = false,
                     enabled   = true,
                     onClick   = onStop,
+                    modifier  = Modifier.weight(1f),
                 )
             } else {
                 SheetActionButton(
-                    label     = if (currentChannel != null) "Play here" else "—",
+                    label     = if (currentChannel != null) "Play here" else "No channel playing",
                     isPrimary = true,
                     enabled   = currentChannel != null,
                     onClick   = onPlay,
+                    modifier  = Modifier.fillMaxWidth(),
                 )
             }
         }
