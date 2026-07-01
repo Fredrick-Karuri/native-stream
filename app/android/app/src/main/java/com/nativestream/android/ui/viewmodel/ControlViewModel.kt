@@ -22,8 +22,10 @@ import com.nativestream.android.domain.model.control.SessionListPayload
 import com.nativestream.android.domain.model.control.buildEnvelope
 import com.nativestream.android.domain.model.control.decodePayload
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -51,8 +53,14 @@ class ControlViewModel @Inject constructor(
     private val _sessions = MutableStateFlow<List<SessionInfo>>(emptyList())
     val sessions: StateFlow<List<SessionInfo>> = _sessions
 
-    private val _pullBackState = MutableStateFlow<PullBackState>(PullBackState.Idle)
-    val pullBackState: StateFlow<PullBackState> = _pullBackState
+    private val _pullBackReady = MutableSharedFlow<PullBackState.Ready>(
+        replay = 0,
+        extraBufferCapacity = 1,
+    )
+    val pullBackReady = _pullBackReady.asSharedFlow()
+
+    private val _isPullingBack = MutableStateFlow(false)
+    val isPullingBack: StateFlow<Boolean> = _isPullingBack
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -126,11 +134,12 @@ class ControlViewModel @Inject constructor(
     private fun handlePullBackAck(envelope: Envelope) {
         runCatching {
             val payload = envelope.decodePayload<PullBackAckPayload>() ?: return
-            _pullBackState.value = PullBackState.Ready(
+            _isPullingBack.value = false
+            _pullBackReady.tryEmit(PullBackState.Ready(
                 channelId   = payload.channelId,
                 channelName = payload.channelName,
                 streamUrl   = payload.streamUrl,
-            )
+            ))
         }
     }
 
@@ -168,7 +177,7 @@ class ControlViewModel @Inject constructor(
     }
 
     fun pullBack(fromDeviceId: String) {
-        _pullBackState.value = PullBackState.Requesting
+        _isPullingBack.value = true
         controlSession.send(
             buildEnvelope(
                 type    = MessageType.PULL_BACK,
@@ -177,10 +186,6 @@ class ControlViewModel @Inject constructor(
                 payload = PullBackPayload(fromDevice = fromDeviceId),
             )
         )
-    }
-
-    fun resetPullBackState() {
-        _pullBackState.value = PullBackState.Idle
     }
 
     // ── Targets convenience ───────────────────────────────────────────────────

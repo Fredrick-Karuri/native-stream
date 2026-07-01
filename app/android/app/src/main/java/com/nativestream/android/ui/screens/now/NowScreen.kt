@@ -95,7 +95,9 @@ fun NowScreen(
             CastSheet(
                 controlViewModel = controlViewModel,
                 currentChannel   = currentChannel,
-                onDismiss        = { showCastSheet = false },
+                onDismiss = {
+                    showCastSheet = false
+                },
                 onPullBackReady  = { channelId, channelName, streamUrl ->
                     playerViewModel.playFromRemote(channelId, channelName, streamUrl)
                     showCastSheet = false

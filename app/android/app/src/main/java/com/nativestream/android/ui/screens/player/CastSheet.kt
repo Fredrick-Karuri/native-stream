@@ -62,15 +62,13 @@ fun CastSheet(
     val sheetState    = rememberModalBottomSheetState()
     val sessions      by controlViewModel.sessions.collectAsState()
     val connected     by controlViewModel.connected.collectAsState()
-    val pullBackState by controlViewModel.pullBackState.collectAsState()
     val scanning      by controlViewModel.discoveryScanning.collectAsState()
 
-    // Pull-back ready — notify caller and dismiss
-    LaunchedEffect(pullBackState) {
-        if (pullBackState is PullBackState.Ready) {
-            val ready = pullBackState as PullBackState.Ready
+    val isPullingBack by controlViewModel.isPullingBack.collectAsState()
+
+    LaunchedEffect(Unit) {
+        controlViewModel.pullBackReady.collect { ready ->
             onPullBackReady(ready.channelId, ready.channelName, ready.streamUrl)
-            controlViewModel.resetPullBackState()
             onDismiss()
         }
     }
@@ -156,7 +154,7 @@ fun CastSheet(
                 DeviceRow(
                     session        = session,
                     currentChannel = currentChannel,
-                    pullBackState  = pullBackState,
+                    isPullingBack  = isPullingBack,
                     onPlay         = {
                         val channel = currentChannel ?: return@DeviceRow
                         controlViewModel.play(session.deviceId, channel.id, channel.name, channel.streamUrl)
@@ -182,14 +180,13 @@ fun CastSheet(
 private fun DeviceRow(
     session: SessionInfo,
     currentChannel: Channel?,
-    pullBackState: PullBackState,
+    isPullingBack: Boolean,
     onPlay: () -> Unit,
     onStop: () -> Unit,
     onPullBack: () -> Unit,
 ) {
     val dimens         = NSDimens.current
     val isPlaying      = session.playing
-    val isPullingBack  = pullBackState is PullBackState.Requesting
 
     Column(
         modifier = Modifier

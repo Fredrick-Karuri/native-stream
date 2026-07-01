@@ -154,7 +154,9 @@ fun PlayerStandardLayout(
             CastSheet(
                 controlViewModel = controlViewModel,
                 currentChannel   = activeChannel,
-                onDismiss        = { showCastSheet = false },
+                onDismiss = {
+                    showCastSheet = false
+                },
                 onPullBackReady  = { channelId, channelName, streamUrl ->
                     playerViewModel.playFromRemote(channelId, channelName, streamUrl)
                     showCastSheet = false
