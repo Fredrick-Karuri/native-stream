@@ -15,8 +15,8 @@ android {
         applicationId = "com.nativestream.android"
         minSdk = 26          // API 26+
         targetSdk = 35
-        versionCode = 16
-        versionName = "1.1.3"
+        versionCode = 17
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
