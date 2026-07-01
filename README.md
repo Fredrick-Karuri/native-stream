@@ -64,6 +64,27 @@ The platform handles:
 
 ---
 
+# Screenshots
+
+### macOS
+
+**Now** — live matches and what's currently on air
+![Now - macOS](screenshots/now-mac.png)
+
+**Schedule** — full programme guide with date navigation
+![Schedule - macOS](screenshots/schedule-mac.png)
+
+**Favourites** — pinned channels and programmes
+![Favourites - macOS](screenshots/favorites-mac.png)
+
+### Mobile & Tablet
+
+| Now (Android) | Explore (Android) | Explore (Tablet) |
+|:---:|:---:|:---:|
+| ![Now - Phone](screenshots/now-phone.png) | ![Explore - Phone](screenshots/explore-phone.png) | ![Explore - Tablet](screenshots/explore-tablet.png) |
+
+---
+
 # Features
 
 ## Content Platform
