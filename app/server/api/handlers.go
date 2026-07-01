@@ -10,12 +10,16 @@ import (
 	"strings"
 	"time"
 	"os"
+	"log/slog"
 
 	"github.com/fredrick-karuri/nativestream/server/epg"
 	"github.com/fredrick-karuri/nativestream/server/playlist"
 	"github.com/fredrick-karuri/nativestream/server/proxy"
 	"github.com/fredrick-karuri/nativestream/server/store"
 	"github.com/fredrick-karuri/nativestream/server/validator"
+	"github.com/fredrick-karuri/nativestream/server/control"
+	"nhooyr.io/websocket"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -27,6 +31,7 @@ type Handler struct {
 	proxyCfg  proxy.Config
 	serverAddr  string
 	serverName  string
+	hub        *control.Hub
 }
 
 func New(
@@ -36,6 +41,7 @@ func New(
 	v *validator.Validator,
 	proxyCfg proxy.Config,
 	serverAddr string,
+	hub *control.Hub,
 ) *Handler {
 	return &Handler{
 		store:      s,
@@ -46,6 +52,7 @@ func New(
 		proxyCfg:   proxyCfg,
 		serverAddr: serverAddr,
 		serverName: func() string { h, _ := os.Hostname(); return "NativeStream @ " + h }(),
+		hub:        hub,
 	}
 }
 
@@ -70,6 +77,10 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Health & probe
 	mux.HandleFunc("GET /api/health", h.handleHealth)
 	mux.HandleFunc("POST /api/probe", h.handleProbe)
+
+	// Local Media Connect
+	mux.HandleFunc("GET /ws", h.handleWebSocket)
+	mux.HandleFunc("GET /api/sessions", h.handleSessions)
 
 }
 
@@ -270,4 +281,76 @@ func slugify(s string) string {
 func (h *Handler) handleDeleteAllChannels(w http.ResponseWriter, r *http.Request) {
     h.store.DeleteAll()
     writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+}
+
+// ── Local Media Connect ───────────────────────────────────────────────────────
+
+func (h *Handler) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+		InsecureSkipVerify: true, // LAN only — zero-auth phase
+	})
+	if err != nil {
+		slog.Warn("lmc: websocket accept failed", "err", err)
+		return
+	}
+
+	// Read registration message — first message must be register
+	_, data, err := conn.Read(r.Context())
+	if err != nil {
+		slog.Warn("lmc: no register message received", "err", err)
+		conn.CloseNow()
+		return
+	}
+
+	var env control.Envelope
+	if err := json.Unmarshal(data, &env); err != nil || env.Type != control.MsgRegister {
+		slog.Warn("lmc: first message was not register")
+		conn.CloseNow()
+		return
+	}
+
+	payload, err := control.DecodePayload[control.RegisterPayload](env)
+	if err != nil {
+		slog.Warn("lmc: bad register payload", "err", err)
+		conn.CloseNow()
+		return
+	}
+
+	// Use client-supplied device_id from From field, or generate one
+	deviceID := env.From
+	if deviceID == "" {
+		deviceID = uuid.NewString()
+	}
+
+	client := &control.Client{
+		DeviceID: deviceID,
+		Conn:     conn,
+		Session: control.SessionInfo{
+			DeviceID:    deviceID,
+			Name:        payload.Name,
+			Kind:        payload.Kind,
+			ConnectedAt: time.Now(),
+		},
+	}
+
+	h.hub.Register(client)
+
+	// Send current session list immediately after registration
+	sessions := h.hub.Sessions()
+	sessionEnv, _ := control.NewEnvelope(
+		control.MsgSessionList,
+		"server",
+		deviceID,
+		control.SessionListPayload{Sessions: sessions},
+	)
+	client.Send(r.Context(), sessionEnv)
+
+	// Block until connection closes
+	control.ReadLoop(r.Context(), h.hub, client)
+}
+
+func (h *Handler) handleSessions(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"sessions": h.hub.Sessions(),
+	})
 }

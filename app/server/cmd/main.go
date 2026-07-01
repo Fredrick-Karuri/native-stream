@@ -23,6 +23,7 @@ import (
 	"github.com/fredrick-karuri/nativestream/server/validator"
 	"github.com/fredrick-karuri/nativestream/server/logging"
 	"github.com/fredrick-karuri/nativestream/server/shutdown"
+	"github.com/fredrick-karuri/nativestream/server/control"
 )
 
 func main() {
@@ -142,9 +143,13 @@ func main() {
 
 	discEngine.WithDirectFetchers(directFetchers) 
 
+	// ── Control hub ───────────────────────────────────────────────────────────
+	hub := control.NewHub()
+	go hub.Run(ctx)
+
 	// ── API ────────────────────────────────────────────────────────────────────
 	serverAddr := fmt.Sprintf("http://%s:%d", getLANIP(), cfg.Server.Port)
-	h := api.New(s, e, px, v, proxyCfg, serverAddr)
+	h := api.New(s, e, px, v, proxyCfg, serverAddr,hub)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -193,6 +198,21 @@ func main() {
 	} else {
 		defer mdnsServer.Shutdown()
 		slog.Info("mDNS advertised", "service", "_nativestream._tcp.local")
+	}
+
+	ctrlServer, err := zeroconf.Register(
+		"NativeStream Control",
+		"_nativestream-ctrl._tcp",
+		"local.",
+		cfg.Server.Port,
+		[]string{"version=1", "ws=/ws"},
+		nil,
+	)
+	if err != nil {
+		slog.Warn("mDNS control registration failed", "err", err)
+	} else {
+		defer ctrlServer.Shutdown()
+		slog.Info("mDNS control advertised", "service", "_nativestream-ctrl._tcp.local")
 	}
 
 	// ── HTTP server ────────────────────────────────────────────────────────────

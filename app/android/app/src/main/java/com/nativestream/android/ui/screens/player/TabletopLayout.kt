@@ -34,7 +34,12 @@ import com.nativestream.android.ui.components.NSProgressBar
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.nativestream.android.ui.viewmodel.CastViewModel
+import com.nativestream.android.ui.viewmodel.ControlViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 
@@ -45,11 +50,13 @@ fun PlayerTabletopLayout(
     epgViewModel: EpgViewModel?,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    controlViewModel: ControlViewModel = hiltViewModel(),
 ) {
     val activeChannel   by playerViewModel.activeChannel.collectAsState()
     val playerError     by playerViewModel.playerError.collectAsState()
     val resizeMode      by playerViewModel.resizeMode.collectAsState()
     val isCastAvailable by castViewModel.isCastAvailable.collectAsState()
+    var showCastSheet   by remember { mutableStateOf(false) }
 
     val programme = activeChannel?.let { epgViewModel?.currentProgramme(it) }
     val schedule  = remember(activeChannel) {
@@ -162,6 +169,7 @@ fun PlayerTabletopLayout(
                 onCast            = {
                     activeChannel?.let { castViewModel.castStream(it.streamUrl, it.name) }
                 },
+                onLmcCast      = { showCastSheet = true },
                 resizeMode     = resizeMode,
                 onToggleResize = { playerViewModel.toggleResizeMode() },
                 channel        = activeChannel,
@@ -185,6 +193,18 @@ fun PlayerTabletopLayout(
                         TabletopEpgChip(programme = prog)
                     }
                 }
+            }
+            if (showCastSheet) {
+                CastSheet(
+                    controlViewModel = controlViewModel,
+                    currentChannel   = activeChannel,
+                    onDismiss        = { showCastSheet = false },
+                    onPullBackReady  = { channelId, channelName, streamUrl ->
+                        playerViewModel.playFromRemote(channelId, channelName, streamUrl)
+                        showCastSheet = false
+                    },
+                    onStopLocalPlayback = { playerViewModel.stop() },
+                )
             }
         }
     }

@@ -23,11 +23,15 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.PlayerView
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.ui.foldable.rememberFoldPosture
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.nativestream.android.ui.viewmodel.CastViewModel
+import com.nativestream.android.ui.viewmodel.ControlViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
-// new
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun PlayerStandardLayout(
@@ -36,6 +40,7 @@ fun PlayerStandardLayout(
     epgViewModel: EpgViewModel?,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    controlViewModel: ControlViewModel = hiltViewModel(),
 ) {
     val activeChannel   by playerViewModel.activeChannel.collectAsState()
     val playerError     by playerViewModel.playerError.collectAsState()
@@ -45,7 +50,7 @@ fun PlayerStandardLayout(
     val resizeMode      by playerViewModel.resizeMode.collectAsState()
     val foldPosture     = rememberFoldPosture()
     val context         = LocalContext.current
-
+    var showCastSheet   by remember { mutableStateOf(false) }
     val programme: Programme? = activeChannel?.let { epgViewModel?.currentProgramme(it) }
 
     Row(
@@ -128,6 +133,7 @@ fun PlayerStandardLayout(
                             castViewModel.castStream(it.streamUrl, it.name)
                         }
                     },
+                    onLmcCast      = { showCastSheet = true },
                     resizeMode     = resizeMode,
                     onToggleResize = { playerViewModel.toggleResizeMode() },
                     channel        = activeChannel,
@@ -142,6 +148,20 @@ fun PlayerStandardLayout(
                 isVisible       = sidebarVisible,
                 playerViewModel = playerViewModel,
                 epgViewModel    = epgViewModel,
+            )
+        }
+        if (showCastSheet) {
+            CastSheet(
+                controlViewModel = controlViewModel,
+                currentChannel   = activeChannel,
+                onDismiss = {
+                    showCastSheet = false
+                },
+                onPullBackReady  = { channelId, channelName, streamUrl ->
+                    playerViewModel.playFromRemote(channelId, channelName, streamUrl)
+                    showCastSheet = false
+                },
+                onStopLocalPlayback = { playerViewModel.stop() },
             )
         }
     }

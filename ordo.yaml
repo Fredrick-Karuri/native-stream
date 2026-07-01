@@ -2,6 +2,9 @@ groups:
   server:
     description: Go server
     commands:
+      dev:
+        description: Run server with dev config
+        run: "cd app/server && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml go run ./cmd"
       build:
         description: Build the server binary
         run: "cd app/server && go build -o nativestream-server ./cmd/"

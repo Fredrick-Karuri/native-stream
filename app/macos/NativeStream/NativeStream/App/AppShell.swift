@@ -10,6 +10,8 @@ struct AppShell: View {
     @Environment(SettingsStore.self)         private var settings
     @Environment(FavouritesManager.self)     private var favourites
     @Environment(ServerHealthViewModel.self) private var serverHealth
+    @Environment(ControlViewModel.self)      private var controlVM
+    @Environment(ToastCenter.self)           private var toastCenter
 
     @State private var destination: AppDestination = .now
     @State private var browserVM = BrowserViewModel()
@@ -40,6 +42,9 @@ struct AppShell: View {
                             removal:   .move(edge: .bottom).combined(with: .opacity)
                         ))
                 }
+
+                ToastOverlay(toasts: toastCenter.toasts, onDismiss: { toastCenter.dismiss($0) })
+                            .frame(maxHeight: .infinity, alignment: .top)
             }
         }
         .background(NS.bg)
@@ -78,6 +83,38 @@ struct AppShell: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .openPlayURL)) { _ in
             showPlayURL = true
+        }
+        .onChange(of: playerVM.currentChannel?.id) { oldValue, newValue in
+            broadcastPlayerState()
+            if controlVM.lastPlayWasRemote {
+                controlVM.lastPlayWasRemote = false
+                toastCenter.show("Playing via remote command", style: .success)
+                if newValue != nil {
+                    withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
+                }
+            }
+            if newValue == nil && oldValue != nil {
+                closePlayerView()
+            }
+        }
+        .onChange(of: controlVM.sessions.count) { oldCount, newCount in
+            guard newCount > oldCount,
+                  let latest = controlVM.sessions.last else { return }
+            toastCenter.show("\(latest.name) connected", style: .info)
+        }
+        .onChange(of: playerVM.isPlaying) { _, _ in
+            broadcastPlayerState()
+        }
+    }
+    
+    private func broadcastPlayerState() {
+        Task {
+            await controlVM.broadcastState(
+                channelID: playerVM.currentChannel?.id ?? "",
+                channelName: playerVM.currentChannel?.name ?? "",
+                streamURL: playerVM.currentChannel?.streamURL.absoluteString ?? "",
+                playing:   playerVM.isPlaying
+            )
         }
     }
 

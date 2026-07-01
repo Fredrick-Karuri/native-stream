@@ -13,6 +13,8 @@ struct NativeStreamApp: App {
     @State private var serverHealth   = ServerHealthViewModel()
     @State private var discoveryService = ServerDiscoveryService()
     @State private var channelManager = ChannelManagerViewModel()
+    @State private var controlVM = ControlViewModel(controlSession: ControlSession())
+    @State private var toastCenter    = ToastCenter()
     @State private var playlistVM: PlaylistViewModel
     @State private var settings: SettingsStore
     
@@ -43,6 +45,16 @@ struct NativeStreamApp: App {
                         .environment(serverHealth)
                         .environment(channelManager)
                         .environment(discoveryService)
+                        .environment(controlVM)
+                        .environment(toastCenter)
+                        .task {
+                            guard let url = settings.serverURL else { return }
+                            controlVM.start(
+                                serverURL: url,
+                                deviceID: settings.controlDeviceID,
+                                playerVM: playerVM
+                            )
+                        }
                 }
             }
             
