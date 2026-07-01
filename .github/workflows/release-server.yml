@@ -138,10 +138,10 @@ jobs:
             sudo rm /usr/local/bin/nativestream-server
             ```
           files: |
-            dist/nativestream-server-darwin-arm64.tar.gz#macOS Apple Silicon
-            dist/nativestream-server-darwin-amd64.tar.gz#macOS Intel
-            dist/nativestream-server-linux-amd64.tar.gz#Linux x64
-            dist/nativestream-server-linux-arm64.tar.gz#Linux ARM64
+            dist/nativestream-server-darwin-arm64.tar.gz
+            dist/nativestream-server-darwin-amd64.tar.gz
+            dist/nativestream-server-linux-amd64.tar.gz
+            dist/nativestream-server-linux-arm64.tar.gz
             dist/checksums.txt#Checksums
           draft: false
           prerelease: false
