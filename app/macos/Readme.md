@@ -64,6 +64,20 @@ Keep watching while exploring the app:
 
 ---
 
+## Local Media Connect
+
+Control and transfer playback across devices on your local network:
+
+- **Target role** — Mac receives play and stop commands from a controller device (Android phone)
+- **Automatic discovery** — advertised via mDNS (`_nativestream-ctrl._tcp`) so controller devices find the Mac without manual configuration
+- **Pull-back** — controller taps "Pull Back" to transfer the active Mac stream to the phone instantly
+- **Session visibility** — subtle indicator when a controller is connected; toast notification when playback starts via remote command
+- **Zero configuration** — works on your existing LAN with no cloud broker
+
+The Mac acts as the rendering target. The NativeStream Server on your LAN brokers all control messages over WebSocket (`/ws`). No peer-to-peer connection between devices is required.
+
+---
+
 ## Deep macOS Integration
 
 NativeStream feels at home on macOS.
@@ -103,7 +117,7 @@ Requirements:
 git clone https://github.com/yourname/nativestream.git
 cd nativestream
 open app/macos/NativeStreamMac.xcodeproj
-````
+```
 
 Press `⌘R` in Xcode to build and run.
 
@@ -151,9 +165,8 @@ Configure additional network and playback options when required.
 | Action             | Shortcut |
 | ------------------ | -------- |
 | Open Settings      | ⌘,       |
-| Refresh Content    | ⌘R       |
 | Play / Pause       | Space    |
-| Picture-in-Picture | P      |
+| Picture-in-Picture | P        |
 
 ---
 
@@ -163,7 +176,7 @@ Common issues:
 
 ### Unable to connect to the server
 
-Ensure your NativeStream Server is running and reachable from the application.
+Ensure your NativeStream Server is running and reachable from the application. The app scans for the server automatically via mDNS on launch — if discovery fails, enter the server URL manually in Settings → Server.
 
 ### No content available
 
@@ -177,6 +190,10 @@ Check your network connection or adjust playback settings for improved stability
 
 Verify that programme guide data is available for the selected content.
 
+### Local Media Connect not working
+
+Ensure the NativeStream Server is running and both devices are on the same local network. The control service is advertised as `_nativestream-ctrl._tcp` — verify with `dns-sd -B _nativestream-ctrl._tcp local` on the server machine.
+
 For advanced diagnostics and troubleshooting, see `docs/TROUBLESHOOTING.md`.
 
 ---
@@ -185,6 +202,6 @@ For advanced diagnostics and troubleshooting, see `docs/TROUBLESHOOTING.md`.
 
 Additional documentation:
 
-* `docs/UI.md` — interface behavior and detailed interactions
-* `docs/TROUBLESHOOTING.md` — advanced diagnostics
-* `docs/SYSTEM_DESIGN.md` — architecture and data flow
+* `docs/ui.md` — interface behavior and detailed interactions
+* `docs/troubleshooting.md` — advanced diagnostics
+* [`docs/system-design.md`](../../docs/system-design.md) — architecture and data flow

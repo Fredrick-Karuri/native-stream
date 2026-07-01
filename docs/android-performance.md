@@ -16,7 +16,7 @@ Every filter, sort, bucket computation, and EPG lookup happens on the IO dispatc
 
 The most critical performance decision in the codebase. With 764 channels each rendered as a card, EPG lookups must be O(1) — not O(n).
 
-### The problem (before AND-PERF-001)
+### The problem
 ```kotlin
 // EpgStore — called per card per recomposition
 fun currentProgramme(tvgId: String): Programme? =
@@ -46,7 +46,7 @@ fun rebuildIndex(nowMs: Long) {
 }
 ```
 
-### Sort-once, scan-many (AND-PERF-010)
+### Sort-once, scan-many
 Programmes are sorted by `startEpochMs` at `EpgStore` construction. This enables:
 - Early-exit in `rebuildIndex()` — stop scanning once past `nowMs`
 - Early-exit in `schedule()` — stop once `startEpochMs >= toEpochMs`
@@ -58,7 +58,7 @@ Programmes are sorted by `startEpochMs` at `EpgStore` construction. This enables
 
 `System.currentTimeMillis()` called per-property in `Programme` was hitting every visible card multiple times per frame.
 
-### Before (AND-PERF-003)
+### Before
 ```kotlin
 val progress: Double get() {
     val nowMs = System.currentTimeMillis()   // called per card
@@ -85,7 +85,7 @@ NSProgressBar(value = programme.progress(nowMs).toFloat())
 
 ## Filter Computation — debounced StateFlow
 
-### Before (AND-PERF-005)
+### Before
 ```kotlin
 // BrowseScreen — runs on composition thread on every keystroke
 val filtered = remember(channels, selectedGroup, selectedSubGroup,
@@ -115,7 +115,7 @@ Search is debounced 150ms — a full filter chain does not run per keystroke.
 
 ## Recomposition Guards
 
-### `remember` for EPG reads in cards (AND-PERF-008)
+### `remember` for EPG reads in cards
 ```kotlin
 // ChannelCard — EPG not re-queried on unrelated state changes
 val programme = remember(channel.id, epgReady) {
@@ -124,7 +124,7 @@ val programme = remember(channel.id, epgReady) {
 ```
 Only invalidated when `epgReady` changes (index rebuild every 30s), not on scroll, search, or other state changes.
 
-### `derivedStateOf` for list-derived values (AND-PERF-007)
+### `derivedStateOf` for list-derived values
 ```kotlin
 // BrowseScreen — recomposition only when value actually changes
 val groups by remember { derivedStateOf {
@@ -135,7 +135,7 @@ Without `derivedStateOf`, `remember(channels)` re-runs whenever `channels` refer
 
 ---
 
-## Now Screen Buckets — IO dispatcher (AND-PERF-004)
+## Now Screen Buckets — IO dispatcher
 
 Before: three full channel-list scans on the composition thread on every `epgReady` change.
 
@@ -158,13 +158,13 @@ val startingSoon by epgViewModel.startingSoon.collectAsState()
 
 ---
 
-## Favourites — O(1) contains (AND-PERF-006)
+## Favourites — O(1) contains
 
 `favouriteIds` is `StateFlow<Set<String>>` backed by `stringSetPreferencesKey` (HashSet). All `contains` calls in card rendering are O(1). Never convert to `List` — that degrades to O(n).
 
 ---
 
-## M3U Parser — pre-sized list (AND-PERF-009)
+## M3U Parser — pre-sized list
 
 ```kotlin
 // Before — ArrayList resizes repeatedly for 764+ channels

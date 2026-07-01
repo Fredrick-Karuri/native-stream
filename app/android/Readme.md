@@ -15,6 +15,7 @@ NativeStream Android turns your phone or tablet into a live TV remote. Connect i
 - Play any stream in **full-screen with EPG overlay** — score updates, programme progress, what's on next
 - Work on **phones and tablets** — adaptive layout with master-detail on tablet, optimised grid on phone
 - Feel **instant on every launch** — channels and EPG data load from cache before any network request
+- **Cast to any device** on your LAN via Local Media Connect — send streams to your Mac or pull them back to your phone
 
 ---
 
@@ -39,6 +40,7 @@ NativeStream Android turns your phone or tablet into a live TV remote. Connect i
 | Navigation | Navigation Compose |
 | Player | Media3 ExoPlayer (HLS) |
 | Networking | Ktor client |
+| WebSocket | OkHttp WebSocket |
 | DI | Hilt |
 | Persistence | DataStore Preferences + cacheDir JSON |
 | Image loading | Coil |
@@ -75,11 +77,11 @@ cd app/android
 
 ### 4. Onboarding
 
-On first launch, the app walks through:
+On first launch, the app scans your network via mDNS for a NativeStream Server (`_nativestream._tcp`). If found, the server URL is pre-filled automatically. The flow then walks through:
 
-1. **Server** — enter your LAN IP e.g. `http://192.168.1.42:8888` and test the connection
-2. **Playlist** — add your M3U source (defaults to `{serverUrl}/playlist.m3u`)
-3. **TV Guide** — add your XMLTV EPG URL (defaults to `{serverUrl}/epg.xml`)
+1. **Server** — confirm the auto-discovered URL or enter it manually; parallel health + playlist + EPG check
+2. **Playlist** — optionally add an additional M3U source; probed for `x-tvg-url` EPG header automatically
+3. **TV Guide** — shown only if no EPG was found in step 1 or 2; IPTV-org public guide available as one-tap escape hatch
 
 ---
 
@@ -97,20 +99,24 @@ app/android/
 │       │   ├── local/              # SettingsDataStore, ChannelCache, EpgIndexCache
 │       │   ├── parser/             # M3uParser, EpgParser, EpgStore
 │       │   ├── player/             # Media3 MediaSessionService
-│       │   └── remote/             # ApiClient (Ktor), DTOs, ApiError
+│       │   └── remote/             # ApiClient (Ktor), ControlSession (OkHttp WS),
+│       │                           # ServerDiscoveryService, ControlDiscoveryService, DTOs
 │       ├── di/                     # Hilt AppModule
-│       ├── domain/model/           # Channel, Programme, SportCategory, PlaylistSource
+│       ├── domain/
+│       │   ├── model/              # Channel, Programme, SportCategory, PlaylistSource
+│       │   └── model/control/      # Envelope, MessageType, SessionInfo, payload types
 │       └── ui/
-│           ├── components/         # NSSourcePill, NSSourcePickerSheet, NSChip, …
+│           ├── components/         # NSSourcePill, NSToast, NSHealthDot, …
 │           ├── navigation/         # AppNavHost, NSNavRail, NSBottomNavBar
 │           ├── screens/
 │           │   ├── browse/         # BrowseScreen, BrowseMasterDetail, ChannelCard
 │           │   ├── now/            # NowScreen, NowBuckets, match cards
-│           │   ├── onboarding/     # 3-step first-launch flow
-│           │   ├── player/         # PlayerScreen, controls, score overlay, PiP
+│           │   ├── onboarding/     # Splash → Server → Playlist → EPG flow
+│           │   ├── player/         # PlayerScreen, controls, CastSheet, score overlay, PiP
 │           │   └── settings/       # SettingsScreen, SettingsTwoPane, AddSourceSheet
 │           ├── theme/              # NSColors, NSDimens, NSType
-│           └── viewmodel/          # PlaylistViewModel, EpgViewModel, PlayerViewModel, …
+│           └── viewmodel/          # PlaylistViewModel, EpgViewModel, PlayerViewModel,
+│                                   # ControlViewModel, SourceViewModel, SettingsViewModel, …
 ```
 
 ---
@@ -123,7 +129,7 @@ EPG-first home screen. On open, channels are pre-bucketed into:
 - **Live on air** — everything else currently airing
 - **Starting soon** — next programme within 2 hours
 
-Bucket computation runs on the IO dispatcher and is exposed as `StateFlow` — the screen is a pure collector.
+Cast icon in the top bar opens the Local Media Connect sheet.
 
 ### Browse
 Adaptive channel grid grouped by `groupTitle`:
@@ -142,13 +148,38 @@ Adaptive channel grid grouped by `groupTitle`:
 - Collapsible sidebar: **On Now** + **Schedule** tabs
 - Picture-in-Picture (API 26+)
 - Chromecast via `RemoteMediaClient`
+- Local Media Connect cast sheet — send to Mac, pull back to phone
 - Forces landscape on open, restores free rotation on dismiss
 
 ### Settings
-- **Server** — URL + health check + stream probe trigger
+- **Server** — URL + health check + stream probe trigger + Reset App
 - **Sources** — add/remove/refresh M3U playlist sources with color coding
 - **Playback** — buffer preset (Low / Default / High)
 - **Proxy** — Referer / User-Agent injection toggle
+
+---
+
+## Local Media Connect
+
+Android acts as the **controller** role. The Mac acts as the target.
+
+### How it works
+
+1. `ControlDiscoveryService` scans for `_nativestream-ctrl._tcp` via `NsdManager` and resolves the WebSocket URL from the TXT record (`ws=/ws`).
+2. `ControlSession` connects to `ws://server/ws` via OkHttp WebSocket and registers the device as `controller`.
+3. `ControlViewModel` processes inbound `session_list` messages to show available targets, and sends `play`, `stop`, and `pull_back` commands.
+4. `CastSheet` — accessible from the Now screen top bar and the player controls — shows connected target devices and their playback state.
+5. On pull-back: server reads the Mac's last `state_update`, sends `pull_back_ack` to the phone, and stops the Mac. The phone's `PlayerViewModel.playFromRemote()` starts local playback.
+
+### Key files
+
+| File | Role |
+|---|---|
+| `ControlSession.kt` | OkHttp WebSocket client, exponential backoff reconnect |
+| `ControlDiscoveryService.kt` | NsdManager scan for `_nativestream-ctrl._tcp` |
+| `ControlViewModel.kt` | Session lifecycle, command dispatch, `pullBackReady` SharedFlow |
+| `CastSheet.kt` | Bottom sheet UI for device list, play/stop/pull-back |
+| `domain/model/control/Envelope.kt` | Protocol types mirroring Go server |
 
 ---
 
@@ -173,16 +204,16 @@ See [`docs/android-performance.md`](../../docs/android-performance.md) for:
 - Rules for new features
 
 **Key numbers:**
-- `currentProgramme()` — O(1) map lookup (was O(n) scan)
-- Channels visible on warm boot — ~10ms (was 3–8s)
-- EPG in cards on warm boot — ~500ms (was 5–15s)
+- `currentProgramme()` — O(1) map lookup
+- Channels visible on warm boot — ~10ms
+- EPG in cards on warm boot — ~500ms
 - Search recompute — debounced 150ms, IO dispatcher
 
 ---
 
 ## EPG Matching
 
-`EpgStore` uses **FX-002 case-insensitive fallback matching** — exact TVG-ID match first, lowercase fallback second. Match rate logged on every load:
+`EpgStore` uses case-insensitive fallback matching — exact TVG-ID match first, lowercase fallback second. Match rate logged on every load:
 
 ```
 I/EpgViewModel: EPG match rate: 94% (719/764)
@@ -207,8 +238,9 @@ Cleartext HTTP permitted only for RFC 1918 private ranges (LAN server). All publ
 | `onboarding_complete` | Boolean | DataStore |
 | `playlist_sources` | JSON | DataStore |
 | `selected_source_id` | String | DataStore |
+| `control_device_id` | String | DataStore — stable UUID, survives factory reset |
 | `favourite_channel_ids` | Set\<String\> | DataStore |
-| `channels_{id}.json` | File | cacheDir, 6h TTL |
+| `channels_{id}.json` | File | cacheDir, per-source TTL |
 | `epg_index_{id}.json` | File | cacheDir, 2h TTL |
 
 ---
@@ -238,13 +270,15 @@ Cleartext HTTP permitted only for RFC 1918 private ranges (LAN server). All publ
 
 | Endpoint | Used by |
 |---|---|
-| `GET /api/health` | Onboarding, Settings health dot |
+| `GET /api/health` | Onboarding, Settings health dot, onResume health check |
 | `GET /playlist.m3u` | M3U channel fetch |
 | `GET /epg.xml` | XMLTV EPG fetch |
 | `GET /api/channels` | Channel list |
 | `POST /api/channels` | Add channel |
 | `POST /api/probe` | Re-validate stream links |
 | `GET /api/channels/{id}` | Re-fetch active link on player retry |
+| `GET /api/sessions` | LMC session list (HTTP fallback) |
+| `WS /ws` | LMC control plane — play, stop, pull_back commands |
 
 Full API docs: [`docs/server.md`](../../docs/server.md)
 

@@ -13,9 +13,9 @@ Network / Disk
      ↓
   Parsers          (M3uParser, EpgParser — pure functions, no DI, no side effects)
      ↓
-  DataSources      (ApiClient, SettingsDataStore, ChannelCache, EpgIndexCache)
+  DataSources      (ApiClient, ControlSession, SettingsDataStore, ChannelCache, EpgIndexCache)
      ↓
-  ViewModels       (PlaylistViewModel, EpgViewModel, PlayerViewModel, …)
+  ViewModels       (EpgViewModel, PlayerViewModel, ControlViewModel, …)
      ↓
   StateFlow        (single source of truth per feature)
      ↓
@@ -26,34 +26,25 @@ Network / Disk
 
 ## ViewModels
 
-Each ViewModel owns one feature domain. They do not call each other directly — communication happens via shared data passed at the call-site (e.g. `NowScreen` passes `channels` to `epgViewModel.updateChannels()`).
+Each ViewModel owns one feature domain. They do not call each other directly — communication happens via shared data passed at the call-site.
 
 | ViewModel | Owns |
 |---|---|
-| `PlaylistViewModel` | Channel list, source CRUD, filter state, search, `filteredSections` |
+| `SourceViewModel` | Source CRUD, selected source, `sources: StateFlow<List<PlaylistSource>>` |
 | `EpgViewModel` | EPG stores, programme index, Now screen buckets, `nowMs` timer |
-| `PlayerViewModel` | Playback state, active channel, PiP, channel list for sidebar |
+| `PlayerViewModel` | Playback state, active channel, PiP, channel list for sidebar, `playFromRemote` |
+| `SettingsViewModel` | Server URL, EPG URL, buffer preset, health check, discovery, connection state |
+| `ControlViewModel` | LMC session lifecycle, inbound command handling, `pullBackReady` SharedFlow |
 | `FavouritesViewModel` | Starred channel IDs (persisted via DataStore) |
-| `SettingsViewModel` | Server URL, EPG URL, buffer preset, health check, discovery |
 | `CastViewModel` | Chromecast session, remote media client |
+| `ChannelLoadingViewModel` | Orchestrates channel fetch + cache across all sources |
 
 ### StateFlow ownership map
 
 ```
-PlaylistViewModel
-  _channels           → raw parsed channels (all sources merged)
-  _sources            → configured PlaylistSource list
+SourceViewModel
+  _sources            → configured PlaylistSource list (persisted)
   _selectedSource     → active source filter (persisted)
-  filteredChannels    → _channels filtered by _selectedSource
-  filteredSections    → filteredChannels + all filter state → List<ChannelSection>
-  _searchQuery        → debounced 150ms before filteredSections recomputes
-  _selectedGroup      → group chip selection
-  _selectedSubGroup   → sub-group chip selection
-  _selectedSport      → sport chip selection
-  _showFavouritesOnly → favourites filter toggle
-  subGroups           → sub-group chip labels derived from filteredChannels
-  _isLoading          → cold boot / manual refresh
-  _isRefreshing       → background refresh (warm boot, auto-refresh)
 
 EpgViewModel
   stores              → Map<sourceId, EpgStore> — one per EPG URL
@@ -65,6 +56,34 @@ EpgViewModel
   startingSoon        → ChannelWithProgramme list for Now screen
   _isReady            → true after first index build (cache or network)
   _isRefreshing       → background EPG refresh in progress
+
+SettingsViewModel
+  serverUrl           → current server URL (DataStore-backed)
+  onboardingComplete  → onboarding gate
+  connectionState     → OnboardingConnectionState (parallel health+playlist+EPG check)
+  serverReachable     → Boolean, checked on onResume via /api/health (5s timeout)
+  discoveredUrl       → mDNS-discovered server URL (from ServerDiscoveryService)
+  scanning            → mDNS scan in progress
+
+ControlViewModel
+  sessions            → List<SessionInfo> — target devices only (controllers filtered out)
+  connected           → Boolean (WebSocket connection state)
+  isPullingBack       → Boolean (pull_back sent, ack pending)
+  pullBackReady       → SharedFlow<PullBackState.Ready> — replay=0, fires once per ack
+  controlServerUrl    → ws:// URL from ControlDiscoveryService
+  discoveryScanning   → NsdManager scan in progress
+
+PlayerViewModel
+  activeChannel / currentChannel → active Channel (same StateFlow, two aliases)
+  isPlaying           → Boolean
+  isPlayerVisible     → Boolean
+  controlsVisible     → Boolean (auto-hides after 3s)
+  playerError         → String? (shown in error overlay)
+  isInPip             → Boolean
+  resizeMode          → AspectRatio fit/fill toggle
+  videoQuality        → "4K" | "FHD" | "HD" | "SD" | null
+  channelList         → all channels from ChannelRepository (for sidebar)
+  sidebarVisible      → Boolean
 ```
 
 ---
@@ -105,12 +124,12 @@ The EPG pipeline is the most complex part of the codebase. Understanding it prev
 7. REBUILD TIMER
    Every 30s on IO dispatcher:
      → rebuildIndex(nowMs)
-     → _nowMs.value = nowMs                   // cards use pre-captured timestamp
+     → _nowMs.value = nowMs
      → writeIndex to cache
      → rebuildBuckets() for Now screen
 ```
 
-### FX-002 matching
+### EPG matching
 
 XMLTV `channel` attributes rarely match M3U `tvg-id` exactly. `EpgStore` implements two-level matching:
 
@@ -128,7 +147,7 @@ I/EpgViewModel: EPG match rate: 94% (719/764)
 
 ```
 1. FETCH
-   PlaylistViewModel.fetchAllSourcesInParallel()
+   ChannelLoadingViewModel.loadAll()
      → ApiClient.fetchRawUrl(source.url)      // per source, parallel
 
 2. PARSE
@@ -154,15 +173,58 @@ I/EpgViewModel: EPG match rate: 94% (719/764)
 
 ---
 
-## Cold Boot vs Warm Boot
+## Local Media Connect (LMC) Architecture
 
-One of the most important runtime behaviours to understand.
+Android is the **controller** — it discovers targets, sends commands, and initiates pull-back.
+
+```
+Android (controller)
+  ControlDiscoveryService          NsdManager scans _nativestream-ctrl._tcp
+        ↓ ws:// URL
+  ControlSession (OkHttp WS)       connects ws://server/ws, registers as controller
+        ↓ Envelope
+  ControlViewModel                 routes inbound messages, exposes sessions + pullBackReady
+        ↓ commands
+  CastSheet                        UI: device list, play/stop/pull-back buttons
+        ↓ onPullBackReady
+  PlayerViewModel.playFromRemote() resolves channel by ID → local playback
+```
+
+### Pull-back state management
+
+`pullBackReady` is a `SharedFlow(replay=0)` — it has no stored value, only delivers to active collectors. This prevents stale pull-back acks from firing when the `CastSheet` recomposes. The `LaunchedEffect(Unit)` in `CastSheet` collects it as a stream: only a genuine fresh ack while the sheet is open triggers `onPullBackReady`.
+
+### Device identity
+
+Each device generates a stable UUID on first launch, stored in `DataStore` under `control_device_id`. This key is **excluded from `resetAll()`** — device identity intentionally survives factory reset so the server session registry can recognize returning devices.
+
+---
+
+## Onboarding Flow
+
+```
+SPLASH (2s, starts mDNS scan)
+  ↓
+SERVER (mDNS auto-fills URL → auto-triggers parallel check)
+  parallel: /api/health + /playlist.m3u + /epg.xml
+  ↓ success
+  hasEpg=true  → PLAYLIST → Now screen
+  hasEpg=false → PLAYLIST → EPG → Now screen
+  ↓ failure
+  error state with actionable suggestions → retry
+```
+
+`OnboardingConnectionState` is a sealed class: `Idle | Checking | Success(channels, healthy, hasEpg, epgFromPlaylist) | Failure(reason)`. Owned by `SettingsViewModel`, consumed by `OnboardingScreen`.
+
+---
+
+## Cold Boot vs Warm Boot
 
 ### Cold boot (no cache)
 ```
 App opens
   → SettingsDataStore emits sources
-  → ChannelCache.read() → null (no file)
+  → ChannelCache.read() → null
   → _isLoading = true → BrowseScreen shows spinner
   → M3U fetch + parse (~3-8s)
   → _channels emits → grid populates
@@ -175,82 +237,39 @@ App opens
 ### Warm boot (cache present, < TTL)
 ```
 App opens
-  → SettingsDataStore emits sources
   → ChannelCache.read() → List<Channel>    (~10ms)
   → _channels emits immediately → grid populates
-  → _isLoading stays false — no spinner
+  → _isLoading stays false
   → EpgIndexCache.readIndex() → EpgIndexSnapshot  (~20ms)
   → synthetic EpgStore injected → _isReady = true
   → cards show EPG immediately
-  → Background: M3U fetch → _isRefreshing = true → subtle spinner in top bar
-  → Background: EPG fetch → fresh index built → cache updated
-  → _isRefreshing = false → spinner disappears
+  → Background: M3U fetch → _isRefreshing = true
+  → Background: EPG fetch → fresh index → cache updated
+  → _isRefreshing = false
 ```
 
 ---
 
 ## Adaptive Layout
 
-Three breakpoints driven by `WindowSizeClass`. The key invariant: **phones never reach `Expanded` in both dimensions**.
+Three breakpoints driven by `WindowSizeClass`.
 
 ```
-isTablet = widthSizeClass == Expanded || heightSizeClass == Expanded
+isTablet = widthSizeClass == Expanded && heightSizeClass != Compact
 ```
 
-| Screen | Compact (phone portrait) | isTablet=true |
+| Screen | Compact (phone) | isTablet=true |
 |---|---|---|
-| Now | Single column LazyColumn | Two-column Row (matches left, live/soon right) |
-| Browse | Full-screen grid | Master-detail (list pane + detail pane) |
-| Settings | Single scrollable column | Two-pane (sidebar nav + content pane) |
+| Now | Single column LazyColumn | Two-column Row |
+| Browse | Full-screen grid | Master-detail (320dp list + detail) |
+| Settings | Single scrollable column | Two-pane (sidebar nav + content) |
 | Rail | Hidden (bottom nav) | Visible left rail |
-
-### Browse master-detail layout
-```
-Row(fillMaxSize) {
-  Column(width=320dp) {                    ← list pane
-    BrowseFilterRow(chips)
-    LazyColumn(channels)
-  }
-  Box(width=0.5dp, border)                 ← divider
-  Box(weight=1f) {                         ← detail pane
-    BrowseDetailPane OR BrowseEmptyView
-  }
-}
-```
-
-The filter row (chips) renders in the **list pane header** on tablet, and **below the top bar** on phone. The source pill always renders in the top bar.
-
----
-
-## Recomposition Strategy
-
-Key decisions that prevent jank with 700+ channel cards:
-
-### ChannelCard EPG reads are cached
-```kotlin
-val programme = remember(channel.id, epgReady) {
-    epgViewModel.currentProgramme(channel)   // O(1) after AND-PERF-001
-}
-```
-EPG is not re-queried on every unrelated state change — only when `epgReady` changes (index rebuild).
-
-### Filter computation is off the main thread
-`filteredSections` is a `StateFlow` computed in `PlaylistViewModel` via `combine`. Search is debounced 150ms. The composition thread only collects the result.
-
-### `derivedStateOf` for list-derived values
-```kotlin
-val groups by remember { derivedStateOf { channels.map { it.groupTitle }.distinct().sorted() } }
-```
-Recomposition fires only when the derived value changes, not when `channels` reference changes.
-
-### `nowMs` is pre-captured
-`EpgViewModel` emits `nowMs` every 30s. Cards call `programme.progress(nowMs)` not `programme.progress` — avoids `System.currentTimeMillis()` per card per frame.
 
 ---
 
 ## Navigation
 
-Single `NavHost` in `AppNavHost`. The player is **not** a separate destination — it's an `AnimatedVisibility` overlay at the root `Box` level, outside `safeDrawing` insets, so it truly fills the screen including notch and nav bar areas.
+Single `NavHost` in `AppNavHost`. The player is an `AnimatedVisibility` overlay at the root `Box` level, outside `safeDrawing` insets.
 
 ```
 Box(fillMaxSize) {                          ← outer: true window bounds
@@ -268,37 +287,58 @@ Box(fillMaxSize) {                          ← outer: true window bounds
 }
 ```
 
-Player forces landscape via `requestedOrientation = SCREEN_ORIENTATION_LANDSCAPE`. On dismiss, restores `SCREEN_ORIENTATION_UNSPECIFIED` (not portrait) so free rotation resumes.
-
 ---
 
 ## Persistence
 
-All persistence uses DataStore Preferences (`ns_settings`) except caches which use raw files in `cacheDir`.
-
-| Key | Type | Owner |
+| Key | Type | Notes |
 |---|---|---|
-| `server_url` | String | SettingsDataStore |
-| `epg_url` | String | SettingsDataStore |
-| `buffer_preset` | String (enum name) | SettingsDataStore |
-| `onboarding_complete` | Boolean | SettingsDataStore |
-| `playlist_sources` | String (JSON) | SettingsDataStore |
-| `selected_source_id` | String | SettingsDataStore |
-| `favourite_channel_ids` | Set\<String\> | FavouritesViewModel (separate DataStore) |
-| `channels_{id}.json` | File | ChannelCache |
-| `channels_meta_{id}.json` | File | ChannelCache |
-| `epg_index_{id}.json` | File | EpgIndexCache |
+| `server_url` | String | DataStore |
+| `epg_url` | String | DataStore |
+| `buffer_preset` | String (enum name) | DataStore |
+| `onboarding_complete` | Boolean | DataStore |
+| `playlist_sources` | String (JSON) | DataStore |
+| `selected_source_id` | String | DataStore |
+| `control_device_id` | String | DataStore — excluded from resetAll() |
+| `favourite_channel_ids` | Set\<String\> | DataStore |
+| `channels_{id}.json` | File | cacheDir, per-source TTL |
+| `channels_meta_{id}.json` | File | cacheDir, sidecar metadata |
+| `epg_index_{id}.json` | File | cacheDir, 2h TTL |
+
+---
+
+## Recomposition Strategy
+
+Key decisions that prevent jank with 700+ channel cards:
+
+### ChannelCard EPG reads are cached
+```kotlin
+val programme = remember(channel.id, epgReady) {
+    epgViewModel.currentProgramme(channel)   // O(1)
+}
+```
+
+### Filter computation is off the main thread
+`filteredSections` is a `StateFlow` computed in `PlaylistViewModel` via `combine`. Search is debounced 150ms.
+
+### `derivedStateOf` for list-derived values
+```kotlin
+val groups by remember { derivedStateOf { channels.map { it.groupTitle }.distinct().sorted() } }
+```
+
+### `nowMs` is pre-captured
+`EpgViewModel` emits `nowMs` every 30s. Cards call `programme.progress(nowMs)` — avoids `System.currentTimeMillis()` per card per frame.
 
 ---
 
 ## Design System
 
-All design tokens live in the `ui/theme/` package. **Never use hardcoded dp or hex values in view code.**
+All design tokens live in `ui/theme/`. Never use hardcoded dp or hex values in view code.
 
 | Token file | Contains |
 |---|---|
 | `NSColors` | All colours as `Color` constants |
-| `NSDimens` | All spacing, radius, component sizes as `Dp` tokens via `NSDimens.current` |
-| `NSType` | All text styles as `@Composable` functions (scaled by `NSScale`) |
+| `NSDimens` | All spacing, radius, component sizes via `NSDimens.current` |
+| `NSType` | All text styles as `@Composable` functions |
 
-Components in `NSComponents.kt`: `NSSourcePill`, `NSSourcePickerSheet`, `NSSourceBadge`, `NSLiveBadge`, `NSProgressBar`, `NSIconButton`, `NSChip`.
+Shared components: `NSSourcePill`, `NSSourcePickerSheet`, `NSLiveBadge`, `NSProgressBar`, `NSHealthDot`, `NSIconButton`, `NSChip`, `NSToggle`, `NSTextField`.
