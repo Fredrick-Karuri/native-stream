@@ -51,6 +51,7 @@ import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.Clock
 import com.adamglin.phosphoricons.regular.Television
 import com.nativestream.android.ui.LocalWindowSizeClass
+import com.nativestream.android.ui.components.IconButton
 import com.nativestream.android.ui.components.NSGroupHeader
 import com.nativestream.android.ui.components.NSPulseDot
 import com.nativestream.android.ui.foldable.rememberFoldPosture
@@ -61,6 +62,7 @@ import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.ControlViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
+import kotlinx.coroutines.delay
 
 private const val LIVE_ON_AIR_INITIAL_VISIBLE = 10
 private val SECTION_ICON_SIZE = 13.dp
@@ -82,12 +84,14 @@ fun NowScreen(
     val soonCount       = startingSoon.size
     val currentChannel  by playerViewModel.currentChannel.collectAsState()
     var showCastSheet   by remember { mutableStateOf(false) }
+    val sessions by controlViewModel.sessions.collectAsState()
 
     Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
         NowTopBar(
             liveCount    = liveCount,
             soonCount    = soonCount,
             isRefreshing = isRefreshing,
+            hasConnectedDevice = sessions.isNotEmpty(),
             onCast       = { showCastSheet = true },
         )
 
@@ -107,14 +111,25 @@ fun NowScreen(
         }
         Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
+        var showEmpty by remember { mutableStateOf(false) }
+        LaunchedEffect(liveCount, soonCount) {
+            if (liveCount == 0 && soonCount == 0) {
+                delay(800)
+                showEmpty = true
+            } else {
+                showEmpty = false
+            }
+        }
+
         when {
-            liveCount == 0 && soonCount == 0 -> EmptyView()
-            else -> NowContent(
+            showEmpty -> EmptyView()
+            liveCount > 0 || soonCount > 0 -> NowContent(
                 liveMatches  = liveMatches,
                 liveOnAir    = liveOnAir,
                 startingSoon = startingSoon,
                 onSelect     = { playerViewModel.play(it) },
             )
+            else -> Unit
         }
     }
 }
@@ -126,6 +141,7 @@ private fun NowTopBar(
     liveCount: Int,
     soonCount: Int,
     isRefreshing: Boolean = false,
+    hasConnectedDevice: Boolean = false,
     onCast: () -> Unit = {},
 ) {
     val dimens = NSDimens.current
@@ -147,13 +163,12 @@ private fun NowTopBar(
             )
         }
         Spacer(modifier = Modifier.weight(1f))
-        Icon(
-            imageVector        = PhosphorIcons.Regular.MonitorPlay,
+        IconButton(
+            icon               = PhosphorIcons.Regular.MonitorPlay,
             contentDescription = "Cast to device",
-            tint               = NSColors.text3,
-            modifier           = Modifier
-                .size(20.dp)
-                .clickable { onCast() },
+            onClick            = onCast,
+            tint               = if (hasConnectedDevice) NSColors.accent else NSColors.text3,
+            background         = if (hasConnectedDevice) NSColors.accentGlow else NSColors.surface2,
         )
         Spacer(modifier = Modifier.width(dimens.spacing.sm))
         Text(

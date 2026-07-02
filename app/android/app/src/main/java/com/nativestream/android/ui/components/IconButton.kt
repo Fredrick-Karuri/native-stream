@@ -27,11 +27,12 @@ fun IconButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
-    size: Dp          = NSDimens.current.iconButton.medium,
-    isDark: Boolean   = false,
+    size: Dp           = NSDimens.current.iconButton.medium,
+    isDark: Boolean    = false,
+    tint: Color        = NSColors.text2,
+    background: Color  = if (isDark) Color.Black.copy(alpha = 0.40f) else NSColors.surface2,
     modifier: Modifier = Modifier,
 ) {
-    val background = if (isDark) Color.Black.copy(alpha = 0.40f) else NSColors.surface2
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
@@ -43,7 +44,7 @@ fun IconButton(
         Icon(
             imageVector        = icon,
             contentDescription = contentDescription,
-            tint               = NSColors.text2,
+            tint               = tint,
             modifier           = Modifier.size(size * 0.55f),
         )
     }

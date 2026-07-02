@@ -302,7 +302,7 @@ class EpgViewModel @Inject constructor(
         }
     }
 
-    // ── Sport helpers (AND-027) ───────────────────────────────────────────────
+    // ── Sport helpers  ───────────────────────────────────────────────
 
     fun hasContent(sport: SportCategory, channels: List<Channel>): Boolean =
         liveCount(sport, channels) > 0 || upcomingCount(sport, channels) > 0

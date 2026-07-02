@@ -45,10 +45,13 @@ import com.nativestream.android.ui.viewmodel.FavouritesViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import com.nativestream.android.ui.viewmodel.SourceViewModel
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.nativestream.android.domain.model.isAll
 import com.nativestream.android.ui.LocalWindowSizeClass
 import com.nativestream.android.ui.components.NSSourcePickerSheet
 import com.nativestream.android.ui.components.AddSourceSheet
+import kotlinx.coroutines.delay
 
 val Regular = RegularGroup
 data class ChannelSection(val name: String, val channels: List<Channel>)
@@ -166,6 +169,15 @@ fun BrowseScreen(
             )
             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
 
+            var showEmpty by remember { mutableStateOf(false) }
+            LaunchedEffect(filteredSections) {
+                if (filteredSections.isEmpty()) {
+                    delay(800)
+                    showEmpty = true
+                } else {
+                    showEmpty = false
+                }
+            }
             when {
                 isLoading -> BrowseLoadingView()
                 isTablet  -> BrowseMasterDetail(
@@ -193,7 +205,7 @@ fun BrowseScreen(
                     onToggleFavourites  = { filterViewModel.toggleFavourites() },
                     showFavouritesOnly  = showFavouritesOnly,
                 )
-                filteredSections.isEmpty() -> BrowseEmptyView(searchText)
+                showEmpty -> BrowseEmptyView(searchText)
                 else -> BrowseGrid(
                     sections            = filteredSections,
                     playerViewModel     = playerViewModel,
