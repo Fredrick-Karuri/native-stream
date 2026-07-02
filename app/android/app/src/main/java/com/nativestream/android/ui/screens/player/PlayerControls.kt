@@ -47,8 +47,8 @@ import com.nativestream.android.R
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.LiveEligibility
 import com.nativestream.android.domain.model.Programme
-import com.nativestream.android.ui.components.NSLiveBadge
-import com.nativestream.android.ui.components.NSProgressBar
+import com.nativestream.android.ui.components.LiveBadge
+import com.nativestream.android.ui.components.ProgressBar
 import com.nativestream.android.ui.components.QualityBadge
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSGradients
@@ -128,7 +128,7 @@ fun PlayerControlsOverlay(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    NSLiveBadge(isLive = LiveEligibility.isLive(channel, programme))
+                    LiveBadge(isLive = LiveEligibility.isLive(channel, programme))
                     videoQuality?.let { quality ->
                         QualityBadge(label = quality)
                     }
@@ -164,7 +164,7 @@ fun PlayerControlsOverlay(
                     .padding(NSDimens.current.spacing.md)
                     .align(Alignment.BottomCenter),
             ) {
-                NSProgressBar(value = programme?.progress?.toFloat() ?: 1f)
+                ProgressBar(value = programme?.progress?.toFloat() ?: 1f)
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,

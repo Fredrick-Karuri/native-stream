@@ -30,12 +30,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.PlayerView
 import com.nativestream.android.domain.model.Programme
-import com.nativestream.android.ui.components.NSProgressBar
+import com.nativestream.android.ui.components.ProgressBar
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nativestream.android.ui.viewmodel.CastViewModel
@@ -149,7 +148,7 @@ fun PlayerTabletopLayout(
             }
 
             programme?.let {
-                NSProgressBar(
+                ProgressBar(
                     value    = it.progress.toFloat(),
                     modifier = Modifier.fillMaxWidth(),
                 )

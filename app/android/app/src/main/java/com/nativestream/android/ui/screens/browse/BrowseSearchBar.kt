@@ -11,7 +11,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.nativestream.android.ui.components.NSIconButton
+import com.nativestream.android.ui.components.IconButton
 import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
@@ -38,7 +38,7 @@ fun BrowseSearchBar(
             modifier      = Modifier.weight(1f),
         )
         Spacer(modifier = Modifier.width(dimens.spacing.sm))
-        NSIconButton(
+        IconButton(
             icon               = Icons.Default.Close,
             contentDescription = "Close search",
             onClick            = onSearchClose,

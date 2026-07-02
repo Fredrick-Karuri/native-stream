@@ -43,7 +43,7 @@ import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.domain.model.SportCategory
 import com.nativestream.android.domain.repository.ChannelRepository
 import com.nativestream.android.ui.components.NSGroupHeader
-import com.nativestream.android.ui.components.NSProgressBar
+import com.nativestream.android.ui.components.ProgressBar
 import com.nativestream.android.ui.components.NSPulseDot
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
@@ -249,7 +249,7 @@ fun MatchCard(match: MatchItem, onClick: () -> Unit, modifier: Modifier = Modifi
 
         // Progress (live only)
         if (isLive) {
-            NSProgressBar(value = match.programme.progress.toFloat())
+            ProgressBar(value = match.programme.progress.toFloat())
         }
 
         // Footer — time + channel id

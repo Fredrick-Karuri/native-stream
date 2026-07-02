@@ -131,7 +131,7 @@ fun MiniPlayer(
                 horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm)
             ) {
                 // Play / Pause Button
-                NSIconButton(
+                IconButton(
                     icon = ImageVector.vectorResource(
                         if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
                     ),
@@ -145,7 +145,7 @@ fun MiniPlayer(
                 )
 
                 // Close Button
-                NSIconButton(
+                IconButton(
                     icon               = Icons.Default.Close,
                     contentDescription = "Close player",
                     onClick            = onClose,
@@ -157,7 +157,7 @@ fun MiniPlayer(
 
         // ── Bottom Edge: Timeline Progress Tracker ────────────────────────────
         if (currentProgramme != null) {
-            NSProgressBar(
+            ProgressBar(
                 value    = currentProgramme.progress.toFloat(),
                 height   = 2.dp, // Ultra thin edge tracking line
                 modifier = Modifier

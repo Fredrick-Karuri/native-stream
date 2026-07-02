@@ -35,8 +35,8 @@ import androidx.compose.ui.unit.dp
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.Programme
 import com.nativestream.android.ui.LocalWindowSizeClass
-import com.nativestream.android.ui.components.NSLiveBadge
-import com.nativestream.android.ui.components.NSProgressBar
+import com.nativestream.android.ui.components.LiveBadge
+import com.nativestream.android.ui.components.ProgressBar
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -86,14 +86,14 @@ fun MatchHeroCard(
                 badgeSize  = dimens.match.heroBadgeSize,
                 isHero     = true,
             )
-            NSLiveBadge(
+            LiveBadge(
                 isLive   = true,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(dimens.spacing.sm),
             )
             // Progress bar flush at bottom of art area
-            NSProgressBar(
+            ProgressBar(
                 value    = programme.progress.toFloat(),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -108,7 +108,7 @@ fun MatchHeroCard(
                 vertical   = dimens.spacing.sm,
             )
         ) {
-            NSLiveBadge(isLive = true)
+            LiveBadge(isLive = true)
             Spacer(modifier = Modifier.height(dimens.spacing.xs))
             Text(
                 text     = programme.title,
@@ -192,7 +192,7 @@ fun MatchSmallCard(
                 color = NSColors.text3,
             )
             Spacer(modifier = Modifier.height(dimens.spacing.xs))
-            NSProgressBar(value = programme.progress.toFloat())
+            ProgressBar(value = programme.progress.toFloat())
         }
     }
 }
