@@ -1,0 +1,44 @@
+<svg viewBox="0 0 900 560" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3a4256"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="560" fill="#0b0e17"/>
+
+  <!-- Content Sources -->
+  <text x="450" y="42" text-anchor="middle" fill="#e8ecf4" font-size="20" font-weight="600">Content Sources</text>
+  <line x1="450" y1="54" x2="450" y2="96" stroke="#3a4256" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- NativeStream box -->
+  <rect x="270" y="100" width="360" height="200" rx="12" fill="#131726" stroke="#2196f3" stroke-width="2"/>
+  <text x="450" y="134" text-anchor="middle" fill="#2196f3" font-size="20" font-weight="700">NativeStream</text>
+  <line x1="296" y1="150" x2="604" y2="150" stroke="#232840" stroke-width="1"/>
+
+  <g fill="#aeb6c9" font-size="15">
+    <text x="450" y="178" text-anchor="middle">Content Ingestion</text>
+    <text x="450" y="204" text-anchor="middle">Validation</text>
+    <text x="450" y="230" text-anchor="middle">Stream Management</text>
+    <text x="450" y="256" text-anchor="middle">Metadata &amp; EPG</text>
+    <text x="450" y="282" text-anchor="middle">Quality Selection</text>
+  </g>
+
+  <!-- split lines -->
+  <line x1="450" y1="300" x2="450" y2="330" stroke="#3a4256" stroke-width="2"/>
+  <line x1="230" y1="330" x2="670" y2="330" stroke="#3a4256" stroke-width="2"/>
+  <line x1="230" y1="330" x2="230" y2="360" stroke="#3a4256" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="670" y1="330" x2="670" y2="360" stroke="#3a4256" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- macOS box -->
+  <rect x="90" y="368" width="280" height="150" rx="12" fill="#131726" stroke="#2196f3" stroke-width="2"/>
+  <text x="230" y="404" text-anchor="middle" fill="#2196f3" font-size="19" font-weight="700">Native macOS</text>
+  <text x="230" y="434" text-anchor="middle" fill="#aeb6c9" font-size="14">SwiftUI · AVFoundation</text>
+  <text x="230" y="460" text-anchor="middle" fill="#aeb6c9" font-size="14">PiP · AirPlay</text>
+
+  <!-- Android box -->
+  <rect x="530" y="368" width="280" height="150" rx="12" fill="#131726" stroke="#2196f3" stroke-width="2"/>
+  <text x="670" y="404" text-anchor="middle" fill="#2196f3" font-size="19" font-weight="700">Native Android</text>
+  <text x="670" y="434" text-anchor="middle" fill="#aeb6c9" font-size="14">Compose · ExoPlayer</text>
+  <text x="670" y="460" text-anchor="middle" fill="#aeb6c9" font-size="14">PiP · Chromecast</text>
+</svg>

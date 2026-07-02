@@ -41,26 +41,7 @@ The platform handles:
 
 # How It Works
 
-```
-                  Content Sources
-                         │
-                         ▼
-              ┌─────────────────────┐
-              │     NativeStream     │
-              │                     │
-              │ Content Ingestion   │
-              │ Validation          │
-              │ Stream Management   │
-              │ Metadata & EPG      │
-              │ Quality Selection   │
-              └──────────┬──────────┘
-                         │
-          ┌──────────────┴──────────────┐
-          ▼                             ▼
-      Native macOS                  Native Android
-   SwiftUI · AVFoundation        Compose · ExoPlayer
-   PiP · AirPlay                 PiP · Chromecast
-```
+![Architecture diagram](screenshots/architecture.svg)
 
 ---
 
