@@ -33,7 +33,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.dp
 import com.nativestream.android.domain.model.PlaylistSource
-import com.nativestream.android.ui.components.NSIconButton
+import com.nativestream.android.ui.components.IconButton
 import com.nativestream.android.ui.components.NSSourcePill
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
@@ -83,14 +83,14 @@ fun BrowseTopBar(
             )
             Spacer(modifier = Modifier.weight(1f))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                NSIconButton(
+                IconButton(
                     icon               = Icons.Default.Search,
                     contentDescription = "Search",
                     onClick            = onSearchClick,
                 )
                 Spacer(modifier = Modifier.width(dimens.spacing.sm))
                 Box {
-                    NSIconButton(
+                    IconButton(
                         icon               = Icons.Default.MoreVert,
                         contentDescription = "More",
                         onClick            = { menuExpanded = true },

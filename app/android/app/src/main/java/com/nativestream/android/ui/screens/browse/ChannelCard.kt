@@ -41,8 +41,8 @@ import androidx.compose.ui.unit.dp
 import com.nativestream.android.R
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.LiveEligibility
-import com.nativestream.android.ui.components.NSLiveBadge
-import com.nativestream.android.ui.components.NSProgressBar
+import com.nativestream.android.ui.components.LiveBadge
+import com.nativestream.android.ui.components.ProgressBar
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -100,7 +100,7 @@ fun ChannelCard(
 
             // Progress bar at bottom edge
             programme?.let { prog ->
-                NSProgressBar(
+                ProgressBar(
                     value    = prog.progress(nowMs).toFloat(),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -116,7 +116,7 @@ fun ChannelCard(
                     .padding(8.dp)
                     .align(Alignment.TopStart),
             ) {
-                NSLiveBadge(isLive = isLive)
+                LiveBadge(isLive = isLive)
                 Spacer(modifier = Modifier.weight(1f))
                 if (isPlaying) {
                     NowBadge()

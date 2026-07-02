@@ -40,7 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.Programme
-import com.nativestream.android.ui.components.NSProgressBar
+import com.nativestream.android.ui.components.ProgressBar
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -266,7 +266,7 @@ private fun ScheduleRow(programme: Programme) {
             maxLines = 2,
         )
         if (programme.isNow) {
-            NSProgressBar(
+            ProgressBar(
                 value    = programme.progress.toFloat(),
                 modifier = Modifier.padding(top = dimens.spacing.xs),
             )

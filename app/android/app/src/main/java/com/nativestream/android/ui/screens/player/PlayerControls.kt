@@ -25,6 +25,8 @@ import com.adamglin.phosphoricons.regular.ArrowsIn
 import com.adamglin.phosphoricons.regular.SkipBack
 import com.adamglin.phosphoricons.regular.SkipForward
 import com.adamglin.phosphoricons.regular.MonitorPlay
+import com.adamglin.phosphoricons.regular.Play
+import com.adamglin.phosphoricons.regular.Pause
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import com.nativestream.android.ui.LocalWindowSizeClass
 import com.adamglin.PhosphorIcons
@@ -41,14 +43,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.runtime.remember
 import androidx.media3.ui.AspectRatioFrameLayout
 import com.adamglin.phosphoricons.Regular
 import com.nativestream.android.R
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.LiveEligibility
 import com.nativestream.android.domain.model.Programme
-import com.nativestream.android.ui.components.NSLiveBadge
-import com.nativestream.android.ui.components.NSProgressBar
+import com.nativestream.android.ui.components.LiveBadge
+import com.nativestream.android.ui.components.ProgressBar
 import com.nativestream.android.ui.components.QualityBadge
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSGradients
@@ -85,6 +88,10 @@ fun PlayerControlsOverlay(
     val controlsVisible by playerViewModel.controlsVisible.collectAsState()
     val isInPip          by playerViewModel.isInPip.collectAsState()
     val isPlaying       by playerViewModel.isPlaying.collectAsState()
+    val channelList     by playerViewModel.channelList.collectAsState()
+    val hasPlaylistContext = remember(channel, channelList) {
+        channel != null && channelList.any { it.id == channel.id }
+    }
     val isMuted         by playerViewModel.isMuted.collectAsState()
     val videoQuality    by playerViewModel.videoQuality.collectAsState()
 
@@ -128,7 +135,7 @@ fun PlayerControlsOverlay(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    NSLiveBadge(isLive = LiveEligibility.isLive(channel, programme))
+                    LiveBadge(isLive = LiveEligibility.isLive(channel, programme))
                     videoQuality?.let { quality ->
                         QualityBadge(label = quality)
                     }
@@ -164,33 +171,36 @@ fun PlayerControlsOverlay(
                     .padding(NSDimens.current.spacing.md)
                     .align(Alignment.BottomCenter),
             ) {
-                NSProgressBar(value = programme?.progress?.toFloat() ?: 1f)
+                ProgressBar(value = programme?.progress?.toFloat() ?: 1f)
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(NSDimens.current.spacing.sm),
                 ) {
+                    if (hasPlaylistContext) {
+                        ControlButton(
+                            icon               = PhosphorIcons.Regular.SkipBack,
+                            contentDescription = "Previous channel",
+                            onClick            = onPreviousChannel,
+                            size               = secondarySize,
+                        )
+                    }
                     ControlButton(
-                        icon               = PhosphorIcons.Regular.SkipBack,
-                        contentDescription = "Previous channel",
-                        onClick            = onPreviousChannel,
-                        size               = secondarySize,
-                    )
-                    ControlButton(
-                        icon               = ImageVector.vectorResource(
-                            if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-                        ),
+                        icon               = if (isPlaying) PhosphorIcons.Regular.Pause
+                        else PhosphorIcons.Regular.Play,
                         contentDescription = if (isPlaying) "Pause" else "Play",
                         onClick            = { playerViewModel.togglePlayback() },
                         size               = primarySize,
                         isPrimary          = true,
                     )
-                    ControlButton(
-                        icon               = PhosphorIcons.Regular.SkipForward,
-                        contentDescription = "Next channel",
-                        onClick            = onNextChannel,
-                        size               = secondarySize,
-                    )
+                    if (hasPlaylistContext) {
+                        ControlButton(
+                            icon               = PhosphorIcons.Regular.SkipForward,
+                            contentDescription = "Next channel",
+                            onClick            = onNextChannel,
+                            size               = secondarySize,
+                        )
+                    }
                     Spacer(modifier = Modifier.weight(1f))
                     ControlButton(
                         icon               = ImageVector.vectorResource(

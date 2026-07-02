@@ -34,8 +34,9 @@ private const val ATTR_GROUP_TITLE = "group-title"
 private const val ATTR_URL_TVG     = "url-tvg"
 
 // Regex patterns for key="value" and key='value' attribute extraction
-private val DOUBLE_QUOTE_PATTERN = Regex("""(\S+)="([^"]*)"""")
-private val SINGLE_QUOTE_PATTERN = Regex("""(\S+)='([^']*)'""")
+
+private val DOUBLE_QUOTE_PATTERN = Regex("""([\w-]+)="([^"]*)"""")
+private val SINGLE_QUOTE_PATTERN = Regex("""([\w-]+)='([^']*)'""")
 
 private const val INITIAL_CHANNEL_CAPACITY  = 512
 private const val INITIAL_WARNING_CAPACITY  = 16

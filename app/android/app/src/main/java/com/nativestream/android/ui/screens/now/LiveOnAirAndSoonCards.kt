@@ -33,8 +33,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.Programme
-import com.nativestream.android.ui.components.NSLiveBadge
-import com.nativestream.android.ui.components.NSProgressBar
+import com.nativestream.android.ui.components.LiveBadge
+import com.nativestream.android.ui.components.ProgressBar
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -89,11 +89,11 @@ fun LiveOnAirRow(
             }
 
             Spacer(modifier = Modifier.width(dimens.spacing.md))
-            NSLiveBadge(isLive = true)
+            LiveBadge(isLive = true)
         }
 
         // Progress bar flush at bottom, full width, no horizontal padding
-        NSProgressBar(
+        ProgressBar(
             value    = programme.progress.toFloat(),
             modifier = Modifier.fillMaxWidth(),
         )

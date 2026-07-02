@@ -267,6 +267,16 @@ class PlayerViewModel @Inject constructor(
         val mediaItem = MediaItem.Builder()
             .setUri(channel.streamUrl)
             .setMediaId(headersJson)
+            .setMediaMetadata(
+                androidx.media3.common.MediaMetadata.Builder()
+                    .setTitle(channel.name)
+                    .setArtist(channel.groupTitle.ifEmpty { null })
+                    .setArtworkUri(
+                        channel.logoUrl?.let { android.net.Uri.parse(it) }
+                    )
+                    .setIsPlayable(true)
+                    .build()
+            )
             .build()
         p.setMediaItem(mediaItem)
         p.prepare()
