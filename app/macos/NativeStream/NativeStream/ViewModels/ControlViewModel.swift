@@ -44,14 +44,14 @@ final class ControlViewModel {
         controlSession.disconnect()
     }
 
-    func broadcastState(channelID: String, channelName: String, streamURL: String, playing: Bool) async {
+    func broadcastState(channelID: String, channelName: String, streamURL: String, playing: Bool, volume: Double) async {
         guard let envelope = Envelope.encoding(
             type: .stateUpdate, from: deviceID, to: "broadcast",
-            payload: StateUpdatePayload(channelID: channelID, channelName: channelName, streamURL: streamURL, playing: playing)
+            payload: StateUpdatePayload(channelID: channelID, channelName: channelName, streamURL: streamURL, playing: playing, volume: volume)
         ) else { return }
         await controlSession.send(envelope)
     }
-
+    
     // MARK: - Private
 
     private func handle(_ envelope: Envelope, playerVM: PlayerViewModel) async {

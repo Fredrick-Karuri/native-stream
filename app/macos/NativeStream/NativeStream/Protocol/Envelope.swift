@@ -80,6 +80,7 @@ struct SessionInfo: Codable, Identifiable {
     let channelName: String
     let streamURL: String
     let playing: Bool
+    let volume: Double
     let connectedAt: String
 
     enum CodingKeys: String, CodingKey {
@@ -89,6 +90,7 @@ struct SessionInfo: Codable, Identifiable {
         case channelName = "channel_name"
         case streamURL   = "stream_url"
         case playing
+        case volume
         case connectedAt = "connected_at"
     }
 }
@@ -136,12 +138,14 @@ struct StateUpdatePayload: Codable {
     let channelName: String
     let streamURL: String
     let playing: Bool
+    let volume: Double
 
     enum CodingKeys: String, CodingKey {
         case channelID   = "channel_id"
         case channelName = "channel_name"
         case streamURL   = "stream_url"
         case playing
+        case volume
     }
 }
 

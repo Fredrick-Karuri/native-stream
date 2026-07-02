@@ -52,6 +52,7 @@ data class SessionInfo(
     @SerialName("channel_name") val channelName: String,
     @SerialName("stream_url")   val streamUrl:   String,
     val playing:                                 Boolean,
+    val volume:                                  Float = 1f,
     @SerialName("connected_at") val connectedAt: String,
 )
 
@@ -88,6 +89,7 @@ data class StateUpdatePayload(
     @SerialName("channel_name") val channelName: String,
     @SerialName("stream_url")   val streamUrl: String,
     val playing: Boolean,
+    val volume: Float = 1f,
 )
 
 @Serializable

@@ -58,6 +58,7 @@ type SessionInfo struct {
 	ChannelName string     `json:"channel_name"`
 	StreamURL   string     `json:"stream_url"`
 	Playing     bool       `json:"playing"`
+	Volume      float64    `json:"volume"`
 	ConnectedAt time.Time  `json:"connected_at"`
 }
 
@@ -94,6 +95,7 @@ type StateUpdatePayload struct {
 	ChannelName string `json:"channel_name"`
 	StreamURL   string `json:"stream_url"`
 	Playing     bool   `json:"playing"`
+	Volume      float64 `json:"volume"`
 }
 
 type VolumeSetPayload struct {

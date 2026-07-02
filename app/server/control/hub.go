@@ -179,6 +179,7 @@ func (h *Hub) applyStateUpdate(env Envelope) {
 		c.Session.ChannelName = payload.ChannelName
 		c.Session.StreamURL   = payload.StreamURL
 		c.Session.Playing     = payload.Playing
+		c.Session.Volume      = payload.Volume
 	}
 	h.mu.Unlock()
 }
