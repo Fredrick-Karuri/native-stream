@@ -29,7 +29,6 @@ import com.nativestream.android.ui.viewmodel.ControlViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -150,17 +149,11 @@ fun PlayerStandardLayout(
                 epgViewModel    = epgViewModel,
             )
         }
-        if (showCastSheet) {
+        if (showCastSheet && activeChannel != null) {
             CastSheet(
-                controlViewModel = controlViewModel,
-                currentChannel   = activeChannel,
-                onDismiss = {
-                    showCastSheet = false
-                },
-                onPullBackReady  = { channelId, channelName, streamUrl ->
-                    playerViewModel.playFromRemote(channelId, channelName, streamUrl)
-                    showCastSheet = false
-                },
+                controlViewModel    = controlViewModel,
+                currentChannel      = activeChannel!!,
+                onDismiss           = { showCastSheet = false },
                 onStopLocalPlayback = { playerViewModel.stop() },
             )
         }

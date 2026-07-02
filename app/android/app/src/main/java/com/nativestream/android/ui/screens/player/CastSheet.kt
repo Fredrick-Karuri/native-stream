@@ -23,7 +23,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -49,9 +48,8 @@ private val SHEET_CORNER_RADIUS  = 16.dp
 @Composable
 fun CastSheet(
     controlViewModel: ControlViewModel,
-    currentChannel: Channel?,
+    currentChannel: Channel,
     onDismiss: () -> Unit,
-    onPullBackReady: (channelId: String, channelName: String, streamUrl: String) -> Unit,
     onStopLocalPlayback: () -> Unit,
 ) {
     val dimens        = NSDimens.current
@@ -59,13 +57,6 @@ fun CastSheet(
     val sessions      by controlViewModel.sessions.collectAsState()
     val connected     by controlViewModel.connected.collectAsState()
     val scanning      by controlViewModel.discoveryScanning.collectAsState()
-
-    LaunchedEffect(Unit) {
-        controlViewModel.pullBackReady.collect { ready ->
-            onPullBackReady(ready.channelId, ready.channelName, ready.streamUrl)
-            onDismiss()
-        }
-    }
 
     ModalBottomSheet(
         onDismissRequest  = onDismiss,
@@ -147,7 +138,6 @@ fun CastSheet(
             sessions.forEach { session ->
                 DeviceRow(
                     session        = session,
-                    currentChannel = currentChannel,
                     onPlay         = {
                         val channel = currentChannel ?: return@DeviceRow
                         controlViewModel.play(session.deviceId, channel.id, channel.name, channel.streamUrl)
@@ -165,7 +155,6 @@ fun CastSheet(
 @Composable
 private fun DeviceRow(
     session: SessionInfo,
-    currentChannel: Channel?,
     onPlay: () -> Unit,
 ) {
     val dimens         = NSDimens.current
@@ -198,13 +187,11 @@ private fun DeviceRow(
             }
         }
         SheetActionButton(
-            label     = if (isPlaying) "Playing — Send anyway" else
-                if (currentChannel != null) "Play here" else "No channel playing",
-            isPrimary = !isPlaying,
-            enabled   = currentChannel != null,
+            label     = "Cast",
+            isPrimary = true,
+            enabled   = true,
             onClick   = onPlay,
             modifier  = Modifier.fillMaxWidth(),
         )
-
     }
 }
