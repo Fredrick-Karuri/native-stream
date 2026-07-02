@@ -6,6 +6,7 @@
 
 import Foundation
 import Observation
+import AVFoundation
 
 @Observable
 @MainActor
@@ -59,6 +60,8 @@ final class ControlViewModel {
             await handlePlay(envelope, playerVM: playerVM)
         case .stop:
             playerVM.stop()
+        case .volumeSet:
+            handleVolumeSet(envelope, playerVM: playerVM)
         case .sessionList:
             handleSessionList(envelope)
         case .ping:
@@ -84,6 +87,11 @@ final class ControlViewModel {
     private func handleSessionList(_ envelope: Envelope) {
         guard let payload = envelope.decoding(as: SessionListPayload.self) else { return }
         sessions = payload.sessions.filter { $0.kind == .controller }
+    }
+    
+    private func handleVolumeSet(_ envelope: Envelope, playerVM: PlayerViewModel) {
+        guard let payload = envelope.decoding(as: VolumeSetPayload.self) else { return }
+        playerVM.player?.volume = Float(payload.level)
     }
 
     private func sendPong() async {

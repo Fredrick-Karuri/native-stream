@@ -23,6 +23,7 @@ const (
 	MsgPullBack    MessageType = "pull_back"
 	MsgPullBackAck MessageType = "pull_back_ack"
 	MsgStateUpdate MessageType = "state_update"
+	MsgVolumeSet   MessageType = "volume_set"
 	MsgPing        MessageType = "ping"
 	MsgPong        MessageType = "pong"
 )
@@ -93,6 +94,10 @@ type StateUpdatePayload struct {
 	ChannelName string `json:"channel_name"`
 	StreamURL   string `json:"stream_url"`
 	Playing     bool   `json:"playing"`
+}
+
+type VolumeSetPayload struct {
+	Level float64 `json:"level"` // 0.0 – 1.0
 }
 
 // SessionListPayload wraps the current session list for broadcast.

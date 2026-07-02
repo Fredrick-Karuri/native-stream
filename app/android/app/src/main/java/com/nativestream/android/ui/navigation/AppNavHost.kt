@@ -45,6 +45,8 @@ import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
+import com.nativestream.android.ui.components.ConnectBar
+import com.nativestream.android.ui.viewmodel.ControlViewModel
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
@@ -53,7 +55,8 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val epgViewModel: EpgViewModel           = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val castViewModel: CastViewModel         = hiltViewModel()
-    val loadingViewModel: ChannelLoadingViewModel = hiltViewModel()
+    val loadingViewModel: ChannelLoadingViewModel = hiltViewModel() // Added to ensure Now screen loads channels
+    val controlViewModel: ControlViewModel        = hiltViewModel()
 
 
     val hasActiveChannel   by playerViewModel.hasActiveChannel.collectAsState()
@@ -148,6 +151,10 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                                 onExpand = { playerViewModel.showPlayer() },
                                 onClose = { playerViewModel.stop() },
                             )
+                        }
+
+                        if (!isPlayerVisible) {
+                            ConnectBar(controlViewModel = controlViewModel)
                         }
 
                         if (!useRail && !isPlayerVisible) {

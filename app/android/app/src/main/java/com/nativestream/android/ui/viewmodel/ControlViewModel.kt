@@ -19,6 +19,7 @@ import com.nativestream.android.domain.model.control.PullBackAckPayload
 import com.nativestream.android.domain.model.control.PullBackPayload
 import com.nativestream.android.domain.model.control.SessionInfo
 import com.nativestream.android.domain.model.control.SessionListPayload
+import com.nativestream.android.domain.model.control.VolumeSetPayload
 import com.nativestream.android.domain.model.control.buildEnvelope
 import com.nativestream.android.domain.model.control.decodePayload
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -184,6 +185,17 @@ class ControlViewModel @Inject constructor(
                 from    = deviceId,
                 to      = "server",
                 payload = PullBackPayload(fromDevice = fromDeviceId),
+            )
+        )
+    }
+
+    fun setVolume(targetDeviceId: String, level: Float) {
+        controlSession.send(
+            buildEnvelope(
+                type    = MessageType.VOLUME_SET,
+                from    = deviceId,
+                to      = targetDeviceId,
+                payload = VolumeSetPayload(level = level),
             )
         )
     }

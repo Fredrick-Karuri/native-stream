@@ -132,6 +132,8 @@ func (h *Hub) handleEnvelope(ctx context.Context, env Envelope) {
 		h.handlePong(env)
 	case MsgPing:
 		// clients should not send ping — ignore
+	case MsgVolumeSet:
+		h.forwardEnvelope(ctx, env) // unicast to target,
 	default:
 		h.forwardEnvelope(ctx, env)
 	}

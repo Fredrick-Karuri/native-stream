@@ -19,6 +19,7 @@ enum class MessageType {
     @SerialName("pull_back")    PULL_BACK,
     @SerialName("pull_back_ack") PULL_BACK_ACK,
     @SerialName("state_update") STATE_UPDATE,
+    @SerialName("volume_set")   VOLUME_SET,
     @SerialName("ping")         PING,
     @SerialName("pong")         PONG,
 }
@@ -87,6 +88,11 @@ data class StateUpdatePayload(
     @SerialName("channel_name") val channelName: String,
     @SerialName("stream_url")   val streamUrl: String,
     val playing: Boolean,
+)
+
+@Serializable
+data class VolumeSetPayload(
+    val level: Float, // 0.0 – 1.0
 )
 
 @Serializable

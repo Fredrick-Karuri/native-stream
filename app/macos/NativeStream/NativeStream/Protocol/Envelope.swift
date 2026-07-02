@@ -13,6 +13,7 @@ enum MessageType: String, Codable {
     case pullBack        = "pull_back"
     case pullBackAck      = "pull_back_ack"
     case stateUpdate     = "state_update"
+    case volumeSet       = "volume_set"
     case ping
     case pong
 }
@@ -142,6 +143,10 @@ struct StateUpdatePayload: Codable {
         case streamURL   = "stream_url"
         case playing
     }
+}
+
+struct VolumeSetPayload: Codable {
+    let level: Double // 0.0 – 1.0
 }
 
 struct SessionListPayload: Codable {
