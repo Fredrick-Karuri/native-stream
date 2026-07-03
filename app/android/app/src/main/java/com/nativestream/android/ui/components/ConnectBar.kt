@@ -14,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,7 +39,8 @@ import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.ControlViewModel
 
-private val CONNECT_BAR_HEIGHT = 44.dp
+private val CONNECT_BAR_HEIGHT = 56.dp
+
 
 @Composable
 fun ConnectBar(
@@ -80,6 +82,7 @@ fun ConnectBar(
                     .align(Alignment.TopCenter),
             )
 
+            // replace
             Row(
                 verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
@@ -94,26 +97,22 @@ fun ConnectBar(
                     tint               = NSColors.accent,
                     modifier           = Modifier.size(14.dp),
                 )
-                Text(
-                    text     = session.name,
-                    style    = NSType.monoSmall(),
-                    color    = NSColors.accent,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text  = "·",
-                    style = NSType.monoSmall(),
-                    color = NSColors.text3,
-                )
-                Text(
-                    text     = session.channelName.ifEmpty { session.channelId },
-                    style    = NSType.captionMedium(),
-                    color    = NSColors.text2,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text     = session.channelName.ifEmpty { session.channelId },
+                        style    = NSType.captionMedium(),
+                        color    = NSColors.text2,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text     = "on ${session.name}",
+                        style    = NSType.monoSmall(),
+                        color    = NSColors.text3,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }

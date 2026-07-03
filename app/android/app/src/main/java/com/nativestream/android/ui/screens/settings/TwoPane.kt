@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -123,11 +124,12 @@ fun SettingsTwoPane(
         // ── Right panel ───────────────────────────────────────────────────────
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
+            contentPadding = PaddingValues(bottom = dimens.spacing.md, top = dimens.spacing.md),
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
                 .imePadding()
-                .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.md),
+                .padding(horizontal = dimens.spacing.lg),
         ) {
             when (selectedSection) {
                 SettingsSection.SERVER -> {

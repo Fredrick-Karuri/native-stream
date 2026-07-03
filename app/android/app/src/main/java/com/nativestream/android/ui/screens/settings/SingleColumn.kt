@@ -8,6 +8,7 @@ package com.nativestream.android.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -75,9 +76,10 @@ fun SettingsSingleColumn(
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
+        contentPadding = PaddingValues(bottom = dimens.spacing.md, top = dimens.spacing.md),
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
+            .padding(horizontal = dimens.spacing.md),
     ) {
         item {
             ServerHealthCard(

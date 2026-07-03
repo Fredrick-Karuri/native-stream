@@ -1,6 +1,7 @@
 package com.nativestream.android.ui.screens.browse
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -38,9 +39,10 @@ fun BrowseGrid(
         columns = GridCells.Adaptive(minSize = cardMinSize),
         verticalArrangement = Arrangement.spacedBy(dimens.spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(dimens.spacing.md),
+        contentPadding = PaddingValues(bottom = dimens.spacing.md, top = dimens.spacing.md),
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.md),
+            .padding(horizontal = dimens.spacing.md),
     ) {
         sections.forEach { section ->
             item(
