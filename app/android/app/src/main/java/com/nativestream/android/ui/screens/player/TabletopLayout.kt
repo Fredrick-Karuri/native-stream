@@ -193,10 +193,10 @@ fun PlayerTabletopLayout(
                     }
                 }
             }
-            if (showCastSheet && activeChannel != null) {
+            if (showCastSheet) {
                 CastSheet(
                     controlViewModel    = controlViewModel,
-                    currentChannel      = activeChannel!!,
+                    currentChannel      = activeChannel,
                     onDismiss           = { showCastSheet = false },
                     onStopLocalPlayback = { playerViewModel.stop() },
                 )

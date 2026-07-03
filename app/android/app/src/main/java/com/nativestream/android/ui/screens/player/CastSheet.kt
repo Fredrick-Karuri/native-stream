@@ -1,7 +1,7 @@
 // app/src/main/java/com/nativestream/android/ui/screens/player/CastSheet.kt
 //
 // Local Media Connect cast sheet — shows connected target devices,
-// allows sending play/stop commands and initiating pull-back.
+// Answers the question: "Where can I play?" — always accessible
 // Triggered from player controls or Now screen top bar.
 
 package com.nativestream.android.ui.screens.player
@@ -48,7 +48,7 @@ private val SHEET_CORNER_RADIUS  = 16.dp
 @Composable
 fun CastSheet(
     controlViewModel: ControlViewModel,
-    currentChannel: Channel,
+    currentChannel: Channel?,
     onDismiss: () -> Unit,
     onStopLocalPlayback: () -> Unit,
 ) {
@@ -79,17 +79,25 @@ fun CastSheet(
                 horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
             ) {
                 Icon(
-                    imageVector        = PhosphorIcons.Regular.MonitorPlay,
+                    imageVector = PhosphorIcons.Regular.MonitorPlay,
                     contentDescription = null,
-                    tint               = NSColors.accent,
-                    modifier           = Modifier.size(DEVICE_ICON_SIZE),
+                    tint = NSColors.accent,
+                    modifier = Modifier.size(DEVICE_ICON_SIZE),
                 )
                 Text(
-                    text  = "Cast to a device",
+                    text = "Play on…",
                     style = NSType.heading(),
                     color = NSColors.text,
                 )
             }
+            if (currentChannel == null) {
+                Text(
+                    text  = "Nothing playing yet",
+                    style = NSType.caption(),
+                    color = NSColors.text3,
+                )
+            }
+
 
             Spacer(modifier = Modifier.height(dimens.spacing.xs))
 
@@ -138,6 +146,7 @@ fun CastSheet(
             sessions.forEach { session ->
                 DeviceRow(
                     session        = session,
+                    currentChannel = currentChannel,
                     onPlay         = {
                         val channel = currentChannel ?: return@DeviceRow
                         controlViewModel.play(session.deviceId, channel.id, channel.name, channel.streamUrl)
@@ -155,6 +164,7 @@ fun CastSheet(
 @Composable
 private fun DeviceRow(
     session: SessionInfo,
+    currentChannel: Channel?,
     onPlay: () -> Unit,
 ) {
     val dimens         = NSDimens.current
@@ -187,9 +197,9 @@ private fun DeviceRow(
             }
         }
         SheetActionButton(
-            label     = "Cast",
-            isPrimary = true,
-            enabled   = true,
+            label     = if (currentChannel != null) "Play on ${session.name}" else "Nothing playing",
+            isPrimary = currentChannel != null,
+            enabled   = currentChannel != null,
             onClick   = onPlay,
             modifier  = Modifier.fillMaxWidth(),
         )

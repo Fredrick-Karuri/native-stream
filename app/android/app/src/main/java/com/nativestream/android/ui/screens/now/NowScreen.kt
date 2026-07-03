@@ -92,14 +92,14 @@ fun NowScreen(
             soonCount          = soonCount,
             isRefreshing       = isRefreshing,
             hasConnectedDevice = sessions.isNotEmpty(),
-            onCast             = { if (currentChannel != null) showCastSheet = true },
+            onCast = { showCastSheet = true },
         )
 
         val currentChannel by playerViewModel.currentChannel.collectAsState()
-        if (showCastSheet && currentChannel != null) {
+        if (showCastSheet) {
             CastSheet(
                 controlViewModel    = controlViewModel,
-                currentChannel      = currentChannel!!,
+                currentChannel      = currentChannel,
                 onDismiss           = { showCastSheet = false },
                 onStopLocalPlayback = { playerViewModel.stop() },
             )
