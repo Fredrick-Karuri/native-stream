@@ -132,6 +132,8 @@ func (h *Hub) handleEnvelope(ctx context.Context, env Envelope) {
 		h.handlePong(env)
 	case MsgPing:
 		// clients should not send ping — ignore
+	case MsgVolumeSet:
+		h.forwardEnvelope(ctx, env) // unicast to target,
 	default:
 		h.forwardEnvelope(ctx, env)
 	}
@@ -177,6 +179,7 @@ func (h *Hub) applyStateUpdate(env Envelope) {
 		c.Session.ChannelName = payload.ChannelName
 		c.Session.StreamURL   = payload.StreamURL
 		c.Session.Playing     = payload.Playing
+		c.Session.Volume      = payload.Volume
 	}
 	h.mu.Unlock()
 }

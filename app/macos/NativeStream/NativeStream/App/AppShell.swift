@@ -113,7 +113,8 @@ struct AppShell: View {
                 channelID: playerVM.currentChannel?.id ?? "",
                 channelName: playerVM.currentChannel?.name ?? "",
                 streamURL: playerVM.currentChannel?.streamURL.absoluteString ?? "",
-                playing:   playerVM.isPlaying
+                playing:   playerVM.isPlaying,
+                volume:      Double(playerVM.player?.volume ?? 1.0)
             )
         }
     }

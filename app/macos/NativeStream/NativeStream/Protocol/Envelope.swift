@@ -13,6 +13,7 @@ enum MessageType: String, Codable {
     case pullBack        = "pull_back"
     case pullBackAck      = "pull_back_ack"
     case stateUpdate     = "state_update"
+    case volumeSet       = "volume_set"
     case ping
     case pong
 }
@@ -79,6 +80,7 @@ struct SessionInfo: Codable, Identifiable {
     let channelName: String
     let streamURL: String
     let playing: Bool
+    let volume: Double
     let connectedAt: String
 
     enum CodingKeys: String, CodingKey {
@@ -88,6 +90,7 @@ struct SessionInfo: Codable, Identifiable {
         case channelName = "channel_name"
         case streamURL   = "stream_url"
         case playing
+        case volume
         case connectedAt = "connected_at"
     }
 }
@@ -135,13 +138,19 @@ struct StateUpdatePayload: Codable {
     let channelName: String
     let streamURL: String
     let playing: Bool
+    let volume: Double
 
     enum CodingKeys: String, CodingKey {
         case channelID   = "channel_id"
         case channelName = "channel_name"
         case streamURL   = "stream_url"
         case playing
+        case volume
     }
+}
+
+struct VolumeSetPayload: Codable {
+    let level: Double // 0.0 – 1.0
 }
 
 struct SessionListPayload: Codable {

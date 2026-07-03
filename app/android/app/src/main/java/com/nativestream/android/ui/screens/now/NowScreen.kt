@@ -88,24 +88,19 @@ fun NowScreen(
 
     Column(modifier = modifier.fillMaxSize().background(NSColors.bg)) {
         NowTopBar(
-            liveCount    = liveCount,
-            soonCount    = soonCount,
-            isRefreshing = isRefreshing,
+            liveCount          = liveCount,
+            soonCount          = soonCount,
+            isRefreshing       = isRefreshing,
             hasConnectedDevice = sessions.isNotEmpty(),
-            onCast       = { showCastSheet = true },
+            onCast             = { if (currentChannel != null) showCastSheet = true },
         )
 
-        if (showCastSheet) {
+        val currentChannel by playerViewModel.currentChannel.collectAsState()
+        if (showCastSheet && currentChannel != null) {
             CastSheet(
-                controlViewModel = controlViewModel,
-                currentChannel   = currentChannel,
-                onDismiss = {
-                    showCastSheet = false
-                },
-                onPullBackReady  = { channelId, channelName, streamUrl ->
-                    playerViewModel.playFromRemote(channelId, channelName, streamUrl)
-                    showCastSheet = false
-                },
+                controlViewModel    = controlViewModel,
+                currentChannel      = currentChannel!!,
+                onDismiss           = { showCastSheet = false },
                 onStopLocalPlayback = { playerViewModel.stop() },
             )
         }

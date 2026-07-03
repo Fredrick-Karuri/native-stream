@@ -193,15 +193,11 @@ fun PlayerTabletopLayout(
                     }
                 }
             }
-            if (showCastSheet) {
+            if (showCastSheet && activeChannel != null) {
                 CastSheet(
-                    controlViewModel = controlViewModel,
-                    currentChannel   = activeChannel,
-                    onDismiss        = { showCastSheet = false },
-                    onPullBackReady  = { channelId, channelName, streamUrl ->
-                        playerViewModel.playFromRemote(channelId, channelName, streamUrl)
-                        showCastSheet = false
-                    },
+                    controlViewModel    = controlViewModel,
+                    currentChannel      = activeChannel!!,
+                    onDismiss           = { showCastSheet = false },
                     onStopLocalPlayback = { playerViewModel.stop() },
                 )
             }

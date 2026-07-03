@@ -6,9 +6,6 @@
 
 package com.nativestream.android.ui.screens.player
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,7 +23,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -44,7 +40,6 @@ import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.ControlViewModel
-import com.nativestream.android.ui.viewmodel.PullBackState
 
 private val DEVICE_ICON_SIZE     = 20.dp
 private val SHEET_CORNER_RADIUS  = 16.dp
@@ -53,9 +48,8 @@ private val SHEET_CORNER_RADIUS  = 16.dp
 @Composable
 fun CastSheet(
     controlViewModel: ControlViewModel,
-    currentChannel: Channel?,
+    currentChannel: Channel,
     onDismiss: () -> Unit,
-    onPullBackReady: (channelId: String, channelName: String, streamUrl: String) -> Unit,
     onStopLocalPlayback: () -> Unit,
 ) {
     val dimens        = NSDimens.current
@@ -63,15 +57,6 @@ fun CastSheet(
     val sessions      by controlViewModel.sessions.collectAsState()
     val connected     by controlViewModel.connected.collectAsState()
     val scanning      by controlViewModel.discoveryScanning.collectAsState()
-
-    val isPullingBack by controlViewModel.isPullingBack.collectAsState()
-
-    LaunchedEffect(Unit) {
-        controlViewModel.pullBackReady.collect { ready ->
-            onPullBackReady(ready.channelId, ready.channelName, ready.streamUrl)
-            onDismiss()
-        }
-    }
 
     ModalBottomSheet(
         onDismissRequest  = onDismiss,
@@ -153,20 +138,11 @@ fun CastSheet(
             sessions.forEach { session ->
                 DeviceRow(
                     session        = session,
-                    currentChannel = currentChannel,
-                    isPullingBack  = isPullingBack,
                     onPlay         = {
                         val channel = currentChannel ?: return@DeviceRow
                         controlViewModel.play(session.deviceId, channel.id, channel.name, channel.streamUrl)
                         onStopLocalPlayback()
                         onDismiss()
-                    },
-                    onStop         = {
-                        controlViewModel.stop(session.deviceId)
-                        onDismiss()
-                    },
-                    onPullBack     = {
-                        controlViewModel.pullBack(session.deviceId)
                     },
                 )
             }
@@ -179,11 +155,7 @@ fun CastSheet(
 @Composable
 private fun DeviceRow(
     session: SessionInfo,
-    currentChannel: Channel?,
-    isPullingBack: Boolean,
     onPlay: () -> Unit,
-    onStop: () -> Unit,
-    onPullBack: () -> Unit,
 ) {
     val dimens         = NSDimens.current
     val isPlaying      = session.playing
@@ -214,35 +186,12 @@ private fun DeviceRow(
                 )
             }
         }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
-        ) {
-            if (isPlaying) {
-                SheetActionButton(
-                    label     = if (isPullingBack) "Pulling…" else "Pull Back",
-                    isPrimary = false,
-                    enabled   = !isPullingBack,
-                    onClick   = onPullBack,
-                    modifier  = Modifier.weight(1f),
-                )
-                SheetActionButton(
-                    label     = "Stop",
-                    isPrimary = false,
-                    enabled   = true,
-                    onClick   = onStop,
-                    modifier  = Modifier.weight(1f),
-                )
-            } else {
-                SheetActionButton(
-                    label     = if (currentChannel != null) "Play here" else "No channel playing",
-                    isPrimary = true,
-                    enabled   = currentChannel != null,
-                    onClick   = onPlay,
-                    modifier  = Modifier.fillMaxWidth(),
-                )
-            }
-        }
+        SheetActionButton(
+            label     = "Cast",
+            isPrimary = true,
+            enabled   = true,
+            onClick   = onPlay,
+            modifier  = Modifier.fillMaxWidth(),
+        )
     }
 }

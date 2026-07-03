@@ -45,6 +45,12 @@ import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
+import com.nativestream.android.ui.components.ConnectBar
+import com.nativestream.android.ui.viewmodel.ControlViewModel
+import com.nativestream.android.ui.screens.remote.RemoteScreen
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
@@ -53,10 +59,12 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val epgViewModel: EpgViewModel           = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val castViewModel: CastViewModel         = hiltViewModel()
-    val loadingViewModel: ChannelLoadingViewModel = hiltViewModel()
+    val loadingViewModel: ChannelLoadingViewModel = hiltViewModel() // Added to ensure Now screen loads channels
+    val controlViewModel: ControlViewModel        = hiltViewModel()
 
 
     val hasActiveChannel   by playerViewModel.hasActiveChannel.collectAsState()
+    var showRemoteScreen   by remember { mutableStateOf(false) }
     val isPlayerVisible    by playerViewModel.isPlayerVisible.collectAsState()
     val isLoading          by settingsViewModel.isLoading.collectAsState()
     val onboardingComplete by settingsViewModel.onboardingComplete.collectAsState()
@@ -150,6 +158,13 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                             )
                         }
 
+                        if (!isPlayerVisible) {
+                            ConnectBar(
+                                controlViewModel = controlViewModel,
+                                onTap            = { showRemoteScreen = true },
+                            )
+                        }
+
                         if (!useRail && !isPlayerVisible) {
                             NSBottomNavBar(
                                 navController = navController,
@@ -178,6 +193,16 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                     onDismiss         = { playerViewModel.hidePlayer() },
                 )
             }
+        }
+        if (showRemoteScreen) {
+            RemoteScreen(
+                controlViewModel = controlViewModel,
+                onDismiss        = { showRemoteScreen = false },
+                onPullBackReady  = { channelId, channelName, streamUrl ->
+                    playerViewModel.playFromRemote(channelId, channelName, streamUrl)
+                    showRemoteScreen = false
+                },
+            )
         }
     }
 }
