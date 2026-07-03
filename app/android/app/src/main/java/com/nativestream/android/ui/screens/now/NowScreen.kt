@@ -14,6 +14,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -92,14 +93,14 @@ fun NowScreen(
             soonCount          = soonCount,
             isRefreshing       = isRefreshing,
             hasConnectedDevice = sessions.isNotEmpty(),
-            onCast             = { if (currentChannel != null) showCastSheet = true },
+            onCast = { showCastSheet = true },
         )
 
         val currentChannel by playerViewModel.currentChannel.collectAsState()
-        if (showCastSheet && currentChannel != null) {
+        if (showCastSheet) {
             CastSheet(
                 controlViewModel    = controlViewModel,
-                currentChannel      = currentChannel!!,
+                currentChannel      = currentChannel,
                 onDismiss           = { showCastSheet = false },
                 onStopLocalPlayback = { playerViewModel.stop() },
             )
@@ -208,13 +209,17 @@ private fun NowContentSingleColumn(
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(dimens.spacing.xxl),
+        contentPadding = PaddingValues(bottom = dimens.spacing.md, top = dimens.spacing.md),
         modifier = Modifier
             .fillMaxSize()
-            .padding(dimens.spacing.lg),
+            .padding(horizontal = dimens.spacing.lg),
     ) {
         if (liveMatches.isNotEmpty()) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)) {
+                Column(
+
+                    verticalArrangement = Arrangement.spacedBy(dimens.spacing.md)
+                ) {
                     Row(
                         verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
@@ -231,6 +236,7 @@ private fun NowContentSingleColumn(
                         MatchSmallGrid(items = liveMatches.drop(1), onSelectChannel = onSelect)
                     }
                 }
+
             }
         }
 
@@ -264,11 +270,13 @@ private fun NowContentTwoColumn(
     Row(
         modifier = Modifier
             .fillMaxSize()
-            .padding(dimens.spacing.lg),
+            .padding(horizontal = dimens.spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(columnSpacing),
+
     ) {
         if (liveMatches.isNotEmpty()) {
             LazyColumn(
+                contentPadding = PaddingValues(bottom = dimens.spacing.md, top = dimens.spacing.md),
                 modifier            = Modifier.weight(1f).fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(dimens.spacing.md),
             ) {
@@ -296,6 +304,7 @@ private fun NowContentTwoColumn(
         }
 
         LazyColumn(
+            contentPadding = PaddingValues(bottom = dimens.spacing.md, top = dimens.spacing.md),
             modifier = if (liveMatches.isEmpty()) Modifier.fillMaxSize()
             else Modifier.weight(1f).fillMaxHeight(),
             verticalArrangement = Arrangement.spacedBy(dimens.spacing.xxl),

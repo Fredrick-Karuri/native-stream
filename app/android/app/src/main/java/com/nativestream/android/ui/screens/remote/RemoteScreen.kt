@@ -153,7 +153,7 @@ fun RemoteScreen(
                 modifier              = Modifier.fillMaxWidth(),
             ) {
                 SheetActionButton(
-                    label     = if (isPullingBack) "Pulling…" else "Pull Back",
+                    label     = if (isPullingBack) "Pulling…" else "Play Here",
                     isPrimary = true,
                     enabled   = !isPullingBack,
                     onClick   = { controlViewModel.pullBack(session.deviceId) },

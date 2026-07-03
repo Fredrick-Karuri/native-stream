@@ -51,6 +51,8 @@ import com.nativestream.android.ui.screens.remote.RemoteScreen
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.background
+import com.nativestream.android.ui.theme.NSColors
 
 @Composable
 fun AppNavHost(modifier: Modifier = Modifier) {
@@ -97,7 +99,11 @@ fun AppNavHost(modifier: Modifier = Modifier) {
 
     // Outer Box — true window bounds, no inset padding.
     // The player overlay is a direct child here so it fills the full screen.
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(NSColors.bg),
+    ) {
 
         // Inner Box — safeDrawing + book-posture hinge padding for the nav shell only.
         Box(

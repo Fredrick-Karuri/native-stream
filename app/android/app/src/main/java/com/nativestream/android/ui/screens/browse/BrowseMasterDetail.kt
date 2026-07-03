@@ -69,90 +69,92 @@ fun BrowseMasterDetail(
 ) {
     val dimens = NSDimens.current
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        // Left pane
-        Column(
-            modifier = Modifier
-                .width(MASTER_PANE_WIDTH)
-                .fillMaxHeight()
-                .background(NSColors.surface),
-        ) {
-            BrowseFilterRow(
-                sources            = sources,
-                selectedSource     = selectedSource,
-                groups             = groups,
-                selectedGroup      = selectedGroup,
-                subGroups          = subGroups,
-                selectedSubGroup   = selectedSubGroup,
-                activeSports       = activeSports,
-                selectedSport      = selectedSport,
-                onPillClick        = onPillClick,
-                onSelectAll        = onSelectAll,
-                onSelectGroup      = onSelectGroup,
-                onSelectSubGroup   = onSelectSubGroup,
-                onSelectSport      = onSelectSport,
-                showFavouritesOnly = showFavouritesOnly,
-                onToggleFavourites = onToggleFavourites,
-            )
-            Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+    // replace
+    Column(modifier = Modifier.fillMaxSize()) {
+        BrowseFilterRow(
+            sources = sources,
+            selectedSource = selectedSource,
+            groups = groups,
+            selectedGroup = selectedGroup,
+            subGroups = subGroups,
+            selectedSubGroup = selectedSubGroup,
+            activeSports = activeSports,
+            selectedSport = selectedSport,
+            onPillClick = onPillClick,
+            onSelectAll = onSelectAll,
+            onSelectGroup = onSelectGroup,
+            onSelectSubGroup = onSelectSubGroup,
+            onSelectSport = onSelectSport,
+            showFavouritesOnly = showFavouritesOnly,
+            onToggleFavourites = onToggleFavourites,
+        )
+        Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(NSColors.border))
+
+        Row(modifier = Modifier.fillMaxSize()) {
+            // Left pane
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .width(MASTER_PANE_WIDTH)
+                    .fillMaxHeight()
+                    .background(NSColors.surface),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
                 sections.forEach { section ->
                     item(key = "header_${section.name}") {
                         NSGroupHeader(
-                            title    = section.name,
-                            count    = section.channels.size,
+                            title = section.name,
+                            count = section.channels.size,
                             modifier = Modifier.padding(
                                 horizontal = dimens.spacing.md,
-                                vertical   = dimens.spacing.sm,
+                                vertical = dimens.spacing.sm,
                             ),
                         )
                     }
                     items(section.channels, key = { it.id }) { channel ->
                         val favourites by favouritesViewModel.favouriteIds.collectAsState()
                         MasterPaneRow(
-                            channel          = channel,
-                            isSelected       = selectedChannel?.id == channel.id,
-                            isFavourite      = favourites.contains(channel.id),
+                            channel = channel,
+                            isSelected = selectedChannel?.id == channel.id,
+                            isFavourite = favourites.contains(channel.id),
                             onFavouriteClick = { favouritesViewModel.toggle(channel) },
-                            onClick          = { onSelectChannel(channel) },
+                            onClick = { onSelectChannel(channel) },
                         )
                     }
                 }
                 item { Spacer(modifier = Modifier.height(80.dp)) }
             }
-        }
 
-        // Divider
-        Box(
-            modifier = Modifier
-                .width(0.5.dp)
-                .fillMaxHeight()
-                .background(NSColors.border)
-        )
+            // Divider
+            Box(
+                modifier = Modifier
+                    .width(0.5.dp)
+                    .fillMaxHeight()
+                    .background(NSColors.border)
+            )
 
-        // Right pane
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight(),
-        ) {
-            when {
-                isEmptyState -> BrowseEmptyView(emptySearchText)
-                selectedChannel != null -> BrowseDetailPane(
-                    channel         = selectedChannel,
-                    epgViewModel    = epgViewModel,
-                    playerViewModel = playerViewModel,
-                    sources         = sources,
-                    selectedSource  = selectedSource,
-                )
-                else -> DetailEmptyState()
+            // Right pane
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+            ) {
+                when {
+                    isEmptyState -> BrowseEmptyView(emptySearchText)
+                    selectedChannel != null -> BrowseDetailPane(
+                        channel = selectedChannel,
+                        epgViewModel = epgViewModel,
+                        playerViewModel = playerViewModel,
+                        sources = sources,
+                        selectedSource = selectedSource,
+                    )
+
+                    else -> DetailEmptyState()
+                }
             }
         }
     }
 }
+
 
 @Composable
 private fun MasterPaneRow(
