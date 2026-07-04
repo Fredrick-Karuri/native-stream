@@ -31,7 +31,6 @@ class NetworkMonitor @Inject constructor(
     init {
         val request = NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
             .build()
 
         connectivityManager.registerNetworkCallback(request, object : ConnectivityManager.NetworkCallback() {
@@ -41,8 +40,11 @@ class NetworkMonitor @Inject constructor(
             override fun onLost(network: Network) {
                 _isOnline.value = isCurrentlyOnline()
             }
-            override fun onUnavailable() {
-                _isOnline.value = false
+            override fun onCapabilitiesChanged(
+                network: Network,
+                caps: NetworkCapabilities,
+            ) {
+                _isOnline.value = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             }
         })
     }
@@ -50,7 +52,6 @@ class NetworkMonitor @Inject constructor(
     private fun isCurrentlyOnline(): Boolean {
         val network = connectivityManager.activeNetwork ?: return false
         val caps    = connectivityManager.getNetworkCapabilities(network) ?: return false
-        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 }

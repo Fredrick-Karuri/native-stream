@@ -54,12 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.background
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.viewmodel.NetworkViewModel
-import com.nativestream.android.data.remote.NetworkMonitor
 import com.nativestream.android.ui.components.OfflineBanner
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.snapshotFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 
 @Composable
 fun AppNavHost(
