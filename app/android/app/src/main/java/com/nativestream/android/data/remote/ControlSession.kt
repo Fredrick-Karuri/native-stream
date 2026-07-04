@@ -129,6 +129,11 @@ class ControlSession @Inject constructor(
         _connected.value = false
     }
 
+    fun retryNow(serverUrl: String, deviceId: String, deviceName: String) {
+        reconnectDelayMs = RECONNECT_BASE_DELAY_MS
+        connect(serverUrl, deviceId, deviceName)
+    }
+
     // ── Reconnect ─────────────────────────────────────────────────────────────
 
     private fun scheduleReconnect(serverUrl: String, deviceId: String, deviceName: String) {

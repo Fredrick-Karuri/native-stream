@@ -53,9 +53,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.background
 import com.nativestream.android.ui.theme.NSColors
+import com.nativestream.android.ui.viewmodel.NetworkViewModel
+import com.nativestream.android.data.remote.NetworkMonitor
+import com.nativestream.android.ui.components.OfflineBanner
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 
 @Composable
-fun AppNavHost(modifier: Modifier = Modifier) {
+fun AppNavHost(
+    modifier: Modifier = Modifier,
+) {
     val navController        = rememberNavController()
     val playerViewModel: PlayerViewModel     = hiltViewModel()
     val epgViewModel: EpgViewModel           = hiltViewModel()
@@ -63,9 +72,11 @@ fun AppNavHost(modifier: Modifier = Modifier) {
     val castViewModel: CastViewModel         = hiltViewModel()
     val loadingViewModel: ChannelLoadingViewModel = hiltViewModel() // Added to ensure Now screen loads channels
     val controlViewModel: ControlViewModel        = hiltViewModel()
+    val networkViewModel: NetworkViewModel        = hiltViewModel()
 
 
     val hasActiveChannel   by playerViewModel.hasActiveChannel.collectAsState()
+    val isOnline           by networkViewModel.isOnline.collectAsState()
     var showRemoteScreen   by remember { mutableStateOf(false) }
     val isPlayerVisible    by playerViewModel.isPlayerVisible.collectAsState()
     val isLoading          by settingsViewModel.isLoading.collectAsState()
@@ -85,6 +96,8 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             restoreState    = true
         }
     }
+    var wasOnline by remember { mutableStateOf(isOnline) }
+
     if (isLoading) return
 
     if (!onboardingComplete) {
@@ -95,6 +108,15 @@ fun AppNavHost(modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) {
         playerViewModel.connectToService()
+    }
+
+    LaunchedEffect(isOnline) {
+        if (isOnline && !wasOnline) {
+            loadingViewModel.loadAll(isBackgroundRefresh = true)
+            epgViewModel.load(isBackgroundRefresh = true)
+            controlViewModel.retryConnection()
+        }
+        wasOnline = isOnline
     }
 
     // Outer Box — true window bounds, no inset padding.
@@ -130,6 +152,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                         )
                     }
                     Column(modifier = Modifier.weight(1f)) {
+                        OfflineBanner(isOffline = !isOnline)
                         NavHost(
                             navController = navController,
                             startDestination = AppDestination.Now.route,
