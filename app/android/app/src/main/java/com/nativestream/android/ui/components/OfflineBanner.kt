@@ -54,7 +54,7 @@ fun OfflineBanner(
                 modifier           = Modifier.size(12.dp),
             )
             Text(
-                text  = "You're offline — showing cached content",
+                text  = "You're offline",
                 style = NSType.caption(),
                 color = NSColors.text3,
             )

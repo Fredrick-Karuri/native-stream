@@ -34,6 +34,7 @@ private object Keys {
     val PLAYLIST_SOURCES     = stringPreferencesKey("playlist_sources")
     val SELECTED_SOURCE_ID = stringPreferencesKey("selected_source_id")
     val CONTROL_DEVICE_ID = stringPreferencesKey("control_device_id")
+    val PROXY_ENABLED     = booleanPreferencesKey("proxy_enabled")
 
 }
 
@@ -157,6 +158,14 @@ class SettingsDataStore @Inject constructor(
 
     suspend fun setControlDeviceId(id: String) {
         store.edit { it[Keys.CONTROL_DEVICE_ID] = id }
+    }
+
+    val proxyEnabled: Flow<Boolean> = store.data.map { prefs ->
+        prefs[Keys.PROXY_ENABLED] ?: false
+    }
+
+    suspend fun setProxyEnabled(enabled: Boolean) {
+        store.edit { it[Keys.PROXY_ENABLED] = enabled }
     }
     suspend fun resetAll() {
         store.edit { it.clear() }

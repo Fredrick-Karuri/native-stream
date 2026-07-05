@@ -39,6 +39,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.serverUrl.first().let { apiClient.setBaseUrl(it) }
         }
+        viewModelScope.launch { syncProxyState() }
     }
 
     val serverUrl: StateFlow<String> = settingsDataStore.serverUrl
@@ -49,6 +50,25 @@ class SettingsViewModel @Inject constructor(
 
     val bufferPreset: StateFlow<BufferPreset> = settingsDataStore.bufferPreset
         .stateIn(viewModelScope, SharingStarted.Eagerly, BufferPreset.DEFAULT)
+
+    val proxyEnabled: StateFlow<Boolean> = settingsDataStore.proxyEnabled
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    fun setProxyEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsDataStore.setProxyEnabled(enabled)
+            runCatching { apiClient.putProxyEnabled(enabled) }
+        }
+    }
+
+    fun syncProxyState() {
+        viewModelScope.launch {
+            runCatching {
+                val serverEnabled = apiClient.getProxyEnabled()
+                settingsDataStore.setProxyEnabled(serverEnabled)
+            }
+        }
+    }
 
     val onboardingComplete: StateFlow<Boolean> = settingsDataStore.onboardingComplete
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)

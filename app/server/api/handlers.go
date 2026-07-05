@@ -78,6 +78,10 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/health", h.handleHealth)
 	mux.HandleFunc("POST /api/probe", h.handleProbe)
 
+	// Proxy config
+	mux.HandleFunc("GET /api/proxy/config", h.handleGetProxyConfig)
+	mux.HandleFunc("PUT /api/proxy/config", h.handlePutProxyConfig)
+
 	// Local Media Connect
 	mux.HandleFunc("GET /ws", h.handleWebSocket)
 	mux.HandleFunc("GET /api/sessions", h.handleSessions)
@@ -89,7 +93,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 func (h *Handler) handlePlaylist(w http.ResponseWriter, r *http.Request) {
 	channels := h.store.ChannelsWithLink()
 	cfg := playlist.Config{
-		ProxyEnabled: h.proxyCfg.Enabled,
+		ProxyEnabled: h.proxy.IsEnabled(),
 		ServerAddr:   h.serverAddr,
 	}
 	w.Header().Set("Content-Type", "application/x-mpegurl; charset=utf-8")
@@ -352,5 +356,28 @@ func (h *Handler) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleSessions(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"sessions": h.hub.Sessions(),
+	})
+}
+
+// ── Proxy config ──────────────────────────────────────────────────────────────
+
+func (h *Handler) handleGetProxyConfig(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"enabled": h.proxy.IsEnabled(),
+	})
+}
+
+func (h *Handler) handlePutProxyConfig(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+		return
+	}
+	h.proxy.SetEnabled(body.Enabled)
+	slog.Info("proxy toggled", "enabled", body.Enabled)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"enabled": h.proxy.IsEnabled(),
 	})
 }

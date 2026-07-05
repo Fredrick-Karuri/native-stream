@@ -5,12 +5,13 @@ package proxy
 
 import (
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
-	"os"
-	"fmt"
+	"net/url"
+	"sync/atomic"
 
 	"github.com/fredrick-karuri/nativestream/server/store"
 )
@@ -28,14 +29,25 @@ type Proxy struct {
 	store        *store.Store
 	client       *http.Client
 	segmentCache sync.Map
+	enabled      atomic.Bool
 }
 
 func New(cfg Config, s *store.Store) *Proxy {
-	return &Proxy{
+	p := &Proxy{
 		cfg:    cfg,
 		store:  s,
 		client: newClient(),
 	}
+	p.enabled.Store(cfg.Enabled)
+	return p
+}
+
+func (p *Proxy) SetEnabled(enabled bool) {
+	p.enabled.Store(enabled)
+}
+
+func (p *Proxy) IsEnabled() bool {
+	return p.enabled.Load()
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -89,6 +101,52 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ── VARIANT PLAYLIST ROUTING (master playlist child requests) ──
+	if variantURL := r.URL.Query().Get("url"); variantURL != "" {
+		decoded, err := url.QueryUnescape(variantURL)
+		if err != nil {
+			http.Error(w, "bad variant url", http.StatusBadRequest)
+			return
+		}
+
+		parts := strings.Split(strings.Trim(path, "/"), "/")
+		if len(parts) < 2 {
+			http.Error(w, "invalid path", http.StatusBadRequest)
+			return
+		}
+		channelID := parts[1]
+
+		ch := p.store.Get(channelID)
+		headers := map[string]string{}
+		if ch != nil && ch.ActiveLink != nil {
+			headers = ch.ActiveLink.Headers
+		}
+
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, decoded, nil)
+		if err != nil {
+			http.Error(w, "bad variant upstream URL", http.StatusBadGateway)
+			return
+		}
+		injectHeaders(req, r, p.cfg)
+		InjectFromMap(req, headers)
+
+		resp, err := p.client.Do(req)
+		if err != nil {
+			http.Error(w, "variant upstream error", http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+
+		copyResponseHeaders(w, resp)
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.WriteHeader(resp.StatusCode)
+
+		body, _ := io.ReadAll(resp.Body)
+		rewritten := p.rewriteMediaPlaylist(string(body), decoded, channelID, headers)
+		w.Write([]byte(rewritten))
+		return
+	}
+
 	// ── ORIGINAL PLAYLIST ROUTING ──
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) < 3 {
@@ -113,7 +171,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	injectHeaders(req, r, p.cfg)
 	InjectFromMap(req, ch.ActiveLink.Headers)
-	fmt.Fprintf(os.Stderr, "[proxy] url=%s headers=%v\n", targetURL, req.Header)
+	slog.Debug("proxy upstream request", "url", targetURL, "headers", req.Header)
 
 	resp, err := p.client.Do(req)
 	if err != nil {

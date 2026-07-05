@@ -92,7 +92,7 @@ fun SettingsScreen(
     val serverUrl by settingsViewModel.serverUrl.collectAsState()
     LaunchedEffect(Unit) { settingsViewModel.checkHealth() }
 
-    var proxyEnabled by remember { mutableStateOf(false) }
+    val proxyEnabled by settingsViewModel.proxyEnabled.collectAsState()
     var hwDecode     by remember { mutableStateOf(true) }
 
     var showServerUrlDialog by remember { mutableStateOf(false) }
@@ -159,7 +159,7 @@ fun SettingsScreen(
                     snackbarHostState   = snackbarHostState,
                     scope               = scope,
                     proxyEnabled        = proxyEnabled,
-                    onProxyEnabled      = { proxyEnabled = it },
+                    onProxyEnabled      = { settingsViewModel.setProxyEnabled(it) },
                     hwDecode            = hwDecode,
                 )
             } else {
@@ -182,7 +182,7 @@ fun SettingsScreen(
                     snackbarHostState   = snackbarHostState,
                     scope               = scope,
                     proxyEnabled        = proxyEnabled,
-                    onProxyEnabled      = { proxyEnabled = it },
+                    onProxyEnabled      = { settingsViewModel.setProxyEnabled(it) },
                     hwDecode            = hwDecode,
                 )
             }

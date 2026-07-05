@@ -128,6 +128,20 @@ actor APIClient {
     func triggerProbe() async throws {
         let _: StatusResponse = try await post("api/probe", body: EmptyBody())
     }
+    
+    // MARK: - Proxy config
+
+    func getProxyEnabled() async throws -> Bool {
+        struct ProxyConfig: Decodable { let enabled: Bool }
+        let r: ProxyConfig = try await get("api/proxy/config")
+        return r.enabled
+    }
+
+    func setProxyEnabled(_ enabled: Bool) async throws {
+        struct Body: Encodable { let enabled: Bool }
+        struct ProxyConfig: Decodable { let enabled: Bool }
+        let _: ProxyConfig = try await put("api/proxy/config", body: Body(enabled: enabled))
+    }
 
     // MARK: - Private HTTP primitives
 
