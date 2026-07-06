@@ -24,11 +24,12 @@ import com.nativestream.android.ui.theme.NSType
 fun QualitySegmentedPicker(
     selected: StreamQuality,
     onSelect: (StreamQuality) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val dimens = NSDimens.current
     Row(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
-        modifier = Modifier
+        modifier = modifier
             .clip(RoundedCornerShape(dimens.radius.sm))
             .background(NSColors.bg)
             .border(0.5.dp, NSColors.border, RoundedCornerShape(dimens.radius.sm))

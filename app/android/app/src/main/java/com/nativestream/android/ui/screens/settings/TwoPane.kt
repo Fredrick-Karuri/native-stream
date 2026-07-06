@@ -202,8 +202,8 @@ fun SettingsTwoPane(
                 SettingsSection.PLAYBACK -> {
                     item {
                         SettingsSection(label = "Playback") {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
+
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(
@@ -211,22 +211,25 @@ fun SettingsTwoPane(
                                         vertical   = dimens.spacing.sm,
                                     ),
                             ) {
-                                RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.GearSix)
-                                Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                                Text(
-                                    text     = "Buffer preset",
-                                    style    = NSType.bodyMedium(),
-                                    color    = NSColors.text,
-                                    modifier = Modifier.weight(1f),
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.GearSix)
+                                    Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                                    Text(
+                                        text  = "Buffer preset",
+                                        style = NSType.bodyMedium(),
+                                        color = NSColors.text,
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(dimens.spacing.xs))
                                 BufferSegmentedPicker(
                                     selected = bufferPreset,
                                     onSelect = { settingsViewModel.setBufferPreset(it) },
                                 )
                             }
+
                             SettingsDivider()
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
+
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(
@@ -234,19 +237,22 @@ fun SettingsTwoPane(
                                         vertical   = dimens.spacing.sm,
                                     ),
                             ) {
-                                RowIcon(background = COLOR_AMBER, tint = TINT_AMBER, icon = PhosphorIcons.Regular.VideoCamera)
-                                Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                                Text(
-                                    text     = "Video quality",
-                                    style    = NSType.bodyMedium(),
-                                    color    = NSColors.text,
-                                    modifier = Modifier.weight(1f),
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RowIcon(background = COLOR_AMBER, tint = TINT_AMBER, icon = PhosphorIcons.Regular.VideoCamera)
+                                    Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                                    Text(
+                                        text  = "Video quality",
+                                        style = NSType.bodyMedium(),
+                                        color = NSColors.text,
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(dimens.spacing.xs))
                                 QualitySegmentedPicker(
                                     selected = streamQuality,
                                     onSelect = { settingsViewModel.setStreamQuality(it) },
                                 )
                             }
+
                             SettingsDivider()
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
