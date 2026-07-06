@@ -103,6 +103,7 @@ fun AppNavHost(
         }
     }
     var wasOnline by remember { mutableStateOf(isOnline) }
+    val streamQuality by settingsViewModel.streamQuality.collectAsState()
 
     if (isLoading) return
 
@@ -123,6 +124,10 @@ fun AppNavHost(
             controlViewModel.retryConnection()
         }
         wasOnline = isOnline
+    }
+
+    LaunchedEffect(streamQuality) {
+        playerViewModel.applyQuality(streamQuality)
     }
 
     LaunchedEffect(pendingUrl) {

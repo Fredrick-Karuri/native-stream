@@ -44,6 +44,7 @@ import com.adamglin.phosphoricons.regular.Database
 import com.adamglin.phosphoricons.regular.FileLock
 import com.adamglin.phosphoricons.regular.GearSix
 import com.adamglin.phosphoricons.regular.Play
+import com.adamglin.phosphoricons.regular.VideoCamera
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -83,6 +84,7 @@ fun SettingsTwoPane(
 
     var selectedSection by rememberSaveable { mutableStateOf(SettingsSection.SERVER) }
     var showResetConfirm by remember { mutableStateOf(false) }
+    val streamQuality by settingsViewModel.streamQuality.collectAsState()
 
     Row(modifier = Modifier.fillMaxSize()) {
 
@@ -220,6 +222,29 @@ fun SettingsTwoPane(
                                 BufferSegmentedPicker(
                                     selected = bufferPreset,
                                     onSelect = { settingsViewModel.setBufferPreset(it) },
+                                )
+                            }
+                            SettingsDivider()
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        horizontal = dimens.spacing.md,
+                                        vertical   = dimens.spacing.sm,
+                                    ),
+                            ) {
+                                RowIcon(background = COLOR_AMBER, tint = TINT_AMBER, icon = PhosphorIcons.Regular.VideoCamera)
+                                Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                                Text(
+                                    text     = "Video quality",
+                                    style    = NSType.bodyMedium(),
+                                    color    = NSColors.text,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                QualitySegmentedPicker(
+                                    selected = streamQuality,
+                                    onSelect = { settingsViewModel.setStreamQuality(it) },
                                 )
                             }
                             SettingsDivider()

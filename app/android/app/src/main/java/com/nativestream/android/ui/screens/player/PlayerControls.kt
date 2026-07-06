@@ -94,6 +94,7 @@ fun PlayerControlsOverlay(
     }
     val isMuted         by playerViewModel.isMuted.collectAsState()
     val videoQuality    by playerViewModel.videoQuality.collectAsState()
+    val sessionQuality    by playerViewModel.sessionQuality.collectAsState()
 
     AnimatedVisibility(
         visible  = controlsVisible && !isInPip,
@@ -136,9 +137,10 @@ fun PlayerControlsOverlay(
                         )
                     }
                     LiveBadge(isLive = LiveEligibility.isLive(channel, programme))
-                    videoQuality?.let { quality ->
-                        QualityBadge(label = quality)
-                    }
+                    QualityBadge(
+                        label   = sessionQuality?.label ?: (videoQuality ?: "Auto"),
+                        onClick = { playerViewModel.cycleSessionQuality() },
+                    )
                     if (isCastAvailable) {
                         ControlButton(
                             icon               = PhosphorIcons.Regular.Screencast,

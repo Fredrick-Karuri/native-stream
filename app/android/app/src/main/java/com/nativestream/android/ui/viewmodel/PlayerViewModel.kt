@@ -27,6 +27,7 @@ import android.content.ComponentName
 import androidx.annotation.VisibleForTesting
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import com.nativestream.android.data.local.StreamQuality
 import com.nativestream.android.data.player.NativeStreamPlaybackService
 import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.domain.model.Channel
@@ -152,6 +153,8 @@ class PlayerViewModel @Inject constructor(
 
     private val _videoQuality = MutableStateFlow<String?>(null)
     val videoQuality: StateFlow<String?> = _videoQuality.asStateFlow()
+    private val _sessionQuality = MutableStateFlow<StreamQuality?>(null)
+    val sessionQuality: StateFlow<StreamQuality?> = _sessionQuality.asStateFlow()
 
     // ── Retry state ───────────────────────────────────────────────────────────
 
@@ -166,12 +169,14 @@ class PlayerViewModel @Inject constructor(
 
     // ── Playback controls ─────────────────────────────────────────────────────
 
-    fun play(channel: Channel) {
+    fun play(channel: Channel, quality: StreamQuality = StreamQuality.AUTO) {
         _activeChannel.value = channel
         _isPlayerVisible.value = true
         _playerError.value = null
         retryCount = 0
+        _sessionQuality.value = null
         loadStream(channel)
+        applyQuality(quality)
         scheduleControlsHide()
         if (wakeLock?.isHeld == false) wakeLock?.acquire()
     }
@@ -195,6 +200,25 @@ class PlayerViewModel @Inject constructor(
                 playUrl(streamUrl, displayName = channelName)
             }
         }
+    }
+
+    fun applyQuality(quality: StreamQuality) {
+        val p = _player ?: return
+        p.trackSelectionParameters = p.trackSelectionParameters
+            .buildUpon()
+            .setMaxVideoBitrate(
+                if (quality == StreamQuality.AUTO) Int.MAX_VALUE
+                else quality.bitrateBps.toInt()
+            )
+            .build()
+    }
+
+    fun cycleSessionQuality() {
+        val entries = StreamQuality.entries
+        val current = _sessionQuality.value ?: StreamQuality.AUTO
+        val next    = entries[(entries.indexOf(current) + 1) % entries.size]
+        _sessionQuality.value = next
+        applyQuality(next)
     }
 
     fun showPlayer() {

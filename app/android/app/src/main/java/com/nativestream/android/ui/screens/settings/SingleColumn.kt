@@ -36,6 +36,7 @@ import com.adamglin.phosphoricons.regular.Database
 import com.adamglin.phosphoricons.regular.FileLock
 import com.adamglin.phosphoricons.regular.GearSix
 import com.adamglin.phosphoricons.regular.Play
+import com.adamglin.phosphoricons.regular.VideoCamera
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -72,6 +73,7 @@ fun SettingsSingleColumn(
     val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
     val sources      by sourceViewModel.sources.collectAsState()
     val serverReachable by settingsViewModel.serverReachable.collectAsState()
+    val streamQuality    by settingsViewModel.streamQuality.collectAsState()
     var showResetConfirm by remember { mutableStateOf(false) }
 
     LazyColumn(
@@ -144,6 +146,7 @@ fun SettingsSingleColumn(
 
         item {
             SettingsSection(label = "Playback") {
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -170,6 +173,26 @@ fun SettingsSingleColumn(
                         .fillMaxWidth()
                         .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
                 ) {
+                    RowIcon(background = COLOR_AMBER, tint = TINT_AMBER, icon = PhosphorIcons.Regular.VideoCamera)
+                    Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                    Text(
+                        text     = "Video quality",
+                        style    = NSType.bodyMedium(),
+                        color    = NSColors.text,
+                        modifier = Modifier.weight(1f),
+                    )
+                    QualitySegmentedPicker(
+                        selected = streamQuality,
+                        onSelect = { settingsViewModel.setStreamQuality(it) },
+                    )
+                }
+                SettingsDivider()
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+                ) {
                     RowIcon(background = COLOR_AMBER, tint = TINT_AMBER, icon = PhosphorIcons.Regular.Play)
                     Spacer(modifier = Modifier.width(dimens.spacing.sm))
                     Column(modifier = Modifier.weight(1f)) {
@@ -178,7 +201,7 @@ fun SettingsSingleColumn(
                     }
                     NSToggle(checked = hwDecode, onCheckedChange = {}, enabled = false)
                 }
-            }
+                }
         }
 
         item {

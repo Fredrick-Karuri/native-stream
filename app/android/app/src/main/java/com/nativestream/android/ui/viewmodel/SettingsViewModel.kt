@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nativestream.android.data.local.BufferPreset
 import com.nativestream.android.data.local.SettingsDataStore
+import com.nativestream.android.data.local.StreamQuality
 import com.nativestream.android.data.remote.ApiClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -50,6 +51,13 @@ class SettingsViewModel @Inject constructor(
 
     val bufferPreset: StateFlow<BufferPreset> = settingsDataStore.bufferPreset
         .stateIn(viewModelScope, SharingStarted.Eagerly, BufferPreset.DEFAULT)
+
+    val streamQuality: StateFlow<StreamQuality> = settingsDataStore.streamQuality
+        .stateIn(viewModelScope, SharingStarted.Eagerly, StreamQuality.AUTO)
+
+    fun setStreamQuality(quality: StreamQuality) {
+        viewModelScope.launch { settingsDataStore.setStreamQuality(quality) }
+    }
 
     val proxyEnabled: StateFlow<Boolean> = settingsDataStore.proxyEnabled
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
