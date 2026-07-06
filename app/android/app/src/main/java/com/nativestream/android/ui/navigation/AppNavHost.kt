@@ -52,6 +52,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.viewmodel.NetworkViewModel
 import com.nativestream.android.ui.components.OfflineBanner
@@ -156,11 +157,13 @@ fun AppNavHost(
     Scaffold(
         modifier      = modifier.fillMaxSize(),
         containerColor = NSColors.bg,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost  = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
                 .background(NSColors.bg),
         ) {
 
