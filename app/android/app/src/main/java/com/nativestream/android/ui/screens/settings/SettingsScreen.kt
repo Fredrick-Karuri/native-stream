@@ -84,13 +84,13 @@ fun settingsFieldModifier(): Modifier {
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
-    settingsViewModel: SettingsViewModel        = hiltViewModel(),
+    settingsViewModel: SettingsViewModel,
     sourceViewModel:   SourceViewModel          = hiltViewModel(),
-    loadingViewModel:  ChannelLoadingViewModel  = hiltViewModel(),
+    loadingViewModel:  ChannelLoadingViewModel,
 ) {
     val dimens    = NSDimens.current
     val serverUrl by settingsViewModel.serverUrl.collectAsState()
-    LaunchedEffect(Unit) { settingsViewModel.checkHealth() }
+    LaunchedEffect(serverUrl) { settingsViewModel.checkHealth() }
 
     val proxyEnabled by settingsViewModel.proxyEnabled.collectAsState()
     var hwDecode     by remember { mutableStateOf(true) }
