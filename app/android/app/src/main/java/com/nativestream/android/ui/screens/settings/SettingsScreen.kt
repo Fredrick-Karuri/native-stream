@@ -112,9 +112,6 @@ fun SettingsScreen(
             && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
 
     val discoveredUrl by settingsViewModel.discoveredUrl.collectAsState()
-    LaunchedEffect(discoveredUrl) {
-        discoveredUrl?.let { settingsViewModel.confirmDiscoveredUrl(it) }
-    }
 
     Scaffold(
         snackbarHost   = { SnackbarHost(snackbarHostState) },

@@ -55,6 +55,9 @@ import androidx.compose.foundation.background
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.viewmodel.NetworkViewModel
 import com.nativestream.android.ui.components.OfflineBanner
+import com.nativestream.android.ui.components.ServerReconnectBanner
+import com.nativestream.android.ui.viewmodel.ServerHealthViewModel
+import android.os.Build
 
 @Composable
 fun AppNavHost(
@@ -68,10 +71,12 @@ fun AppNavHost(
     val loadingViewModel: ChannelLoadingViewModel = hiltViewModel() // Added to ensure Now screen loads channels
     val controlViewModel: ControlViewModel        = hiltViewModel()
     val networkViewModel: NetworkViewModel        = hiltViewModel()
+    val serverHealthViewModel: ServerHealthViewModel = hiltViewModel()
 
 
     val hasActiveChannel   by playerViewModel.hasActiveChannel.collectAsState()
     val isOnline           by networkViewModel.isOnline.collectAsState()
+    val pendingUrl         by serverHealthViewModel.pendingUrl.collectAsState()
     var showRemoteScreen   by remember { mutableStateOf(false) }
     val isPlayerVisible    by playerViewModel.isPlayerVisible.collectAsState()
     val isLoading          by settingsViewModel.isLoading.collectAsState()
@@ -148,6 +153,18 @@ fun AppNavHost(
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         OfflineBanner(isOffline = !isOnline)
+                        ServerReconnectBanner(
+                            discoveredUrl = pendingUrl,
+                            onConfirm = {
+                                pendingUrl?.let { url ->
+                                    serverHealthViewModel.confirmDiscoveredUrl(url)
+                                    controlViewModel.retryConnection()
+                                    loadingViewModel.loadAll(isBackgroundRefresh = true)
+                                    epgViewModel.load(isBackgroundRefresh = true)
+                                }
+                            },
+                            onDismiss = { serverHealthViewModel.dismissDiscoveredUrl() },
+                        )
                         NavHost(
                             navController = navController,
                             startDestination = AppDestination.Now.route,
