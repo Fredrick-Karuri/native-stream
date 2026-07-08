@@ -7,35 +7,32 @@
 [![Android Release](https://img.shields.io/github/v/tag/fredrick-karuri/native-stream?filter=android%2Fv*&label=android)](https://github.com/fredrick-karuri/native-stream/releases?q=android)
 [![macOS Release](https://img.shields.io/github/v/tag/fredrick-karuri/native-stream?filter=macos%2Fv*&label=macos)](https://github.com/fredrick-karuri/native-stream/releases?q=macos)
 
-**A native sports viewing platform that unifies fragmented sports content into a reliable experience across devices.**
+**When you want to watch something live — play it. And if you can't, say why.**
 
-NativeStream combines a content platform with native applications for Mac and Android. It manages content ingestion, stream reliability, metadata, and playback experience, allowing fans to enjoy sports seamlessly across their devices.
+NativeStream is a native live TV platform for Mac and Android. It manages stream reliability, EPG metadata, and playback experience so that when you tap a channel, it plays — and when it can't, you know exactly why.
 
 ---
 
 # The Problem
 
-Sports content is fragmented across different sources, platforms, and devices. Fans frequently deal with unreliable streams, inconsistent playback experiences, missing schedules, and media players that were never designed around live sports.
+Live TV fails quietly. Streams expire, degrade, or disappear mid-match with no explanation. Schedules are scattered across apps. The player has no sports context. And when something breaks, there's nothing to tell you whether it's the stream, your network, or the source.
 
-| Challenge                     | Impact                                                             |
-| ----------------------------- | ------------------------------------------------------------------ |
-| Fragmented content ecosystems | Fans constantly switch between apps, links, and platforms          |
-| Unreliable streams            | Streams fail, expire, or degrade during important moments          |
-| Generic media players         | No sports context, schedules, live indicators, or match awareness  |
-| Device fragmentation          | The experience differs across mobile, desktop, and TV environments |
+| Challenge | Impact |
+|-----------|--------|
+| Streams that fail silently | You don't know if it's the source, the link, or your connection |
+| Fragmented content | Constant switching between apps, links, and platforms |
+| Generic media players | No live indicators, schedules, or match awareness |
+| No cross-device continuity | Start on phone, can't continue on Mac without starting over |
 
 ---
 
 # The Solution
 
-NativeStream creates a unified sports viewing experience by separating the complexity of content delivery from the fan experience.
+NativeStream separates content delivery complexity from the viewing experience.
 
-The platform handles:
+**The platform** continuously validates stream health, selects the best available path, and maintains EPG metadata — so the app always knows what's on and whether it's playable.
 
-* Content ingestion and organization
-* Stream validation and reliability management
-* Metadata and electronic programme guides (EPG)
-* Cross-device synchronization and native playback experiences
+**The clients** surface that intelligence as a native experience: live indicators, match schedules, stream health, and clear feedback when something isn't working and why.
 
 ---
 
@@ -70,63 +67,68 @@ The platform handles:
 
 ## Content Platform
 
-* Ingests and manages multiple content sources
-* Monitors stream health and maintains reliable playback paths
-* Automatically selects the best available streams based on quality and availability
-* Provides metadata, schedules, and EPG information
+* Continuously validates stream health across all sources
+* Automatically selects the best available stream path
+* Detects and surfaces why a stream is unavailable — dead link, source down, or network issue
+* Maintains EPG schedules and live programme metadata
 * Exposes APIs for content management and client applications
-* Can run locally, privately, or in cloud environments
+* Runs locally, privately, or in cloud environments
 
 ## Native macOS Application
 
-* Sports-focused channel browsing
-* Live indicators and programme information
+* Sports-focused channel browsing with live indicators
 * Match Day experience with schedules and live events
 * TV Guide with timeline navigation
 * Full-screen player with native controls
-* Picture-in-Picture
-* AirPlay support
+* Picture-in-Picture and AirPlay
 * Now Playing integration and media keys
+* Local Media Connect — send and pull back streams between devices
 
 ## Native Android Application
 
-* Mobile-first browsing experience
+* Mobile-first browsing with live and upcoming sections
 * Optimized landscape video player
-* Picture-in-Picture support
-* Chromecast support
-* Shared content experience with the desktop application
+* Picture-in-Picture and Chromecast support
+* Offline mode — cached content with clear network status
+* Local Media Connect — control Mac playback from your phone
+* Video quality cap for low-bandwidth connections
+
+---
+
+# Local Media Connect
+
+NativeStream devices on the same network can hand off playback between them.
+
+* Push what you're watching on your phone to the Mac
+* Pull it back to your phone at any time
+* Control Mac volume and playback from the Android remote
+* The app tells you when devices are available and when they're not
 
 ---
 
 # Platforms
 
-Current platforms:
+Current:
 
 * macOS (SwiftUI + AVFoundation)
-* Android (Kotlin + Jetpack Compose)
+* Android (Kotlin + Jetpack Compose + Media3)
 
-Future expansion:
+Future:
 
-* Smart TV experiences
+* Smart TV
 * Additional connected devices
 
 ---
 
 # Architecture
 
-NativeStream is built around a modular architecture:
-
-* Go-based content platform
+* Go-based content platform with stream health monitoring
 * Native platform-specific clients
-* Shared content and metadata model
-* Standard streaming protocols and APIs
-
-This design allows new clients and content sources to integrate without changing the overall user experience.
+* Shared content and metadata model via standard streaming protocols
+* WebSocket control plane for cross-device coordination
 
 ---
 
 # Vision
 
-Sports media is increasingly fragmented. NativeStream aims to provide a consistent layer between sports content and fans, enabling a richer, more accessible viewing experience regardless of where the content originates.
-
-The architecture supports future opportunities such as curated content partnerships, specialized sports channels, and localized sports experiences.
+Live TV should just work. When it can't, it should tell you why — not leave you guessing whether to refresh, switch sources, or check your connection. NativeStream is built around that contract: play it, or explain why you can't.
