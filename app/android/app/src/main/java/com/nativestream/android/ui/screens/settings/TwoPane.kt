@@ -278,8 +278,7 @@ fun SettingsTwoPane(
                 SettingsSection.PROXY -> {
                     item {
                         SettingsSection(label = "Proxy") {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(
@@ -287,13 +286,21 @@ fun SettingsTwoPane(
                                         vertical   = dimens.spacing.sm,
                                     ),
                             ) {
-                                RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.FileLock)
-                                Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = "Enable proxy", style = NSType.bodyMedium(), color = NSColors.text)
-                                    Text(text = "Inject Referer / User-Agent", style = NSType.caption(), color = NSColors.text3)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.FileLock)
+                                    Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(text = "Fix protected streams", style = NSType.bodyMedium(), color = NSColors.text)
+                                        Text(
+                                            text  = "Some streams block playback unless specific access headers are sent. Enable this if channels show a blank screen or fail to load.",
+                                            style = NSType.caption(),
+                                            color = NSColors.text3,
+                                        )
+                                    }
+                                    NSToggle(checked = proxyEnabled, onCheckedChange = { onProxyEnabled(it) })
                                 }
-                                NSToggle(checked = proxyEnabled, onCheckedChange = { onProxyEnabled(it) })
+                                Spacer(modifier = Modifier.height(dimens.spacing.xs))
+                                ProxyHint(proxyEnabled = proxyEnabled)
                             }
                         }
                     }

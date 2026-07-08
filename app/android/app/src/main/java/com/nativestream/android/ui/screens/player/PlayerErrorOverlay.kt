@@ -34,6 +34,7 @@ fun PlayerErrorOverlay(
     message: String,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    onTryWithProxy: (() -> Unit)? = null,
 ) {
     val dimens = NSDimens.current
     Column(
@@ -48,18 +49,44 @@ fun PlayerErrorOverlay(
             modifier           = Modifier.size(dimens.player.errorIconSize),
         )
         Spacer(modifier = Modifier.height(dimens.spacing.md))
-        Text(text = message, style = NSType.body(), color = Color.White)
-        Spacer(modifier = Modifier.height(dimens.spacing.lg))
         Text(
-            text     = "Retry",
-            style    = NSType.captionMedium(),
-            color    = NSColors.accent,
-            modifier = Modifier
-                .clip(RoundedCornerShape(dimens.radius.md))
-                .background(NSColors.accentGlow)
-                .border(0.5.dp, NSColors.accentBorder, RoundedCornerShape(dimens.radius.md))
-                .clickable(onClick = onRetry)
-                .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
+            text  = "Stream unavailable",
+            style = NSType.bodyMedium(),
+            color = Color.White,
         )
+        Spacer(modifier = Modifier.height(dimens.spacing.xs))
+        Text(
+            text  = message,
+            style = NSType.caption(),
+            color = Color.White.copy(alpha = 0.6f),
+        )
+        Spacer(modifier = Modifier.height(dimens.spacing.lg))
+        androidx.compose.foundation.layout.Row(
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
+        ) {
+            Text(
+                text     = "Retry",
+                style    = NSType.captionMedium(),
+                color    = NSColors.text3,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(dimens.radius.md))
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .clickable(onClick = onRetry)
+                    .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
+            )
+            if (onTryWithProxy != null) {
+                Text(
+                    text     = "Try with proxy",
+                    style    = NSType.captionMedium(),
+                    color    = NSColors.accent,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(dimens.radius.md))
+                        .background(NSColors.accentGlow)
+                        .border(0.5.dp, NSColors.accentBorder, RoundedCornerShape(dimens.radius.md))
+                        .clickable(onClick = onTryWithProxy)
+                        .padding(horizontal = dimens.spacing.lg, vertical = dimens.spacing.sm),
+                )
+            }
+        }
     }
 }

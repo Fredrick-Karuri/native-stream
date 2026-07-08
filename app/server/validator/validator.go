@@ -186,7 +186,8 @@ func (v *Validator) measure(url string, headers map[string]string) *store.LinkSc
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		link.Score = 0
+		link.Score         = 0
+		link.FailureReason = store.FailureReasonBadContent
 		return link
 	}
 
@@ -198,16 +199,22 @@ func (v *Validator) measure(url string, headers map[string]string) *store.LinkSc
 	if v.origin != "" {
 		req.Header.Set("Origin", v.origin)
 	}
-    // Override with per-link headers
-    for k, val := range headers {
-        req.Header.Set(k, val)
-    }
+	for k, val := range headers {
+		req.Header.Set(k, val)
+	}
 
 	resp, err := v.client.Do(req)
 	latency := time.Since(start)
 	link.LatencyMS = latency.Milliseconds()
 
 	if err != nil {
+		errStr := err.Error()
+		switch {
+		case strings.Contains(errStr, "deadline") || strings.Contains(errStr, "timeout"):
+			link.FailureReason = store.FailureReasonTimeout
+		default:
+			link.FailureReason = store.FailureReasonUnreachable
+		}
 		link.Score = computeScore(0, latency, 0)
 		link.FailCount++
 		return link
@@ -215,16 +222,35 @@ func (v *Validator) measure(url string, headers map[string]string) *store.LinkSc
 	defer resp.Body.Close()
 	io.Copy(io.Discard, resp.Body)
 
+	link.FailureReason = classifyHTTPFailure(resp.StatusCode)
 	reachability := reachabilityScore(resp.StatusCode)
 
 	bitrate := 0
 	if reachability > 0 {
-		bitrate = v.estimateBitrate(url,headers)
+		bitrate = v.estimateBitrate(url, headers)
 	}
 
 	link.EstBitrateKbps = bitrate
 	link.Score = computeScore(reachability, latency, bitrate)
+	if reachability == 0 {
+		link.FailCount++
+	} else {
+		link.FailureReason = store.FailureReasonNone
+	}
 	return link
+}
+
+func classifyHTTPFailure(statusCode int) store.FailureReason {
+	switch {
+	case statusCode == 401 || statusCode == 403:
+		return store.FailureReasonForbidden
+	case statusCode >= 400 && statusCode < 500:
+		return store.FailureReasonBadContent
+	case statusCode >= 500:
+		return store.FailureReasonUnreachable
+	default:
+		return store.FailureReasonNone
+	}
 }
 
 func (v *Validator) estimateBitrate(url string,headers map[string]string) int {

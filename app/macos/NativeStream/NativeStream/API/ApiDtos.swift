@@ -98,11 +98,13 @@ struct LinkScoreResponse: Decodable {
     let state: String
     let failCount: Int
     let headers: [String: String]?
+    let failureReason: String?
 
     enum CodingKeys: String, CodingKey {
         case url, score, state, headers
         case latencyMS = "latency_ms"
         case failCount = "fail_count"
+        case failureReason = "failure_reason"
     }
 }
 

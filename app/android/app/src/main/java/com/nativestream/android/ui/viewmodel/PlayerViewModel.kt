@@ -167,6 +167,9 @@ class PlayerViewModel @Inject constructor(
             ?.apply { setReferenceCounted(false) }
     }
 
+    private val _activeChannelFailureReason = MutableStateFlow<String?>(null)
+    val activeChannelFailureReason: StateFlow<String?> = _activeChannelFailureReason
+
     // ── Playback controls ─────────────────────────────────────────────────────
 
     fun play(channel: Channel, quality: StreamQuality = StreamQuality.AUTO) {
@@ -262,6 +265,26 @@ class PlayerViewModel @Inject constructor(
         _activeChannel.value?.let { play(it) }
     }
 
+    fun tryWithProxy(onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            runCatching { apiClient.putProxyEnabled(true) }
+            // reload the stream — proxy now active server-side
+            _activeChannel.value?.let { loadStream(it) }
+            // give ExoPlayer a moment to start
+            delay(2_000)
+            onResult(_isPlaying.value)
+        }
+    }
+
+    private fun fetchFailureReason(channelId: String) {
+        viewModelScope.launch {
+            runCatching {
+                val detail = apiClient.getChannel(channelId)
+                _activeChannelFailureReason.value = detail.activeLink?.failureReason
+            }
+        }
+    }
+
     // ── Controls visibility ───────────────────────────────────────────────────
 
     fun onPlayerTapped() {
@@ -322,6 +345,7 @@ class PlayerViewModel @Inject constructor(
             _activeChannel.value?.let { channel ->
                 try {
                     val detail = apiClient.getChannel(channel.tvgId.ifEmpty { channel.id })
+                    _activeChannelFailureReason.value = detail.activeLink?.failureReason
                     val activeUrl = detail.activeLink?.url ?: channel.streamUrl
                     loadStream(channel.copy(streamUrl = activeUrl))
                 } catch (e: Exception) {
@@ -329,6 +353,7 @@ class PlayerViewModel @Inject constructor(
                 }
             }
         }
+
     }
 
     // ── Picture in Picture (AND-020) ──────────────────────────────────────────

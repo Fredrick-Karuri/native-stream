@@ -79,6 +79,7 @@ fun PlayerControlsOverlay(
     onToggleResize: () -> Unit,
     channel: Channel?,
     programme: Programme?,
+    proxyEnabled: Boolean = false,
 ) {
     val windowSizeClass = LocalWindowSizeClass.current
     val isExpanded      = windowSizeClass.widthSizeClass == WindowWidthSizeClass.Expanded
@@ -141,6 +142,13 @@ fun PlayerControlsOverlay(
                         label   = sessionQuality?.label ?: (videoQuality ?: "Auto"),
                         onClick = { playerViewModel.cycleSessionQuality() },
                     )
+                    if (proxyEnabled && isPlaying) {
+                        Text(
+                            text  = "via proxy",
+                            style = NSType.monoSmall(),
+                            color = Color.White.copy(alpha = 0.5f),
+                        )
+                    }
                     if (isCastAvailable) {
                         ControlButton(
                             icon               = PhosphorIcons.Regular.Screencast,

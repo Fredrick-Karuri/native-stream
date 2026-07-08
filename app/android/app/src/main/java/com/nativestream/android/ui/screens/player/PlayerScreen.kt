@@ -13,6 +13,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -20,6 +21,7 @@ import com.nativestream.android.ui.foldable.rememberFoldPosture
 import com.nativestream.android.ui.viewmodel.CastViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
+import com.nativestream.android.ui.viewmodel.SettingsViewModel
 
 @Composable
 fun PlayerScreen(
@@ -29,6 +31,7 @@ fun PlayerScreen(
     epgViewModel: EpgViewModel?           = null,
     modifier: Modifier = Modifier,
 ) {
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
     val context       = LocalContext.current
     val activity      = context as? Activity
     val isInPip       by playerViewModel.isInPip.collectAsState()
@@ -58,6 +61,7 @@ fun PlayerScreen(
             playerViewModel   = playerViewModel,
             castViewModel     = castViewModel,
             epgViewModel      = epgViewModel,
+            settingsViewModel = settingsViewModel,
             onDismiss         = onDismiss,
             modifier          = modifier,
         )
@@ -66,6 +70,7 @@ fun PlayerScreen(
             playerViewModel   = playerViewModel,
             castViewModel     = castViewModel,
             epgViewModel      = epgViewModel,
+            settingsViewModel = settingsViewModel,
             onDismiss         = onDismiss,
             modifier          = modifier,
         )

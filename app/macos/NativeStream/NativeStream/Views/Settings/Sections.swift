@@ -37,6 +37,7 @@ struct SourcesSection: View {
 
 }
 
+
 struct SourceRow: View {
     @Environment(PlaylistViewModel.self) private var playlistVM
     let source: PlaylistSource
@@ -251,9 +252,9 @@ struct ProxySection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
-            SectionTitle("HLS Proxy")
-            SettingsRow(title: "Enable Proxy",
-                        subtitle: "Injects Referer/User-Agent headers. Enable only if streams require it.") {
+            SectionTitle("Fix Protected Streams")
+            SettingsRow(title: "Fix protected streams",
+                        subtitle: "Some streams block playback unless specific access headers are sent. Enable this if channels show a blank screen or fail to load.") {
                 NSToggle(isOn: Binding(
                     get: { settings.proxyEnabled },
                     set: { enabled in
@@ -262,6 +263,7 @@ struct ProxySection: View {
                     }
                 ))
             }
+            proxyHint
         }
         .task {
             // Sync from server on appear — handles server restart resetting to config default
@@ -269,6 +271,19 @@ struct ProxySection: View {
                 settings.proxyEnabled = serverEnabled
             }
         }
+    }
+
+    @ViewBuilder
+    private var proxyHint: some View {
+        HStack(alignment: .top, spacing: NS.Spacing.xs) {
+            Text(settings.proxyEnabled ? "✓" : "ℹ")
+                .font(NS.Font.caption)
+            Text(settings.proxyEnabled
+                ? "Proxy active — streams are routing through your server with custom headers."
+                : "Most streams work without this. Enable it only if you're seeing blank screens or playback failures on specific channels.")
+                .font(NS.Font.caption)
+        }
+        .foregroundStyle(settings.proxyEnabled ? NS.accent : NS.text3)
     }
 }
 

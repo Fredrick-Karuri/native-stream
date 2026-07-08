@@ -58,9 +58,11 @@ data class ChannelDetailResponse(
 data class LinkScoreResponse(
     val url: String,
     val score: Double,
-    @SerialName("latency_ms") val latencyMs: Int,
+    @SerialName("latency_ms")     val latencyMs: Int,
     val state: String,
-    @SerialName("fail_count") val failCount: Int,
+    @SerialName("fail_count")     val failCount: Int,
+    @SerialName("failure_reason") val failureReason: String? = null,
+    val headers: Map<String, String>? = null,
 )
 
 // ── Mutations ─────────────────────────────────────────────────────────────────
@@ -81,6 +83,7 @@ data class UpdateChannelRequest(
     @SerialName("group_title") val groupTitle: String? = null,
     @SerialName("stream_url")  val streamUrl: String?  = null,
     val keywords: List<String>?   = null,
+    @SerialName("stream_headers") val streamHeaders: Map<String, String>? = null,
 )
 
 // ── Discovery ─────────────────────────────────────────────────────────────────
