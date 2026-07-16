@@ -98,7 +98,7 @@ val filtered = remember(channels, selectedGroup, selectedSubGroup,
 
 ### After
 ```kotlin
-// PlaylistViewModel — runs on IO dispatcher, debounced
+// ChannelFilterViewModel — runs on IO dispatcher, debounced
 val filteredSections: StateFlow<List<ChannelSection>> = combine(
     filteredChannels,
     _searchQuery.debounce(150).distinctUntilChanged(),
@@ -202,7 +202,7 @@ Follow these when adding anything that renders per-channel:
 4. **No EPG reads outside `remember(channel.id, epgReady)`** in card composables.
 5. **No `List.contains` for favourites.** Always collect as `Set<String>`.
 6. **Search must be debounced.** Call `playlistViewModel.setSearchQuery()` — do not filter in screen.
-7. **New filter dimensions belong in `PlaylistViewModel.filteredSections`**, not in a `remember` block in the screen.
+7. **New filter dimensions belong in `ChannelFilterViewModel.filteredSections`**, not in a `remember` block in the screen.
 
 ---
 

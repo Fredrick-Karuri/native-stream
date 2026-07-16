@@ -72,7 +72,7 @@ for each candidate:
 
 **DirectM3UCrawler** — fetches full `.m3u` content from stable URLs (e.g. `github.com/iptv-org/iptv`). Uses `ETag` / `Last-Modified` conditional fetches. Returns content as `NeedsExpansion: true` RawItem — extractor fetches and parses inline.
 
-**LocalScriptCrawler** — `discovery/crawlers/local_script.go`. Present in the current tree but not yet covered by this doc — *needs a one-line description of what it invokes and how results are collected before this section can be trusted.*
+**LocalScriptCrawler** — runs a user-provided sidecar script (`.py` via `python3`, anything else via `/bin/bash`) as a subprocess with a 3-minute hard deadline. The script prints a JSON array of candidates to stdout; the crawler decodes it against a private schema (URL, channel name, group title, tvg-id, logo URL, custom headers) and maps it to `discovery.DirectCandidate`. If the configured script path doesn't exist, it logs at debug level and returns no candidates rather than erroring — the crawler is silently inert until a script is provided. This is the escape hatch for sources that don't fit the other four crawlers (e.g. a personal scraper, an authenticated feed, a local file transform).
 
 ### Channel Matching
 

@@ -41,7 +41,11 @@ Each ViewModel owns one feature domain. They do not call each other directly —
 | `CastViewModel` | Chromecast session, remote media client |
 | `ChannelLoadingViewModel` | Orchestrates channel fetch + cache across all sources |
 
-> **Known drift:** `BrowseViewModel`, `ChannelFilterViewModel`, and `ChannelManagerViewModel` also exist in `ui/viewmodel/` and aren't described above or in the StateFlow ownership map below. They likely split responsibility that used to sit in `PlaylistViewModel` (browse-screen state, filter computation, and channel CRUD respectively, judging by name) — but that's an inference, not confirmed. Needs a pass from whoever owns this code.
+`BrowseViewModel`, `ChannelFilterViewModel`, and `ChannelManagerViewModel` also exist in `ui/viewmodel/`, confirmed as follows:
+
+- **`ChannelFilterViewModel`** — filter state and derived section computation (search, group, sub-group, sport, favourites-only). Reads channels from `ChannelRepository` and the selected source from `SettingsDataStore`; zero network/cache dependencies, fully unit-testable in isolation. This is what `filteredSections` in the StateFlow map below actually lives on — it was previously attributed to `PlaylistViewModel`, which doesn't own filtering.
+- **`BrowseViewModel`** — pure UI state for `BrowseScreen`: sheet visibility (add channel, play URL, source picker, add source), search bar active/text, selected channel ID. No business logic — delegates filter actions to `ChannelFilterViewModel` and source actions to `SourceViewModel`.
+- **`ChannelManagerViewModel`** — channel creation via `ApiClient.createChannel()`, with loading/error state. Mirrors Mac's `ChannelManagerViewModel`, though currently add-only — no update/delete/probe/discovery surface yet on Android.
 
 ### StateFlow ownership map
 
@@ -325,7 +329,7 @@ val programme = remember(channel.id, epgReady) {
 ```
 
 ### Filter computation is off the main thread
-`filteredSections` is a `StateFlow` computed in `PlaylistViewModel` via `combine`. Search is debounced 150ms.
+`filteredSections` is a `StateFlow` computed in `ChannelFilterViewModel` via `combine`. Search is debounced 150ms.
 
 ### `derivedStateOf` for list-derived values
 ```kotlin
@@ -355,7 +359,7 @@ Deliberately a responsibility table, not a file tree — a tree needs an edit ev
 | `ui/navigation/` | `AppNavHost`, bottom nav bar, nav rail, destination definitions |
 | `ui/screens/` | Screen composables, grouped by feature: `browse/`, `now/`, `onboarding/`, `player/`, `remote/`, `settings/` |
 | `ui/theme/` | `NSColors`, `NSDimens`, `NSGradients`, `NSScale`, `NSType` design tokens |
-| `ui/viewmodel/` | See the drift note above — three of the eleven ViewModels here aren't yet described in prose |
+| `ui/viewmodel/` | `SourceViewModel`, `EpgViewModel`, `PlayerViewModel`, `SettingsViewModel`, `ControlViewModel`, `FavouritesViewModel`, `CastViewModel`, `ChannelLoadingViewModel`, `ChannelFilterViewModel`, `BrowseViewModel`, `ChannelManagerViewModel` — all described above |
 | `ui/foldable/` | Foldable-device window/hinge utilities |
 
 ---

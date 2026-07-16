@@ -2,8 +2,6 @@
 
 Swift/SwiftUI internals for the macOS client. For how this fits with the server, see [architecture.md](architecture.md). For the Go and Android equivalents, see [server-architecture.md](server-architecture.md) and [android-architecture.md](android-architecture.md).
 
-> **Known drift:** the current Xcode project has screens and ViewModels (`NowScreen`, `FavouriteScreen`, `HelpScreen`, `ChannelManagerViewModel`, `ControlViewModel`, `BrowserViewModel`, `NowScreenViewModel`) that predate this doc's last real pass. The sections below describe the four ViewModels and the tab structure as previously documented — treat those as possibly stale until someone who owns this code confirms or updates them. The **Module Responsibility** table at the bottom reflects the actual current file tree and is the more trustworthy source right now.
-
 ## App Structure
 
 The root scene is `AppShell` — a custom `VStack` with a 44pt tab bar and swappable content. No `NavigationSplitView`.
@@ -11,18 +9,18 @@ The root scene is `AppShell` — a custom `VStack` with a 44pt tab bar and swapp
 ```
 NativeStreamApp (@main)
 └── AppShell
-    ├── AppTabBar           (44pt — Browse / Match Day / TV Guide)
+    ├── AppTabBar           (44pt — Now / Browse / Match Day / Schedule / Favourites)
     └── tab content
+        ├── NowScreen        (EPG-first home — live matches, on-air, starting soon)
         ├── BrowserScreen
         ├── MatchDayScreen
-        ├── EPGGridScreen
-        └── PlayerScreen    (full-window, shown on channel select)
+        ├── ScheduleScreen   (formerly documented as EPGGridScreen)
+        ├── FavouritesScreen
+        └── PlayerScreen     (full-window, shown on channel select)
 
     MiniPlayerWidget        (floating overlay, z-order above all tabs)
     OnboardingView          (shown once on first launch)
 ```
-
-*(This tab list doesn't account for the `Now/` and `Favourites/` view folders that now exist — see the responsibility table below.)*
 
 ## ViewModels
 
@@ -56,9 +54,35 @@ ServerHealthViewModel
   status: ServerStatus        // .unknown / .connected(total,healthy) / .unreachable
   check(serverURL:) async     // GET /api/health
   startPolling(serverURL:, interval:)  // 30s background loop
-```
 
-`BrowserViewModel`, `ChannelManagerViewModel`, `ControlViewModel`, and `NowScreenViewModel` also exist in `ViewModels/` and aren't documented above — `ControlViewModel` is presumably the Local Media Connect counterpart to Android's (see [android-architecture.md](android-architecture.md#local-media-connect-lmc-architecture) and [local-media-connect.md](local-media-connect.md)), but that's an inference, not a confirmed description.
+BrowserViewModel
+  searchText, selectedGroup, selectedSubGroup, selectedSource, showFavouritesOnly: state
+  groupedSections: [ChannelSection]   // derived, recomputed off-main-actor
+  recomputeSections(channels:)        // debounced 150ms on search, versioned to discard stale tasks
+  selectSource(_:channels:) / selectGroup(_:) / selectSubGroup(_:) / toggleFavourites(...)
+  // Owns All Channels browse filtering — mirrors Android's ChannelFilterViewModel
+
+ChannelManagerViewModel
+  channels: [ChannelResponse]
+  discoveryStatus: DiscoveryStatusResponse?
+  unmatched: [UnmatchedLink]
+  loadChannels() / addChannel(...) / updateStreamURL(...) / deleteChannel(id:)
+  triggerProbe() / loadDiscoveryStatus() / triggerDiscovery() / loadUnmatched() / assignUnmatched(...)
+  // Thin wrapper over APIClient for server-side channel + discovery admin (used by Settings)
+  // Mirrors Android's ChannelManagerViewModel, minus the discovery/unmatched surface (Android's is add-only so far)
+
+ControlViewModel
+  sessions: [SessionInfo]             // connected controllers only
+  connected: Bool
+  start(serverURL:deviceID:playerVM:) // connects as LMC target, listens for envelopes
+  broadcastState(channelID:...:)      // sends state_update on every playback change
+  // Mac is LMC target-only — handles inbound play/stop/volumeSet, never sends commands itself
+
+NowScreenViewModel
+  liveMatches / liveOnAir / startingSoon: [(channel, programme)]
+  recompute(channels:epgVM:)          // buckets by isSportMatch + 2h startingSoon lookahead
+  // Stateless between calls — NowScreen drives refresh via .task + a 60s clock tick
+```
 
 ## Parsers
 
@@ -200,14 +224,14 @@ Deliberately a responsibility table, not a file tree — a tree needs an edit ev
 | `Models/` | `Channel`, `Programme`, `PlaylistSource`, `BufferPreset`, `StreamQuality`, `RefreshInterval`, `AppError`, `PlayerError` |
 | `Protocol/` | `Envelope` — the Local Media Connect message shape, mirroring [api.md](api.md#local-media-connect-websocket-control-plane) |
 | `Services/` | `ControlSession` (LMC WebSocket client), `FavouritesManager`, `MediaKeyHandler`, `MenuBarManager`, `NowPlayingService`, `RefreshScheduler`, `ServerDiscoveryService` (mDNS), `SettingsStore` |
-| `ViewModels/` | See the flagged section above — four of the eight files here aren't yet described in prose |
+| `ViewModels/` | `PlaylistViewModel`, `EPGViewModel`, `PlayerViewModel`, `ServerHealthViewModel`, `BrowserViewModel`, `ChannelManagerViewModel`, `ControlViewModel`, `NowScreenViewModel` — all detailed above |
 | `Views/Browser/` | Channel grid, filter chips, add-channel sheet, sport nav rail |
 | `Views/Components/` | Shared atomic components (`NSComponents`, source pickers, toasts) |
-| `Views/Favourites/` | Favourited channel list — **not currently described anywhere in these docs** |
-| `Views/Help/` | In-app user guide and developer guide — **not currently described anywhere in these docs** |
+| `Views/Favourites/` | `FavouritesScreen` — starred channels bucketed into live-now, on-air, up-next, and no-EPG sections; empty state when nothing is starred yet |
+| `Views/Help/` | In-app user guide and developer guide |
 | `Views/Logo/` | Logo mark rendering |
 | `Views/Match/` | Match Day screen |
-| `Views/Now/` | Now screen — live-on-air and starting-soon sections, match hero/small cards — **not currently described anywhere in these docs; this looks like the Mac equivalent of Android's Now screen** ([android-architecture.md](android-architecture.md)) |
+| `Views/Now/` | `NowScreen` — the EPG-first home tab, delegating bucketing to `NowScreenViewModel` and layout to per-section sub-views (live matches, live on-air, starting soon); mirrors Android's Now screen ([android-architecture.md](android-architecture.md)) |
 | `Views/Onboarding/` | Splash → Server → Playlist → EPG onboarding flow |
 | `Views/Player/` | Full player screen, controls, mini player, score overlay, AirPlay/PiP wiring |
 | `Views/Schedule/` | Programme schedule screen — appears to be the current name for what older docs called the "TV Guide" / `EPGGridScreen` |
