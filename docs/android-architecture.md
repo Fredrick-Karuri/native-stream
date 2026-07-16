@@ -2,6 +2,8 @@
 
 > How the Android client is structured, why decisions were made, and how data flows from network to screen.
 
+For the server-side architecture this client talks to, see [architecture.md](architecture.md). For the full API surface, see [api.md](api.md).
+
 ---
 
 ## Overview
@@ -38,6 +40,8 @@ Each ViewModel owns one feature domain. They do not call each other directly —
 | `FavouritesViewModel` | Starred channel IDs (persisted via DataStore) |
 | `CastViewModel` | Chromecast session, remote media client |
 | `ChannelLoadingViewModel` | Orchestrates channel fetch + cache across all sources |
+
+> **Known drift:** `BrowseViewModel`, `ChannelFilterViewModel`, and `ChannelManagerViewModel` also exist in `ui/viewmodel/` and aren't described above or in the StateFlow ownership map below. They likely split responsibility that used to sit in `PlaylistViewModel` (browse-screen state, filter computation, and channel CRUD respectively, judging by name) — but that's an inference, not confirmed. Needs a pass from whoever owns this code.
 
 ### StateFlow ownership map
 
@@ -90,7 +94,7 @@ PlayerViewModel
 
 ## EPG Pipeline
 
-The EPG pipeline is the most complex part of the codebase. Understanding it prevents O(n) regressions.
+The EPG pipeline is the most complex part of the codebase. Understanding it prevents O(n) regressions — see [android-performance.md](android-performance.md) for the performance rationale.
 
 ```
 1. FETCH
@@ -175,7 +179,7 @@ I/EpgViewModel: EPG match rate: 94% (719/764)
 
 ## Local Media Connect (LMC) Architecture
 
-Android is the **controller** — it discovers targets, sends commands, and initiates pull-back.
+Android is the **controller** — it discovers targets, sends commands, and initiates pull-back. See [local-media-connect.md](local-media-connect.md) for the cross-platform design and [api.md](api.md#local-media-connect-websocket-control-plane) for the wire protocol.
 
 ```
 Android (controller)
@@ -215,6 +219,8 @@ SERVER (mDNS auto-fills URL → auto-triggers parallel check)
 ```
 
 `OnboardingConnectionState` is a sealed class: `Idle | Checking | Success(channels, healthy, hasEpg, epgFromPlaylist) | Failure(reason)`. Owned by `SettingsViewModel`, consumed by `OnboardingScreen`.
+
+If onboarding fails, see [troubleshooting.md — Server unreachable](troubleshooting.md#server-unreachable).
 
 ---
 
@@ -328,6 +334,29 @@ val groups by remember { derivedStateOf { channels.map { it.groupTitle }.distinc
 
 ### `nowMs` is pre-captured
 `EpgViewModel` emits `nowMs` every 30s. Cards call `programme.progress(nowMs)` — avoids `System.currentTimeMillis()` per card per frame.
+
+---
+
+## Package Responsibility
+
+Deliberately a responsibility table, not a file tree — a tree needs an edit every time a file is added; this only needs one when a responsibility moves. For the literal current layout, browse `app/android/app/src/main/java/com/nativestream/android/` in the repo.
+
+| Package | Owns |
+|---|---|
+| `data/cast/` | Chromecast SDK wiring (`CastManager`, `CastOptionsProvider`) |
+| `data/local/` | On-disk cache and settings: `ChannelCache`, `EpgIndexCache`, `SettingsDataStore` |
+| `data/parser/` | `M3uParser`, `EpgParser`, `EpgStore` — the parsing layer, mirroring `data/parser/` responsibilities on the other clients |
+| `data/player/` | Media3 wiring: header-aware media source factory, media session callback, playback service |
+| `data/remote/` | `ApiClient` (Ktor), `ControlSession` + `ControlDiscoveryService` (LMC), `ServerDiscoveryService` (mDNS), DTOs |
+| `data/repository/` | `ChannelRepositoryImpl` — the concrete implementation behind `domain/repository/ChannelRepository` |
+| `di/` | Hilt modules — app-wide, DataStore, dispatchers, repository bindings |
+| `domain/model/` | `Channel`, `Programme`, `PlaylistSource`, `SportCategory`, `StreamQuality`, `LiveEligibility`, plus `domain/model/control/` for LMC payload types |
+| `ui/components/` | Shared Compose components — chips, badges, mini player, source pickers, text fields |
+| `ui/navigation/` | `AppNavHost`, bottom nav bar, nav rail, destination definitions |
+| `ui/screens/` | Screen composables, grouped by feature: `browse/`, `now/`, `onboarding/`, `player/`, `remote/`, `settings/` |
+| `ui/theme/` | `NSColors`, `NSDimens`, `NSGradients`, `NSScale`, `NSType` design tokens |
+| `ui/viewmodel/` | See the drift note above — three of the eleven ViewModels here aren't yet described in prose |
+| `ui/foldable/` | Foldable-device window/hinge utilities |
 
 ---
 

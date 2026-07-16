@@ -2,6 +2,8 @@
 
 > Why the app is fast, what decisions were made, and what to avoid when adding features.
 
+See [android-architecture.md](android-architecture.md) for the pipelines these decisions apply to.
+
 ---
 
 ## Guiding Principle
@@ -178,7 +180,7 @@ val channels = ArrayList<Channel>(INITIAL_CHANNEL_CAPACITY)  // 512
 
 ## Cold Boot Cache — stale-while-revalidate
 
-The cache layer eliminates the perceived cold boot cost. See `docs/android-architecture.md` for the full warm/cold boot flow.
+The cache layer eliminates the perceived cold boot cost. See [android-architecture.md](android-architecture.md#cold-boot-vs-warm-boot) for the full warm/cold boot flow.
 
 | Path | Before | After |
 |---|---|---|
