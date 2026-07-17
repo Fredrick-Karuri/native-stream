@@ -1,9 +1,8 @@
-# Local Media Connect — Design Document
+# Local Media Connect — Design
 
-**Author:** Fredrick Karuri
-**Date:** 2026-06-11
-**Status:** Review
 **Stack:** Go 1.22+ · Jetpack Compose (Android) · SwiftUI (macOS) · WebSocket · mDNS/DNS-SD
+
+For the wire protocol (message envelope, types, mDNS record), see [api.md](api.md#local-media-connect-websocket-control-plane). For where this fits in the overall system, see [architecture.md](architecture.md).
 
 ---
 
@@ -35,7 +34,7 @@ If we don't solve this, NativeStream remains a single-screen experience despite 
 ## Non-Goals (Explicit Out of Scope)
 
 - **Smart TV client implementation** — protocol is TV-compatible but no TV client is built in this iteration.
-- **Cloud brokering** — all communication is local network only. No Anthropic/cloud relay.
+- **Cloud brokering** — all communication is local network only. No cloud relay.
 - **Authentication / pairing** — zero-auth in this iteration. Auth field is present in the protocol envelope for future upgrade but not enforced.
 - **Seek / DVR control** — live TV has no seek position. Stream transfer means "play this channel", not "resume at this timestamp".
 - **Multi-server scenarios** — one Go server per local network. Cross-server discovery is out of scope.
@@ -140,54 +139,6 @@ type SessionInfo struct {
 
 ### Device Identity
 Each device generates a stable UUID on first launch and persists it locally (`UserDefaults` on macOS, `DataStore` on Android). This UUID is the `device_id` in all messages.
-
----
-
-## API / Interface Contracts
-
-### WebSocket Endpoint
-```
-GET ws://server:8888/ws
-```
-No query parameters required in zero-auth mode. Future: `?auth=<token>`.
-
-### Message Envelope
-```json
-{
-  "type":    "<MessageType>",
-  "from":    "<device-uuid>",
-  "to":      "<device-uuid> | broadcast | server",
-  "auth":    null,
-  "payload": { }
-}
-```
-
-### Message Types
-
-| Type | Direction | Payload Fields |
-|---|---|---|
-| `register` | device → server | `name: string, kind: string` |
-| `session_list` | server → device | `sessions: SessionInfo[]` |
-| `play` | controller → target | `channel_id: string, stream_url: string` |
-| `stop` | controller → target | _(empty)_ |
-| `pull_back` | controller → server | `from_device: string` |
-| `pull_back_ack` | server → controller | `channel_id: string, stream_url: string` |
-| `state_update` | target → server | `channel_id: string, stream_url: string, playing: bool` |
-| `ping` | server → device | _(empty)_ |
-| `pong` | device → server | _(empty)_ |
-
-### REST Endpoint (HTTP polling fallback)
-```
-GET /api/sessions
-→ { "sessions": SessionInfo[] }
-```
-
-### mDNS Advertisement
-```
-Service type:  _nativestream-ctrl._tcp
-TXT record:    version=1, ws=/ws
-Port:          same as media server (8888)
-```
 
 ---
 
