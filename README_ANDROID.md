@@ -33,7 +33,7 @@ cd app/android
 
 4. On first launch, the app scans your network via mDNS for a NativeStream Server and pre-fills the URL automatically. If discovery fails, enter it manually in Settings → Server.
 
-For app structure, data flow, and the EPG pipeline, see [docs/android-architecture.md](docs/android-architecture.md). For performance rules when adding features, see [docs/android-performance.md](docs/android-performance.md). For how device-to-device casting works, see [docs/local-media-connect.md](docs/local-media-connect.md).
+For app structure, data flow, and the EPG pipeline, see [docs/android-architecture.md](docs/android-architecture.md). For performance rules when adding features, see [docs/android-performance.md](docs/android-performance.md). For how device-to-device casting works, see [docs/local-media-connect.md](docs/local-media-connect.md). For unit/UI test commands and linting, see [docs/development.md](docs/development.md).
 
 ## Requirements
 

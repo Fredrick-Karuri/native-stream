@@ -7,6 +7,8 @@ This is the cross-cutting view: how the pieces fit together and why. For interna
 - [server-architecture.md](server-architecture.md) — Go server internals
 - [mac-architecture.md](mac-architecture.md) — Swift/macOS internals
 - [android-architecture.md](android-architecture.md) — Kotlin/Android internals
+- [development.md](development.md) — local dev commands
+- [releasing.md](releasing.md) — how a release ships
 
 ## Overview
 
@@ -169,8 +171,9 @@ Platform-specific playback wiring (AVPlayer vs Media3 ExoPlayer) is in [mac-arch
 ```
 nativestream/
 ├── README.md · README_SERVER.md · README_ANDROID.md · README_MAC.md
-├── Dockerfile · docker-compose.yml · ordo.yaml   ← container deployment path, undocumented — see note below
-├── Makefile · release.sh
+├── ordo.yaml · Makefile          ← two equivalent command runners, see development.md
+├── Dockerfile · docker-compose.yml   ← server container build, unverified — see development.md
+├── release.sh                    ← per-component version bump + tag + push, see releasing.md
 ├── app/
 │   ├── server/     ← Go backend, see server-architecture.md
 │   ├── macos/      ← Swift Mac app, see mac-architecture.md
@@ -182,7 +185,7 @@ nativestream/
     └── release.sh
 ```
 
-**Open gap:** the repo root now has `Dockerfile`, `docker-compose.yml`, and `ordo.yaml` alongside the Homebrew path. None of these are covered anywhere in the current docs — it's not clear from the file names alone what `ordo.yaml` configures or whether the Docker path is the recommended one going forward. This needs a pass from whoever added them; once confirmed, it belongs as a "Run with Docker" section in [README_SERVER.md](../README_SERVER.md), not invented here.
+For local dev commands (`ordo server:dev`, `make build-server`, etc.), see [development.md](development.md). For how `release.sh` and CI turn a tag into a published artifact, see [releasing.md](releasing.md).
 
 For per-platform package/module structure, see the responsibility tables in [server-architecture.md](server-architecture.md#package-responsibility), [mac-architecture.md](mac-architecture.md#module-responsibility), and [android-architecture.md](android-architecture.md). Those are deliberately responsibility tables rather than file trees — a tree needs editing every time a file is added or moved; a responsibility table only needs editing when responsibility itself moves, which is far rarer. Prefer that pattern for future structural docs over embedding `tree` output.
 
