@@ -34,12 +34,14 @@ Building from source instead:
 ```bash
 git clone https://github.com/yourname/nativestream.git
 cd nativestream
-open app/macos/NativeStreamMac.xcodeproj
+ordo mac:run   # or: make run-app
+# or manually:
+open app/macos/NativeStream/NativeStream.xcodeproj
 ```
 
-Press `⌘R` in Xcode to build and run.
+Press `⌘R` in Xcode to build and run, or use the command above, which also strips the extended attribute Gatekeeper otherwise adds to locally-built apps.
 
-For view model structure and how playback works internally, see [docs/mac-architecture.md](docs/mac-architecture.md). For Local Media Connect, see [docs/local-media-connect.md](docs/local-media-connect.md). For the cross-platform system view, see [docs/architecture.md](docs/architecture.md). If something isn't working, see [docs/troubleshooting.md](docs/troubleshooting.md).
+For view model structure and how playback works internally, see [docs/mac-architecture.md](docs/mac-architecture.md). For Local Media Connect, see [docs/local-media-connect.md](docs/local-media-connect.md). For the cross-platform system view, see [docs/architecture.md](docs/architecture.md). For the full dev command reference (build, lint, combined dev env), see [docs/development.md](docs/development.md). If something isn't working, see [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Requirements
 

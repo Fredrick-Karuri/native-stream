@@ -28,8 +28,9 @@ The server starts automatically on login.
 ```bash
 git clone https://github.com/yourname/nativestream.git
 cd nativestream
-make build-server
-make run-server
+ordo server:build && ordo server:run
+# or, without ordo installed:
+make build-server && make run-server
 ```
 
 ### Verify it's running
@@ -38,30 +39,32 @@ make run-server
 curl http://localhost:8888/api/health
 ```
 
-For the full endpoint reference, see [docs/api.md](docs/api.md). For configuration options, see [docs/configuration.md](docs/configuration.md). For architecture and how stream self-healing and discovery work internally, see [docs/architecture.md](docs/architecture.md).
+For the full endpoint reference, see [docs/api.md](docs/api.md). For configuration options, see [docs/configuration.md](docs/configuration.md). For how stream self-healing and discovery work internally, see [docs/server-architecture.md](docs/server-architecture.md); for the cross-platform system view, see [docs/architecture.md](docs/architecture.md). For all local dev commands (dev server, tests, linting, service install, Docker) see [docs/development.md](docs/development.md). For cutting a release, see [docs/releasing.md](docs/releasing.md).
 
 ## Requirements
 
 | Requirement | Version/Detail |
 |---|---|
-| Go | 1.22+ |
-| OS | macOS (Homebrew tap + launchd service) |
+| Go | 1.25 (per the Docker build — confirm this matches the non-Docker build requirement) |
+| OS | macOS (Homebrew tap + launchd service); Linux via Docker (unverified, see [docs/development.md](docs/development.md#docker-work-in-progress--unverified)) |
 | Runtime dependencies | None beyond the Go standard library |
 
 ## Running as a Service
 
 ```bash
-make install-service
+ordo service:install   # or: make install-service
 ```
 
 Remove the service:
 
 ```bash
-make uninstall-service
+ordo service:uninstall   # or: make uninstall-service
 ```
 
 Dev server (port 8889, separate config):
 
 ```bash
-make server-dev
+ordo server:dev   # or: make server-dev
 ```
+
+For the full command reference — build, test, lint, restart, logs — see [docs/development.md](docs/development.md).

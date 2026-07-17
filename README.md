@@ -33,4 +33,4 @@ Open the app, tap a channel, and it plays. If it can't, the app tells you why in
 
 ## Deeper Docs
 
-See [docs/](docs/) for architecture, the full API reference, configuration options, and troubleshooting.
+See [docs/](docs/) for architecture, the full API reference, configuration options, troubleshooting, local development, and the release process.

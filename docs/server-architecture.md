@@ -241,7 +241,7 @@ Graceful shutdown: `SIGTERM/SIGINT` → cancel context → all goroutines stop �
 
 | Layer | Technology |
 |---|---|
-| Language | Go 1.22+ |
+| Language | Go 1.22+ — the Dockerfile builds with `golang:1.25-alpine`; unclear if the non-Docker minimum has moved too or the Dockerfile is just ahead |
 | HTTP | `net/http` stdlib |
 | Logging | `log/slog` (Go 1.21+ stdlib) |
 | Config | Custom flat-file parser (no yaml lib — avoids external dependency) |
@@ -274,7 +274,3 @@ Deliberately a responsibility table, not a file tree — a tree needs an edit ev
 | `store/` | Channel store and snapshotting |
 | `validator/` | Probe pool, scoring, self-healing state machine |
 | `VERSION` | Current release version, read at build/release time |
-
-### Repository-level layout
-
-The top-level repo has grown deployment tooling not yet reflected anywhere in these docs — a `Dockerfile`, `docker-compose.yml`, `ordo.yaml`, and a root-level `release.sh` alongside the existing `scripts/`. This suggests a container-based deployment path exists in addition to Homebrew, but the details (what `ordo.yaml` configures, what the compose file stands up) aren't documented yet. If that's a supported path, it belongs as a new "Docker" section in [README_SERVER.md](../README_SERVER.md) — flagging here rather than guessing at commands.
