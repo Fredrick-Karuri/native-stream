@@ -127,6 +127,7 @@ func (h *Handler) handleListChannels(w http.ResponseWriter, r *http.Request) {
 		Healthy        bool    `json:"healthy"`
 		ActiveScore    float64 `json:"active_score"`
 		CandidateCount int     `json:"candidate_count"`
+		HasActiveLink  bool    `json:"has_active_link"`
 	}
 	rows := make([]row, len(channels))
 	for i, ch := range channels {
@@ -137,6 +138,7 @@ func (h *Handler) handleListChannels(w http.ResponseWriter, r *http.Request) {
 			TvgID:          ch.TvgID,
 			LogoURL:        ch.LogoURL,
 			CandidateCount: len(ch.Candidates),
+			HasActiveLink:  ch.ActiveLink != nil,
 		}
 		if ch.ActiveLink != nil {
 			r.ActiveScore = ch.ActiveLink.Score

@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +38,7 @@ import com.adamglin.phosphoricons.regular.FileLock
 import com.adamglin.phosphoricons.regular.GearSix
 import com.adamglin.phosphoricons.regular.Play
 import com.adamglin.phosphoricons.regular.VideoCamera
+import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -141,6 +143,38 @@ fun SettingsSingleColumn(
                 }
                 SettingsDivider()
                 AddSourceRow(onClick = { onShowAddSource(true) })
+            }
+        }
+
+        item {
+            SettingsSection(label = "Channels") {
+                var managedChannels by remember { mutableStateOf<List<com.nativestream.android.data.remote.ChannelResponse>>(emptyList()) }
+                var channelSearch by remember { mutableStateOf("") }
+                LaunchedEffect(Unit) { managedChannels = settingsViewModel.listManagedChannels() }
+                val filteredChannels = remember(managedChannels, channelSearch) {
+                    if (channelSearch.isBlank()) managedChannels
+                    else managedChannels.filter { it.name.contains(channelSearch, ignoreCase = true) }
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+                ) {
+                    NSTextField(value = channelSearch, onValueChange = { channelSearch = it }, placeholder = "Search channels…")
+                    Spacer(modifier = Modifier.height(dimens.spacing.sm))
+                    if (filteredChannels.isEmpty()) {
+                        Text(
+                            text  = if (channelSearch.isBlank()) "No server-managed channels yet." else "No matches",
+                            style = NSType.caption(),
+                            color = NSColors.text3,
+                        )
+                    } else {
+                        filteredChannels.forEachIndexed { index, ch ->
+                            if (index > 0) Spacer(modifier = Modifier.height(dimens.spacing.xs))
+                            ChannelHeaderRow(channel = ch, settingsViewModel = settingsViewModel)
+                        }
+                    }
+                }
             }
         }
 

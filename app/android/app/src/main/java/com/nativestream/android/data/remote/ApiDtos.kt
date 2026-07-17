@@ -33,6 +33,7 @@ data class ChannelResponse(
     val healthy: Boolean,
     @SerialName("active_score")    val activeScore: Double,
     @SerialName("candidate_count") val candidateCount: Int,
+    @SerialName("has_active_link")  val hasActiveLink: Boolean = false,
 )
 
 @Serializable

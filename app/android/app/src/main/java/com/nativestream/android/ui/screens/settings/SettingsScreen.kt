@@ -58,10 +58,11 @@ val TINT_AMBER   = Color(0xFFF59E0B)
 val TINT_RED     = Color(0xFFEF4444)
 
 enum class SettingsSection {
-    SERVER, SOURCES, PLAYBACK, PROXY, SYSTEM;
+    SERVER, SOURCES, CHANNELS, PLAYBACK, PROXY, SYSTEM;
     val label get() = when (this) {
         SERVER   -> "Server"
         SOURCES  -> "Sources"
+        CHANNELS -> "Channels"
         PLAYBACK -> "Playback"
         PROXY    -> "Proxy"
         SYSTEM   -> "System"

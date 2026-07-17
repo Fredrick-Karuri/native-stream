@@ -78,6 +78,21 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    // ── Channel headers ─────────────────────────────────────
+    suspend fun listManagedChannels(): List<com.nativestream.android.data.remote.ChannelResponse> =
+        runCatching { apiClient.listChannels().filter { it.hasActiveLink } }.getOrDefault(emptyList())
+
+    suspend fun getChannelHeaders(channelId: String): Map<String, String> =
+        runCatching { apiClient.getChannel(channelId).activeLink?.headers }.getOrNull() ?: emptyMap()
+
+    suspend fun saveChannelHeaders(channelId: String, headers: Map<String, String>): Boolean =
+        runCatching {
+            apiClient.updateChannel(
+                channelId,
+                com.nativestream.android.data.remote.UpdateChannelRequest(streamHeaders = headers)
+            )
+        }.isSuccess
+
     val onboardingComplete: StateFlow<Boolean> = settingsDataStore.onboardingComplete
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
