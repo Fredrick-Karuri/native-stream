@@ -1,12 +1,12 @@
 # ── Go ────────────────────────────────────────────────────────────────────────
-app/server/nativestream-server
-app/server/*.out
+apps/server/nativestream-server
+apps/server/*.out
 /bin/
 
 # ── Swift / Xcode ─────────────────────────────────────────────────────────────
-app/macos/NativeStream/NativeStream.xcodeproj/xcuserdata/
-app/macos/NativeStream/NativeStream.xcodeproj/project.xcworkspace/xcuserdata/
-app/macos/NativeStream/DerivedData/
+apps/macos/NativeStream/NativeStream.xcodeproj/xcuserdata/
+apps/macos/NativeStream/NativeStream.xcodeproj/project.xcworkspace/xcuserdata/
+apps/macos/NativeStream/DerivedData/
 **/*.xcuserstate
 **/*.xcsettings
 *.resolved
