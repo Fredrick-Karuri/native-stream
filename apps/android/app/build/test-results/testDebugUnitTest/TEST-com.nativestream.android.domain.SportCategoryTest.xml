@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.nativestream.android.domain.SportCategoryTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-25T10:52:56.665Z" hostname="Fredricks-MacBook-Pro.local" time="0.002">
+  <properties/>
+  <testcase name="GOLF epgKeywords contains pga tour live" classname="com.nativestream.android.domain.SportCategoryTest" time="0.001"/>
+  <testcase name="allKeywords contains no duplicates" classname="com.nativestream.android.domain.SportCategoryTest" time="0.0"/>
+  <testcase name="each category keywords are all lowercase" classname="com.nativestream.android.domain.SportCategoryTest" time="0.001"/>
+  <testcase name="FOOTBALL epgKeywords contains premier league" classname="com.nativestream.android.domain.SportCategoryTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

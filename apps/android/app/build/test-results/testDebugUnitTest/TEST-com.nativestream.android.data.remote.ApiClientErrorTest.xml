@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.nativestream.android.data.remote.ApiClientErrorTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-07-25T10:52:55.455Z" hostname="Fredricks-MacBook-Pro.local" time="1.195">
+  <properties/>
+  <testcase name="T011 - connection refused throws ServerUnreachable" classname="com.nativestream.android.data.remote.ApiClientErrorTest" time="1.163"/>
+  <testcase name="T011 - malformed JSON throws DecodingFailed" classname="com.nativestream.android.data.remote.ApiClientErrorTest" time="0.027"/>
+  <testcase name="T011 - setBaseUrl updates subsequent request URLs" classname="com.nativestream.android.data.remote.ApiClientErrorTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  NativeStream mark, vectorized from source PNG.
+  Viewport is 800x800 to match 1:1 with the original bitmap's coordinate
+  space, then scaled down to a 108x108dp adaptive-icon-style canvas with
+  built-in padding so it isn't clipped/cropped when used as
+  windowSplashScreenAnimatedIcon (which masks to a circle and expects
+  ~66% safe-zone content, like a standard adaptive icon foreground).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Group: scale 800x800 source art down into a centered 72x72 safe
+         zone (the standard adaptive-icon inner bounds), i.e. scale by
+         72/800 = 0.09, then translate to center within the 108x108 canvas
+         ((108-72)/2 = 18 offset). -->
+    <group
+        android:translateX="18"
+        android:translateY="18"
+        android:scaleX="0.09"
+        android:scaleY="0.09">
+
+        <!-- Background disc (navy) -->
+        <path
+            android:fillColor="#0D1120"
+            android:pathData="M400,0 a400,400 0 1,1 -0.1,0 z" />
+
+        <!-- Outer soundwave arc -->
+        <path
+            android:strokeColor="#0E5B84"
+            android:strokeWidth="34"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000"
+            android:pathData="M195,95 A330,330 0 0,0 195,705" />
+
+        <!-- Middle soundwave arc -->
+        <path
+            android:strokeColor="#0E87C1"
+            android:strokeWidth="34"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000"
+            android:pathData="M248,180 A245,245 0 0,0 248,620" />
+
+        <!-- Inner soundwave arc -->
+        <path
+            android:strokeColor="#0EA5E9"
+            android:strokeWidth="34"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000"
+            android:pathData="M305,267 A160,160 0 0,0 305,533" />
+
+        <!-- Center dot -->
+        <path
+            android:fillColor="#0EA5E9"
+            android:pathData="M335,400 m-32,0 a32,32 0 1,1 64,0 a32,32 0 1,1 -64,0 z" />
+
+        <!-- Play triangle -->
+        <path
+            android:fillColor="#E8EAF0"
+            android:pathData="M368,283 L600,400 L368,517 Z" />
+
+    </group>
+</vector>

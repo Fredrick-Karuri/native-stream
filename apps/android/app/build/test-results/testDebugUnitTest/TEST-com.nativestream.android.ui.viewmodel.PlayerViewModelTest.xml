@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-07-25T10:52:57.849Z" hostname="Fredricks-MacBook-Pro.local" time="2.21">
+  <properties/>
+  <testcase name="T015 - play emits activeChannel and sets isPlayerVisible true" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="1.845"/>
+  <testcase name="T014 - channels from same source with same streamUrl are deduplicated" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.016"/>
+  <testcase name="T016 - server unreachable during retry falls back to cached streamUrl" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.168"/>
+  <testcase name="T016 - retryManually resets retryCount and re-attempts" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.023"/>
+  <testcase name="T015 - togglePlayback flips isPlaying" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.015"/>
+  <testcase name="T014 - channels from different sources with same streamUrl have unique ids" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.017"/>
+  <testcase name="T015 - playUrl creates temporary channel with correct streamUrl and headers" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.02"/>
+  <testcase name="T016 - three consecutive failures emit playerError and no further retries" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.021"/>
+  <testcase name="T016 - first failure retries after 2s delay" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.018"/>
+  <testcase name="T015 - toggleMute flips isMuted" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.015"/>
+  <testcase name="T016 - retry re-fetches active link from ApiClient getChannel" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.019"/>
+  <testcase name="T015 - stop sets activeChannel null, isPlayerVisible false, isPlaying false" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.016"/>
+  <testcase name="T015 - controls auto-hide after 3 seconds" classname="com.nativestream.android.ui.viewmodel.PlayerViewModelTest" time="0.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

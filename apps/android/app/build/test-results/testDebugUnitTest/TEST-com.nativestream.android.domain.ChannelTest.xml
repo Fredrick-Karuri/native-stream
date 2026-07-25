@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.nativestream.android.domain.ChannelTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-07-25T10:52:56.655Z" hostname="Fredricks-MacBook-Pro.local" time="0.002">
+  <properties/>
+  <testcase name="equal channels have the same hashCode" classname="com.nativestream.android.domain.ChannelTest" time="0.001"/>
+  <testcase name="two channels with same id are equal regardless of other fields" classname="com.nativestream.android.domain.ChannelTest" time="0.0"/>
+  <testcase name="create with non-empty tvgId sets id to sourceId_tvgId" classname="com.nativestream.android.domain.ChannelTest" time="0.0"/>
+  <testcase name="create with empty tvgId falls back to sourceId_streamUrl" classname="com.nativestream.android.domain.ChannelTest" time="0.001"/>
+  <testcase name="two channels with different id are not equal" classname="com.nativestream.android.domain.ChannelTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

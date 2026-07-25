@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.nativestream.android.ui.viewmodel.FavouritesViewModelTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-07-25T10:52:57.691Z" hostname="Fredricks-MacBook-Pro.local" time="0.125">
+  <properties/>
+  <testcase name="T018 - isFavourite reflects current state" classname="com.nativestream.android.ui.viewmodel.FavouritesViewModelTest" time="0.069"/>
+  <testcase name="T018 - toggle adds channel id to favouriteIds" classname="com.nativestream.android.ui.viewmodel.FavouritesViewModelTest" time="0.018"/>
+  <testcase name="T018 - second toggle removes channel id" classname="com.nativestream.android.ui.viewmodel.FavouritesViewModelTest" time="0.018"/>
+  <testcase name="T018 - ids survive ViewModel recreation via DataStore" classname="com.nativestream.android.ui.viewmodel.FavouritesViewModelTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

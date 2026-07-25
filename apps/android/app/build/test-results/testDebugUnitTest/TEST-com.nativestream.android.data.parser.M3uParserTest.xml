@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.nativestream.android.data.parser.M3uParserTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-07-25T10:52:54.668Z" hostname="Fredricks-MacBook-Pro.local" time="0.324">
+  <properties/>
+  <testcase name="T005 - 10000-channel fixture parses in under 500ms" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.16"/>
+  <testcase name="T006 - EXTM3U without url-tvg leaves epgUrl null" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.011"/>
+  <testcase name="T005 - empty input returns empty list without exception" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.011"/>
+  <testcase name="T004 - missing tvg-id gives empty string and does not crash" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.013"/>
+  <testcase name="T004 - correct channel count returned" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.011"/>
+  <testcase name="T004 - groupTitle extracted from group-title attribute" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.017"/>
+  <testcase name="T004 - logoUrl extracted from tvg-logo attribute" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.016"/>
+  <testcase name="T005 - EXTINF with no comma emits warning and entry is skipped" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.016"/>
+  <testcase name="T004 - tvgId extracted from tvg-id attribute" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.014"/>
+  <testcase name="T004 - name taken from after last comma on EXTINF line" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.014"/>
+  <testcase name="T005 - Latin-1 encoded bytes decoded without replacement characters" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.014"/>
+  <testcase name="T006 - EXTM3U with url-tvg populates epgUrl" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.013"/>
+  <testcase name="T005 - non-URL line after EXTINF emits warning" classname="com.nativestream.android.data.parser.M3uParserTest" time="0.013"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

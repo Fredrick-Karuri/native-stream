@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.nativestream.android.domain.ProgrammeTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-07-25T10:52:56.658Z" hostname="Fredricks-MacBook-Pro.local" time="0.005">
+  <properties/>
+  <testcase name="progress is clamped to 0-1 mid-programme" classname="com.nativestream.android.domain.ProgrammeTest" time="0.001"/>
+  <testcase name="progress returns 0 before programme start" classname="com.nativestream.android.domain.ProgrammeTest" time="0.0"/>
+  <testcase name="timeRemainingString returns Ending when stop is in the past" classname="com.nativestream.android.domain.ProgrammeTest" time="0.0"/>
+  <testcase name="progress returns 1 after programme stop" classname="com.nativestream.android.domain.ProgrammeTest" time="0.0"/>
+  <testcase name="isNow is false when now is at or after stop" classname="com.nativestream.android.domain.ProgrammeTest" time="0.0"/>
+  <testcase name="id is stable and equal for two instances with same channelId and startEpochMs" classname="com.nativestream.android.domain.ProgrammeTest" time="0.003"/>
+  <testcase name="isNow is true when now is within start and stop" classname="com.nativestream.android.domain.ProgrammeTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
