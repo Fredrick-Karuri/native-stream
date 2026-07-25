@@ -57,6 +57,7 @@ struct ChannelResponse: Decodable, Identifiable {
     let healthy: Bool
     let activeScore: Double
     let candidateCount: Int
+    let hasActiveLink: Bool
 
     enum CodingKeys: String, CodingKey {
         case id, name, healthy
@@ -65,6 +66,7 @@ struct ChannelResponse: Decodable, Identifiable {
         case logoURL       = "logo_url"
         case activeScore   = "active_score"
         case candidateCount = "candidate_count"
+        case hasActiveLink  = "has_active_link"
     }
 }
 
@@ -98,11 +100,13 @@ struct LinkScoreResponse: Decodable {
     let state: String
     let failCount: Int
     let headers: [String: String]?
+    let failureReason: String?
 
     enum CodingKeys: String, CodingKey {
         case url, score, state, headers
         case latencyMS = "latency_ms"
         case failCount = "fail_count"
+        case failureReason = "failure_reason"
     }
 }
 
@@ -128,11 +132,13 @@ struct UpdateChannelRequest: Encodable {
     var groupTitle: String?
     var streamURL: String?
     var keywords: [String]?
+    var streamHeaders: [String: String]?
 
     enum CodingKeys: String, CodingKey {
         case name, keywords
         case groupTitle = "group_title"
         case streamURL  = "stream_url"
+        case streamHeaders = "stream_headers"
     }
 }
 

@@ -9,6 +9,8 @@ struct PlayerScreen: View {
 
     @Environment(PlayerViewModel.self)  private var playerVM
     @Environment(EPGViewModel.self)     private var epgVM
+    @Environment(SettingsStore.self)    private var settings
+    @Environment(ToastCenter.self)      private var toastCenter
 
     let channel: Channel?
     let onBack: () -> Void
@@ -59,7 +61,11 @@ struct PlayerScreen: View {
                 }
 
                 if let error = playerVM.error {
-                    PlayerErrorOverlay(error: error, onRetry: { playerVM.retry() })
+                    PlayerErrorOverlay(
+                        error: error,
+                        onRetry: { playerVM.retry() },
+                        onTryWithProxy: canTryProxy ? { attemptProxyRecovery() } : nil
+                    )
                 }
 
                 if showControls || playerVM.error != nil {
@@ -86,6 +92,20 @@ struct PlayerScreen: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: isSidebarOpen)
+    }
+    
+    /// action for 403-type failures, and only if the proxy isn't already on.
+    private var canTryProxy: Bool {
+        playerVM.activeLinkFailureReason == "forbidden" && !settings.proxyEnabled
+    }
+
+    private func attemptProxyRecovery() {
+        Task {
+            let success = await playerVM.tryWithProxy(settings: settings)
+            if success {
+                toastCenter.show("Playing via proxy", style: .success)
+            }
+        }
     }
 
     private func showControlsTemporarily() {

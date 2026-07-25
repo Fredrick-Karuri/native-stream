@@ -25,18 +25,29 @@ const (
 	StateEvicted    LinkState = "evicted"
 )
 
+type FailureReason string
+
+const (
+	FailureReasonNone        FailureReason = ""
+	FailureReasonForbidden   FailureReason = "forbidden"    // 401/403 — proxy may help
+	FailureReasonUnreachable FailureReason = "unreachable"  // TCP connect failed
+	FailureReasonTimeout     FailureReason = "timeout"      // no response in time
+	FailureReasonBadContent  FailureReason = "bad_content"  // not valid HLS/video
+)
+
 type LinkScore struct {
-	URL          string    `json:"url"`
-	ChannelID    string    `json:"channel_id"`
-	SourceURL    string    `json:"source_url"`
+	URL            string            `json:"url"`
+	ChannelID      string            `json:"channel_id"`
+	SourceURL      string            `json:"source_url"`
 	Headers        map[string]string `json:"headers,omitempty"`
-	Score        float64   `json:"score"`
-	LatencyMS    int64     `json:"latency_ms"`
-	EstBitrateKbps int     `json:"est_bitrate_kbps"`
-	State        LinkState `json:"state"`
-	FailCount    int       `json:"fail_count"`
-	LastChecked  time.Time `json:"last_checked"`
-	DiscoveredAt time.Time `json:"discovered_at"`
+	Score          float64           `json:"score"`
+	LatencyMS      int64             `json:"latency_ms"`
+	EstBitrateKbps int               `json:"est_bitrate_kbps"`
+	State          LinkState         `json:"state"`
+	FailCount      int               `json:"fail_count"`
+	FailureReason  FailureReason     `json:"failure_reason,omitempty"`
+	LastChecked    time.Time         `json:"last_checked"`
+	DiscoveredAt   time.Time         `json:"discovered_at"`
 }
 
 type Channel struct {
@@ -161,6 +172,18 @@ func (s *Store) Update(id string, updates map[string]any) error {
 			DiscoveredAt: time.Now(),
 		}
 		ch.Candidates = append(ch.Candidates, link)
+	}
+	if rawHeaders, ok := updates["stream_headers"].(map[string]interface{}); ok {
+		if ch.ActiveLink == nil {
+			return fmt.Errorf("channel %q has no active link — headers require a server-managed stream", id)
+		}
+		headers := make(map[string]string, len(rawHeaders))
+		for k, v := range rawHeaders {
+			if s, ok := v.(string); ok {
+				headers[k] = s
+			}
+		}
+		ch.ActiveLink.Headers = headers
 	}
 	ch.UpdatedAt = time.Now()
 	return nil

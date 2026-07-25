@@ -129,6 +129,18 @@ class ApiClient  @Inject constructor(
         post<StatusResponse>("api/probe", EmptyBody())
     }
 
+    suspend fun getProxyEnabled(): Boolean {
+        @kotlinx.serialization.Serializable
+        data class ProxyConfig(val enabled: Boolean)
+        return get<ProxyConfig>("api/proxy/config").enabled
+    }
+
+    suspend fun putProxyEnabled(enabled: Boolean) {
+        @kotlinx.serialization.Serializable
+        data class Body(val enabled: Boolean)
+        put<StatusResponse>("api/proxy/config", Body(enabled))
+    }
+
     // ── Discovery ─────────────────────────────────────────────────────────────
 
     suspend fun discoveryStatus(): DiscoveryStatusResponse =

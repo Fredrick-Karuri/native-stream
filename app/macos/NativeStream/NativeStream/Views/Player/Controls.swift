@@ -9,6 +9,7 @@ import Combine
 
 struct PlayerControls: View {
     @Environment(PlayerViewModel.self) private var playerVM
+    @Environment(SettingsStore.self)   private var settings
     var pipController: AVPictureInPictureController?
     var currentProgramme: Programme?
     
@@ -37,14 +38,19 @@ struct PlayerControls: View {
                         Button(q.displayName) { playerVM.setQuality(q) }
                     }
                 } label: {
-                    Text(playerVM.quality.displayName)
-                        .font(NS.Font.monoSm)
-                        .foregroundStyle(Color.white.opacity(0.6))
-                        .padding(.horizontal, NS.Chip.paddingH)
-                        .frame(height: NS.Player.menuHeight)
-                        .background(Color.white.opacity(0.07))
-                        .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
-                        .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(Color.white.opacity(0.08)))
+                    HStack(spacing: 2) {
+                        Text(playerVM.quality.displayName)
+                        if settings.proxyEnabled && playerVM.isPlaying {
+                            Text("· proxy")
+                        }
+                    }
+                    .font(NS.Font.monoSm)
+                    .foregroundStyle(Color.white.opacity(0.6))
+                    .padding(.horizontal, NS.Chip.paddingH)
+                    .frame(height: NS.Player.menuHeight)
+                    .background(Color.white.opacity(0.07))
+                    .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
+                    .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(Color.white.opacity(0.08)))
                 }
                 .menuStyle(.borderlessButton)
                 .fixedSize()

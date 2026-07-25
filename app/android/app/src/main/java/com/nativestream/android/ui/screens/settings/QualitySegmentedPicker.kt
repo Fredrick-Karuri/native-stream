@@ -1,3 +1,5 @@
+// app/src/main/java/com/nativestream/android/ui/screens/settings/QualitySegmentedPicker.kt
+
 package com.nativestream.android.ui.screens.settings
 
 import androidx.compose.foundation.background
@@ -13,16 +15,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.nativestream.android.data.local.BufferPreset
+import com.nativestream.android.data.local.StreamQuality
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 
-
 @Composable
-fun BufferSegmentedPicker(
-    selected: BufferPreset,
-    onSelect: (BufferPreset) -> Unit,
+fun QualitySegmentedPicker(
+    selected: StreamQuality,
+    onSelect: (StreamQuality) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dimens = NSDimens.current
@@ -34,10 +35,10 @@ fun BufferSegmentedPicker(
             .border(0.5.dp, NSColors.border, RoundedCornerShape(dimens.radius.sm))
             .padding(2.dp),
     ) {
-        BufferPreset.entries.forEach { preset ->
-            val isActive = selected == preset
+        StreamQuality.entries.forEach { quality ->
+            val isActive = selected == quality
             Text(
-                text  = preset.name.lowercase().replaceFirstChar { it.uppercase() },
+                text  = quality.label,
                 style = NSType.caption(),
                 color = if (isActive) NSColors.accent2 else NSColors.text3,
                 modifier = Modifier
@@ -48,7 +49,7 @@ fun BufferSegmentedPicker(
                         if (isActive) NSColors.accentBorder else Color.Transparent,
                         RoundedCornerShape(dimens.radius.sm - 2.dp),
                     )
-                    .clickable { onSelect(preset) }
+                    .clickable { onSelect(quality) }
                     .padding(horizontal = dimens.spacing.sm, vertical = 4.dp),
             )
         }

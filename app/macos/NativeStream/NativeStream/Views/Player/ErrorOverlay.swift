@@ -10,6 +10,7 @@ import SwiftUI
 struct PlayerErrorOverlay: View {
     let error: PlayerError
     let onRetry: () -> Void
+    var onTryWithProxy: (() -> Void)? = nil
 
     var body: some View {
         ZStack {
@@ -28,8 +29,14 @@ struct PlayerErrorOverlay: View {
                         .foregroundStyle(Color.white.opacity(0.5))
                         .multilineTextAlignment(.center)
                 }
-                Button("Retry", action: onRetry)
-                    .buttonStyle(.borderedProminent).tint(NS.amber)
+                HStack(spacing: NS.Spacing.sm) {
+                    Button("Retry", action: onRetry)
+                        .buttonStyle(.borderedProminent).tint(NS.amber)
+                    if let onTryWithProxy {
+                        Button("Try with proxy", action: onTryWithProxy)
+                            .buttonStyle(.bordered).tint(NS.amber)
+                    }
+                }
             }
             .padding(NS.Player.errorPadding)
         }

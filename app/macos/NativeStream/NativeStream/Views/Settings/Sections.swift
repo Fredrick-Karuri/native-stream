@@ -37,6 +37,7 @@ struct SourcesSection: View {
 
 }
 
+
 struct SourceRow: View {
     @Environment(PlaylistViewModel.self) private var playlistVM
     let source: PlaylistSource
@@ -247,26 +248,42 @@ struct ServerSection: View {
 // MARK: - Proxy section
 
 struct ProxySection: View {
-    @State private var proxyEnabled = false
-    @State private var referer      = ""
-    @State private var userAgent    = ""
+    @Environment(SettingsStore.self) private var settings
 
     var body: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
-            SectionTitle("HLS Proxy")
-            SettingsRow(title: "Enable Proxy",
-                        subtitle: "Injects Referer/User-Agent headers. Enable only if streams require it.") {
-                NSToggle(isOn: $proxyEnabled)
+            SectionTitle("Fix Protected Streams")
+            SettingsRow(title: "Fix protected streams",
+                        subtitle: "Some streams block playback unless specific access headers are sent. Enable this if channels show a blank screen or fail to load.") {
+                NSToggle(isOn: Binding(
+                    get: { settings.proxyEnabled },
+                    set: { enabled in
+                        settings.proxyEnabled = enabled
+                        Task { try? await APIClient.shared.setProxyEnabled(enabled) }
+                    }
+                ))
             }
-            if proxyEnabled {
-                VStack(alignment: .leading, spacing: NS.Spacing.sm) {
-                    Text("Referer").font(NS.Font.caption).foregroundStyle(NS.text3)
-                    NSTextField(placeholder: "https://example.com", text: $referer)
-                    Text("User-Agent").font(NS.Font.caption).foregroundStyle(NS.text3).padding(.top, NS.Spacing.xs)
-                    NSTextField(placeholder: "Mozilla/5.0 ...", text: $userAgent)
-                }
+            proxyHint
+        }
+        .task {
+            // Sync from server on appear — handles server restart resetting to config default
+            if let serverEnabled = try? await APIClient.shared.getProxyEnabled() {
+                settings.proxyEnabled = serverEnabled
             }
         }
+    }
+
+    @ViewBuilder
+    private var proxyHint: some View {
+        HStack(alignment: .top, spacing: NS.Spacing.xs) {
+            Text(settings.proxyEnabled ? "✓" : "ℹ")
+                .font(NS.Font.caption)
+            Text(settings.proxyEnabled
+                ? "Proxy active — streams are routing through your server with custom headers."
+                : "Most streams work without this. Enable it only if you're seeing blank screens or playback failures on specific channels.")
+                .font(NS.Font.caption)
+        }
+        .foregroundStyle(settings.proxyEnabled ? NS.accent : NS.text3)
     }
 }
 

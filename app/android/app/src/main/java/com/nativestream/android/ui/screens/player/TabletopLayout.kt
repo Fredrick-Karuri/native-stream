@@ -41,12 +41,14 @@ import com.nativestream.android.ui.viewmodel.CastViewModel
 import com.nativestream.android.ui.viewmodel.ControlViewModel
 import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
+import com.nativestream.android.ui.viewmodel.SettingsViewModel
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)@Composable
 fun PlayerTabletopLayout(
     playerViewModel: PlayerViewModel,
     castViewModel: CastViewModel,
     epgViewModel: EpgViewModel?,
+    settingsViewModel: SettingsViewModel,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     controlViewModel: ControlViewModel = hiltViewModel(),
@@ -54,6 +56,7 @@ fun PlayerTabletopLayout(
     val activeChannel   by playerViewModel.activeChannel.collectAsState()
     val playerError     by playerViewModel.playerError.collectAsState()
     val resizeMode      by playerViewModel.resizeMode.collectAsState()
+    val proxyEnabled    by settingsViewModel.proxyEnabled.collectAsState()
     val isCastAvailable by castViewModel.isCastAvailable.collectAsState()
     var showCastSheet   by remember { mutableStateOf(false) }
 
@@ -88,6 +91,10 @@ fun PlayerTabletopLayout(
             )
 
             playerError?.let { error ->
+                val failureReason by playerViewModel.activeChannelFailureReason.collectAsState()
+                val proxyEnabled  by settingsViewModel.proxyEnabled.collectAsState()
+                val showProxyOption = failureReason == "forbidden" && !proxyEnabled
+
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier         = Modifier
@@ -95,8 +102,15 @@ fun PlayerTabletopLayout(
                         .background(Color.Black.copy(alpha = 0.72f)),
                 ) {
                     PlayerErrorOverlay(
-                        message = error,
-                        onRetry = { playerViewModel.retryManually() },
+                        message        = error,
+                        onRetry        = { playerViewModel.retryManually() },
+                        onTryWithProxy = if (showProxyOption) {
+                            {
+                                playerViewModel.tryWithProxy { success ->
+                                    if (success) settingsViewModel.setProxyEnabled(true)
+                                }
+                            }
+                        } else null,
                     )
                 }
             }
@@ -173,6 +187,7 @@ fun PlayerTabletopLayout(
                 onToggleResize = { playerViewModel.toggleResizeMode() },
                 channel        = activeChannel,
                 programme      = programme,
+                proxyEnabled   = proxyEnabled,
                 modifier       = Modifier.fillMaxWidth(),
             )
 

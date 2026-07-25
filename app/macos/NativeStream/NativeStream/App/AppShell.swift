@@ -132,6 +132,9 @@ struct AppShell: View {
     private func loadAll() async {
         await playlistVM.loadAll()
         if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
+        if let serverProxyEnabled = try? await APIClient.shared.getProxyEnabled() {
+            settings.proxyEnabled = serverProxyEnabled
+        }
         playlistVM.scheduleAutoRefresh()
         Task(priority: .background) {
             await loadEPG()

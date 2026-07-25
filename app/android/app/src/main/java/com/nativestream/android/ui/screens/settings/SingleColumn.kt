@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +37,8 @@ import com.adamglin.phosphoricons.regular.Database
 import com.adamglin.phosphoricons.regular.FileLock
 import com.adamglin.phosphoricons.regular.GearSix
 import com.adamglin.phosphoricons.regular.Play
+import com.adamglin.phosphoricons.regular.VideoCamera
+import com.nativestream.android.ui.components.NSTextField
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -72,6 +75,7 @@ fun SettingsSingleColumn(
     val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
     val sources      by sourceViewModel.sources.collectAsState()
     val serverReachable by settingsViewModel.serverReachable.collectAsState()
+    val streamQuality    by settingsViewModel.streamQuality.collectAsState()
     var showResetConfirm by remember { mutableStateOf(false) }
 
     LazyColumn(
@@ -143,26 +147,84 @@ fun SettingsSingleColumn(
         }
 
         item {
-            SettingsSection(label = "Playback") {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+            SettingsSection(label = "Channels") {
+                var managedChannels by remember { mutableStateOf<List<com.nativestream.android.data.remote.ChannelResponse>>(emptyList()) }
+                var channelSearch by remember { mutableStateOf("") }
+                LaunchedEffect(Unit) { managedChannels = settingsViewModel.listManagedChannels() }
+                val filteredChannels = remember(managedChannels, channelSearch) {
+                    if (channelSearch.isBlank()) managedChannels
+                    else managedChannels.filter { it.name.contains(channelSearch, ignoreCase = true) }
+                }
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
                 ) {
-                    RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.GearSix)
-                    Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                    Text(
-                        text     = "Buffer preset",
-                        style    = NSType.bodyMedium(),
-                        color    = NSColors.text,
-                        modifier = Modifier.weight(1f),
-                    )
+                    NSTextField(value = channelSearch, onValueChange = { channelSearch = it }, placeholder = "Search channels…")
+                    Spacer(modifier = Modifier.height(dimens.spacing.sm))
+                    if (filteredChannels.isEmpty()) {
+                        Text(
+                            text  = if (channelSearch.isBlank()) "No server-managed channels yet." else "No matches",
+                            style = NSType.caption(),
+                            color = NSColors.text3,
+                        )
+                    } else {
+                        filteredChannels.forEachIndexed { index, ch ->
+                            if (index > 0) Spacer(modifier = Modifier.height(dimens.spacing.xs))
+                            ChannelHeaderRow(channel = ch, settingsViewModel = settingsViewModel)
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            SettingsSection(label = "Playback") {
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.GearSix)
+                        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                        Text(
+                            text  = "Buffer preset",
+                            style = NSType.bodyMedium(),
+                            color = NSColors.text,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(dimens.spacing.xs))
                     BufferSegmentedPicker(
                         selected = bufferPreset,
                         onSelect = { settingsViewModel.setBufferPreset(it) },
                     )
                 }
+
+                SettingsDivider()
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RowIcon(background = COLOR_AMBER, tint = TINT_AMBER, icon = PhosphorIcons.Regular.VideoCamera)
+                        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                        Text(
+                            text  = "Video quality",
+                            style = NSType.bodyMedium(),
+                            color = NSColors.text,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(dimens.spacing.xs))
+                    QualitySegmentedPicker(
+                        selected = streamQuality,
+                        onSelect = { settingsViewModel.setStreamQuality(it) },
+                    )
+                }
+
                 SettingsDivider()
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -178,24 +240,31 @@ fun SettingsSingleColumn(
                     }
                     NSToggle(checked = hwDecode, onCheckedChange = {}, enabled = false)
                 }
-            }
+                }
         }
 
         item {
             SettingsSection(label = "Proxy") {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = dimens.spacing.md, vertical = dimens.spacing.sm),
                 ) {
-                    RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.FileLock)
-                    Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "Enable proxy", style = NSType.bodyMedium(), color = NSColors.text)
-                        Text(text = "Inject Referer / User-Agent", style = NSType.caption(), color = NSColors.text3)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.FileLock)
+                        Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Fix protected streams", style = NSType.bodyMedium(), color = NSColors.text)
+                            Text(
+                                text  = "Some streams block playback unless specific access headers are sent. Enable this if channels show a blank screen or fail to load.",
+                                style = NSType.caption(),
+                                color = NSColors.text3,
+                            )
+                        }
+                        NSToggle(checked = proxyEnabled, onCheckedChange = { onProxyEnabled(it) })
                     }
-                    NSToggle(checked = proxyEnabled, onCheckedChange = { onProxyEnabled(it) })
+                    Spacer(modifier = Modifier.height(dimens.spacing.xs))
+                    ProxyHint(proxyEnabled = proxyEnabled)
                 }
             }
         }

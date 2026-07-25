@@ -121,6 +121,13 @@ class ControlViewModel @Inject constructor(
         }
     }
 
+    fun retryConnection() {
+        viewModelScope.launch {
+            val serverUrl  = settingsDataStore.serverUrl.first()
+            controlSession.retryNow(serverUrl, deviceId, android.os.Build.MODEL)
+        }
+    }
+
     fun startDiscovery() = controlDiscovery.scan()
     fun stopDiscovery()  = controlDiscovery.stop()
 

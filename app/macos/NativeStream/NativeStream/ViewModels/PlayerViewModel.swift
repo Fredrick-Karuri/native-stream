@@ -38,6 +38,9 @@ final class PlayerViewModel:NSObject {
 
     private let maxRetries = 3
     private let retryDelay: TimeInterval = 2
+    private static let proxyRetryGracePeriod: TimeInterval = 2
+    
+    private(set) var activeLinkFailureReason: String? = nil
 
     // MARK: - Playback
 
@@ -45,6 +48,7 @@ final class PlayerViewModel:NSObject {
         playerItemObservation?.cancel()
         error = nil
         retryCount = 0
+        activeLinkFailureReason = nil
         currentChannel = channel
         startPlayback(url: channel.streamURL)
     }
@@ -66,6 +70,7 @@ final class PlayerViewModel:NSObject {
         currentChannel = temp
         error = nil
         retryCount = 0
+        activeLinkFailureReason = nil
         startPlayback(url: url, headers: headers)
     }
 
@@ -138,6 +143,7 @@ final class PlayerViewModel:NSObject {
 
     private func handleFailure(underlyingError: Error?) async {
         guard retryCount < maxRetries else {
+            await refreshActiveLinkFailureReason()
             error = .maxRetriesExceeded
             updateNowPlayingState(paused: true)
             return
@@ -153,9 +159,28 @@ final class PlayerViewModel:NSObject {
             error = .noActiveLink
             return
         }
+        activeLinkFailureReason = detail.activeLink?.failureReason
         startPlayback(url: activeURL)
     }
 
+    /// Fetches the channel one more time so the terminal error state knows
+    /// *why* playback failed (e.g. "forbidden") before surfacing recovery options.
+    private func refreshActiveLinkFailureReason() async {
+        guard let channel = currentChannel else { return }
+        let detail = try? await APIClient.shared.getChannel(id: channel.id)
+        activeLinkFailureReason = detail?.activeLink?.failureReason
+    }
+
+    /// Enables the proxy and retries the current stream — mirrors Android's
+    /// PlayerViewModel.tryWithProxy (PRX-UX-002).
+    func tryWithProxy(settings: SettingsStore) async -> Bool {
+        try? await APIClient.shared.setProxyEnabled(true)
+        settings.proxyEnabled = true
+        retry()
+        try? await Task.sleep(for: .seconds(Self.proxyRetryGracePeriod))
+        return isPlaying
+    }
+    
     // MARK: - Retry (manual, from UI)
 
     func retry() {

@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nativestream.android.data.local.BufferPreset
 import com.nativestream.android.data.local.SettingsDataStore
+import com.nativestream.android.data.local.StreamQuality
 import com.nativestream.android.data.remote.ApiClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -39,6 +40,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.serverUrl.first().let { apiClient.setBaseUrl(it) }
         }
+        viewModelScope.launch { syncProxyState() }
     }
 
     val serverUrl: StateFlow<String> = settingsDataStore.serverUrl
@@ -49,6 +51,47 @@ class SettingsViewModel @Inject constructor(
 
     val bufferPreset: StateFlow<BufferPreset> = settingsDataStore.bufferPreset
         .stateIn(viewModelScope, SharingStarted.Eagerly, BufferPreset.DEFAULT)
+
+    val streamQuality: StateFlow<StreamQuality> = settingsDataStore.streamQuality
+        .stateIn(viewModelScope, SharingStarted.Eagerly, StreamQuality.AUTO)
+
+    fun setStreamQuality(quality: StreamQuality) {
+        viewModelScope.launch { settingsDataStore.setStreamQuality(quality) }
+    }
+
+    val proxyEnabled: StateFlow<Boolean> = settingsDataStore.proxyEnabled
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    fun setProxyEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsDataStore.setProxyEnabled(enabled)
+            runCatching { apiClient.putProxyEnabled(enabled) }
+        }
+    }
+
+    fun syncProxyState() {
+        viewModelScope.launch {
+            runCatching {
+                val serverEnabled = apiClient.getProxyEnabled()
+                settingsDataStore.setProxyEnabled(serverEnabled)
+            }
+        }
+    }
+
+    // ── Channel headers ─────────────────────────────────────
+    suspend fun listManagedChannels(): List<com.nativestream.android.data.remote.ChannelResponse> =
+        runCatching { apiClient.listChannels().filter { it.hasActiveLink } }.getOrDefault(emptyList())
+
+    suspend fun getChannelHeaders(channelId: String): Map<String, String> =
+        runCatching { apiClient.getChannel(channelId).activeLink?.headers }.getOrNull() ?: emptyMap()
+
+    suspend fun saveChannelHeaders(channelId: String, headers: Map<String, String>): Boolean =
+        runCatching {
+            apiClient.updateChannel(
+                channelId,
+                com.nativestream.android.data.remote.UpdateChannelRequest(streamHeaders = headers)
+            )
+        }.isSuccess
 
     val onboardingComplete: StateFlow<Boolean> = settingsDataStore.onboardingComplete
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)

@@ -1,6 +1,7 @@
 package com.nativestream.android.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -16,7 +17,7 @@ private val QUALITY_BADGE_H_PAD = 5.dp
 private val QUALITY_BADGE_V_PAD = 2.dp
 
 @Composable
-fun QualityBadge(label: String) {
+fun QualityBadge(label: String, onClick: () -> Unit = {}) {
     Text(
         text  = label,
         style = NSType.monoSmall(),
@@ -24,6 +25,7 @@ fun QualityBadge(label: String) {
         modifier = Modifier
             .clip(RoundedCornerShape(LIVE_BADGE_RADIUS))
             .background(Color.White.copy(alpha = 0.15f))
+            .clickable { onClick() }
             .padding(horizontal = QUALITY_BADGE_H_PAD, vertical = QUALITY_BADGE_V_PAD),
     )
 }

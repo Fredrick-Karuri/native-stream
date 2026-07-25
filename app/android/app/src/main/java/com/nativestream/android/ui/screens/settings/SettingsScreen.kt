@@ -58,10 +58,11 @@ val TINT_AMBER   = Color(0xFFF59E0B)
 val TINT_RED     = Color(0xFFEF4444)
 
 enum class SettingsSection {
-    SERVER, SOURCES, PLAYBACK, PROXY, SYSTEM;
+    SERVER, SOURCES, CHANNELS, PLAYBACK, PROXY, SYSTEM;
     val label get() = when (this) {
         SERVER   -> "Server"
         SOURCES  -> "Sources"
+        CHANNELS -> "Channels"
         PLAYBACK -> "Playback"
         PROXY    -> "Proxy"
         SYSTEM   -> "System"
@@ -84,15 +85,15 @@ fun settingsFieldModifier(): Modifier {
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
-    settingsViewModel: SettingsViewModel        = hiltViewModel(),
+    settingsViewModel: SettingsViewModel,
     sourceViewModel:   SourceViewModel          = hiltViewModel(),
-    loadingViewModel:  ChannelLoadingViewModel  = hiltViewModel(),
+    loadingViewModel:  ChannelLoadingViewModel,
 ) {
     val dimens    = NSDimens.current
     val serverUrl by settingsViewModel.serverUrl.collectAsState()
-    LaunchedEffect(Unit) { settingsViewModel.checkHealth() }
+    LaunchedEffect(serverUrl) { settingsViewModel.checkHealth() }
 
-    var proxyEnabled by remember { mutableStateOf(false) }
+    val proxyEnabled by settingsViewModel.proxyEnabled.collectAsState()
     var hwDecode     by remember { mutableStateOf(true) }
 
     var showServerUrlDialog by remember { mutableStateOf(false) }
@@ -112,9 +113,6 @@ fun SettingsScreen(
             && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
 
     val discoveredUrl by settingsViewModel.discoveredUrl.collectAsState()
-    LaunchedEffect(discoveredUrl) {
-        discoveredUrl?.let { settingsViewModel.confirmDiscoveredUrl(it) }
-    }
 
     Scaffold(
         snackbarHost   = { SnackbarHost(snackbarHostState) },
@@ -159,7 +157,7 @@ fun SettingsScreen(
                     snackbarHostState   = snackbarHostState,
                     scope               = scope,
                     proxyEnabled        = proxyEnabled,
-                    onProxyEnabled      = { proxyEnabled = it },
+                    onProxyEnabled      = { settingsViewModel.setProxyEnabled(it) },
                     hwDecode            = hwDecode,
                 )
             } else {
@@ -182,7 +180,7 @@ fun SettingsScreen(
                     snackbarHostState   = snackbarHostState,
                     scope               = scope,
                     proxyEnabled        = proxyEnabled,
-                    onProxyEnabled      = { proxyEnabled = it },
+                    onProxyEnabled      = { settingsViewModel.setProxyEnabled(it) },
                     hwDecode            = hwDecode,
                 )
             }

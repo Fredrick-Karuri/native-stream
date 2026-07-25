@@ -5,6 +5,7 @@ import SwiftUI
 
 enum SettingsSection: String, CaseIterable {
     case sources    = "Sources"
+    case channels   = "Channels"
     case playback   = "Playback"
     case server     = "Server"
     case proxy      = "Proxy"
@@ -13,6 +14,7 @@ enum SettingsSection: String, CaseIterable {
     var icon: String {
         switch self {
         case .sources:   return "server.rack"
+        case .channels:  return "tv"
         case .playback:  return "play.circle"
         case .server:    return "cpu"
         case .proxy:     return "lock.shield"
@@ -177,6 +179,7 @@ struct SettingsScreen: View {
     private var panelContent: some View {
         switch selected {
         case .sources:   SourcesSection()
+        case .channels:  ChannelsSection()
         case .playback:  PlaybackSection()
         case .server:    ServerSection()
         case .proxy:     ProxySection()

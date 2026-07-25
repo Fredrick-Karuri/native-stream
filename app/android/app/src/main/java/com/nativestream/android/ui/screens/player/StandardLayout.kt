@@ -30,6 +30,7 @@ import com.nativestream.android.ui.viewmodel.EpgViewModel
 import com.nativestream.android.ui.viewmodel.PlayerViewModel
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.nativestream.android.ui.viewmodel.SettingsViewModel
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
@@ -37,6 +38,7 @@ fun PlayerStandardLayout(
     playerViewModel: PlayerViewModel,
     castViewModel: CastViewModel,
     epgViewModel: EpgViewModel?,
+    settingsViewModel: SettingsViewModel,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     controlViewModel: ControlViewModel = hiltViewModel(),
@@ -47,6 +49,7 @@ fun PlayerStandardLayout(
     val sidebarVisible  by playerViewModel.sidebarVisible.collectAsState()
     val isCastAvailable by castViewModel.isCastAvailable.collectAsState()
     val resizeMode      by playerViewModel.resizeMode.collectAsState()
+    val proxyEnabled    by settingsViewModel.proxyEnabled.collectAsState()
     val foldPosture     = rememberFoldPosture()
     val context         = LocalContext.current
     var showCastSheet   by remember { mutableStateOf(false) }
@@ -96,6 +99,10 @@ fun PlayerStandardLayout(
             )
 
             playerError?.let { error ->
+                val failureReason by playerViewModel.activeChannelFailureReason.collectAsState()
+                val proxyEnabled  by settingsViewModel.proxyEnabled.collectAsState()
+                val showProxyOption = failureReason == "forbidden" && !proxyEnabled
+
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier         = Modifier
@@ -103,8 +110,15 @@ fun PlayerStandardLayout(
                         .background(Color.Black.copy(alpha = 0.72f)),
                 ) {
                     PlayerErrorOverlay(
-                        message = error,
-                        onRetry = { playerViewModel.retryManually() },
+                        message        = error,
+                        onRetry        = { playerViewModel.retryManually() },
+                        onTryWithProxy = if (showProxyOption) {
+                            {
+                                playerViewModel.tryWithProxy { success ->
+                                    if (success) settingsViewModel.setProxyEnabled(true)
+                                }
+                            }
+                        } else null,
                     )
                 }
             }
@@ -137,6 +151,7 @@ fun PlayerStandardLayout(
                     onToggleResize = { playerViewModel.toggleResizeMode() },
                     channel        = activeChannel,
                     programme      = programme,
+                    proxyEnabled   = proxyEnabled,
                 )
             }
         }

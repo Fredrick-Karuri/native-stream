@@ -12,6 +12,7 @@ import com.nativestream.android.data.remote.ApiClient
 import com.nativestream.android.data.remote.ControlDiscoveryService
 import com.nativestream.android.data.remote.ControlSession
 import com.nativestream.android.data.remote.ServerDiscoveryService
+import com.nativestream.android.data.remote.ServerHealthMonitor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -53,4 +54,10 @@ object AppModule {
     fun provideControlDiscoveryService(
         @ApplicationContext context: Context,
     ): ControlDiscoveryService = ControlDiscoveryService(context)
+
+    @Provides @Singleton
+    fun provideServerHealthMonitor(
+        apiClient: ApiClient,
+        discoveryService: ServerDiscoveryService,
+    ): ServerHealthMonitor = ServerHealthMonitor(apiClient, discoveryService)
 }

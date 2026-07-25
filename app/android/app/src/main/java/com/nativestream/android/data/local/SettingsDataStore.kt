@@ -19,7 +19,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -34,6 +33,8 @@ private object Keys {
     val PLAYLIST_SOURCES     = stringPreferencesKey("playlist_sources")
     val SELECTED_SOURCE_ID = stringPreferencesKey("selected_source_id")
     val CONTROL_DEVICE_ID = stringPreferencesKey("control_device_id")
+    val PROXY_ENABLED     = booleanPreferencesKey("proxy_enabled")
+    val STREAM_QUALITY = stringPreferencesKey("stream_quality")
 
 }
 
@@ -97,6 +98,16 @@ class SettingsDataStore @Inject constructor(
         store.edit { it[Keys.BUFFER_PRESET] = preset.name }
     }
 
+    val streamQuality: Flow<StreamQuality> = store.data.map { prefs ->
+        prefs[Keys.STREAM_QUALITY]?.let { raw ->
+            runCatching { StreamQuality.valueOf(raw) }.getOrNull()
+        } ?: StreamQuality.AUTO
+    }
+
+    suspend fun setStreamQuality(quality: StreamQuality) {
+        store.edit { it[Keys.STREAM_QUALITY] = quality.name }
+    }
+
     // ── Onboarding ────────────────────────────────────────────────────────────
 
     val onboardingComplete: Flow<Boolean> = store.data.map { prefs ->
@@ -157,6 +168,14 @@ class SettingsDataStore @Inject constructor(
 
     suspend fun setControlDeviceId(id: String) {
         store.edit { it[Keys.CONTROL_DEVICE_ID] = id }
+    }
+
+    val proxyEnabled: Flow<Boolean> = store.data.map { prefs ->
+        prefs[Keys.PROXY_ENABLED] ?: false
+    }
+
+    suspend fun setProxyEnabled(enabled: Boolean) {
+        store.edit { it[Keys.PROXY_ENABLED] = enabled }
     }
     suspend fun resetAll() {
         store.edit { it.clear() }

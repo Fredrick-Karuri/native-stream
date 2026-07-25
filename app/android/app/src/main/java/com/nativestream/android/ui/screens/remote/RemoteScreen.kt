@@ -6,7 +6,9 @@
 
 package com.nativestream.android.ui.screens.remote
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,6 +45,7 @@ import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.ControlViewModel
+import com.nativestream.android.ui.screens.settings.NSHealthDot
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,7 +55,8 @@ fun RemoteScreen(
     onPullBackReady: (channelId: String, channelName: String, streamUrl: String) -> Unit,
 ) {
     val dimens      = NSDimens.current
-    val sheetState  = rememberModalBottomSheetState()
+    val sheetState  = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     val sessions    by controlViewModel.sessions.collectAsState()
 
     val isPullingBack by controlViewModel.isPullingBack.collectAsState()
@@ -97,11 +101,17 @@ fun RemoteScreen(
                     modifier           = Modifier.size(18.dp),
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text  = session.name,
-                        style = NSType.heading(),
-                        color = NSColors.text,
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(dimens.spacing.xs),
+                    ) {
+                        NSHealthDot(score = if (isPullingBack) 0.5 else 1.0)
+                        Text(
+                            text  = session.name,
+                            style = NSType.heading(),
+                            color = NSColors.text,
+                        )
+                    }
                     Text(
                         text     = session.channelName.ifEmpty { session.channelId },
                         style    = NSType.caption(),
@@ -113,7 +123,15 @@ fun RemoteScreen(
             }
 
             // ── Volume ────────────────────────────────────────────────────────
-            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.xs)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.5.dp)
+                    .background(NSColors.border)
+            )
+
+            // ── Volume
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacing.sm)) {
                 Text(
                     text  = "Volume",
                     style = NSType.captionMedium(),
@@ -148,12 +166,27 @@ fun RemoteScreen(
             }
 
             // ── Actions ───────────────────────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.5.dp)
+                    .background(NSColors.border)
+            )
+
+            // ── Actions
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.5.dp)
+                    .background(NSColors.border)
+            )
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(dimens.spacing.sm),
                 modifier              = Modifier.fillMaxWidth(),
             ) {
                 SheetActionButton(
-                    label     = if (isPullingBack) "Pulling…" else "Play Here",
+                    label     = if (isPullingBack) "Pulling…" else "Play on Phone",
                     isPrimary = true,
                     enabled   = !isPullingBack,
                     onClick   = { controlViewModel.pullBack(session.deviceId) },
@@ -171,7 +204,7 @@ fun RemoteScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(dimens.spacing.md))
+            Spacer(modifier = Modifier.height(dimens.spacing.xl))
         }
     }
 }

@@ -32,6 +32,10 @@ final class SettingsStore {
         didSet { UserDefaults.standard.set(onboardingComplete, forKey: Keys.onboardingComplete) }
     }
     
+    var proxyEnabled: Bool {
+        didSet { UserDefaults.standard.set(proxyEnabled, forKey: Keys.proxyEnabled) }
+    }
+    
     var controlDeviceID: String {
         didSet { UserDefaults.standard.set(controlDeviceID, forKey: Keys.controlDeviceID) }
     }
@@ -45,6 +49,7 @@ final class SettingsStore {
         epgRefreshInterval = RefreshInterval(rawValue: ud.string(forKey: Keys.epgRefreshInterval) ?? "") ?? .sixHours
         serverURLString    = ud.string(forKey: Keys.serverURL) ?? "http://localhost:8888"
         onboardingComplete = ud.bool(forKey: Keys.onboardingComplete)
+        proxyEnabled       = ud.bool(forKey: Keys.proxyEnabled)
         controlDeviceID = ud.string(forKey: Keys.controlDeviceID) ?? UUID().uuidString
     }
 
@@ -69,7 +74,8 @@ final class SettingsStore {
         static let serverURL          = "serverURL"
         static let onboardingComplete = "onboardingComplete"
         static let controlDeviceID    = "controlDeviceID"
-        static let allKeys: [String]  = [bufferPreset, epgURL, epgRefreshInterval, serverURL, onboardingComplete]
+        static let proxyEnabled = "proxyEnabled"
+        static let allKeys: [String]  = [bufferPreset, epgURL, epgRefreshInterval, serverURL, onboardingComplete, proxyEnabled]
         // controlDeviceID intentionally excluded from allKeys — device identity
         // should survive factory reset so the server recognizes returning devices
     }

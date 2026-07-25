@@ -32,6 +32,7 @@ import com.adamglin.PhosphorIcons
 import com.adamglin.phosphoricons.Regular
 import com.adamglin.phosphoricons.regular.MonitorPlay
 import com.adamglin.phosphoricons.regular.CircleNotch
+import com.adamglin.phosphoricons.regular.WifiHigh
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.model.control.SessionInfo
 import com.nativestream.android.ui.components.SheetActionButton
@@ -90,9 +91,25 @@ fun CastSheet(
                     color = NSColors.text,
                 )
             }
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacing.xs),
+            ) {
+                Icon(
+                    imageVector        = PhosphorIcons.Regular.WifiHigh,
+                    contentDescription = null,
+                    tint               = NSColors.text3,
+                    modifier           = Modifier.size(11.dp),
+                )
+                Text(
+                    text  = "Devices on your network",
+                    style = NSType.caption(),
+                    color = NSColors.text3,
+                )
+            }
             if (currentChannel == null) {
                 Text(
-                    text  = "Nothing playing yet",
+                    text  = "Start playing something to send it to a device.",
                     style = NSType.caption(),
                     color = NSColors.text3,
                 )

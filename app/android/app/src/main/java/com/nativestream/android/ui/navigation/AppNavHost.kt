@@ -52,23 +52,41 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
 import com.nativestream.android.ui.theme.NSColors
+import com.nativestream.android.ui.viewmodel.NetworkViewModel
+import com.nativestream.android.ui.components.OfflineBanner
+import com.nativestream.android.ui.viewmodel.ServerHealthViewModel
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.rememberCoroutineScope
 
 @Composable
-fun AppNavHost(modifier: Modifier = Modifier) {
-    val navController        = rememberNavController()
-    val playerViewModel: PlayerViewModel     = hiltViewModel()
-    val epgViewModel: EpgViewModel           = hiltViewModel()
+fun AppNavHost(
+    modifier: Modifier = Modifier,
+) {
+    val navController = rememberNavController()
+    val playerViewModel: PlayerViewModel = hiltViewModel()
+    val epgViewModel: EpgViewModel = hiltViewModel()
     val settingsViewModel: SettingsViewModel = hiltViewModel()
-    val castViewModel: CastViewModel         = hiltViewModel()
-    val loadingViewModel: ChannelLoadingViewModel = hiltViewModel() // Added to ensure Now screen loads channels
-    val controlViewModel: ControlViewModel        = hiltViewModel()
+    val castViewModel: CastViewModel = hiltViewModel()
+    val loadingViewModel: ChannelLoadingViewModel =
+        hiltViewModel() // Added to ensure Now screen loads channels
+    val controlViewModel: ControlViewModel = hiltViewModel()
+    val networkViewModel: NetworkViewModel = hiltViewModel()
+    val serverHealthViewModel: ServerHealthViewModel = hiltViewModel()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
 
-    val hasActiveChannel   by playerViewModel.hasActiveChannel.collectAsState()
-    var showRemoteScreen   by remember { mutableStateOf(false) }
-    val isPlayerVisible    by playerViewModel.isPlayerVisible.collectAsState()
-    val isLoading          by settingsViewModel.isLoading.collectAsState()
+    val hasActiveChannel by playerViewModel.hasActiveChannel.collectAsState()
+    val isOnline by networkViewModel.isOnline.collectAsState()
+    val pendingUrl by serverHealthViewModel.pendingUrl.collectAsState()
+    var showRemoteScreen by remember { mutableStateOf(false) }
+    val isPlayerVisible by playerViewModel.isPlayerVisible.collectAsState()
+    val isLoading by settingsViewModel.isLoading.collectAsState()
     val onboardingComplete by settingsViewModel.onboardingComplete.collectAsState()
 
     val windowSizeClass = LocalWindowSizeClass.current
@@ -76,15 +94,18 @@ fun AppNavHost(modifier: Modifier = Modifier) {
             && windowSizeClass.heightSizeClass != WindowHeightSizeClass.Compact
     val useRail = isTablet
 
-    val foldPosture     = rememberFoldPosture()
+    val foldPosture = rememberFoldPosture()
 
     val onDestinationSelected: (AppDestination) -> Unit = { destination ->
         navController.navigate(destination.route) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
-            restoreState    = true
+            restoreState = true
         }
     }
+    var wasOnline by remember { mutableStateOf(isOnline) }
+    val streamQuality by settingsViewModel.streamQuality.collectAsState()
+
     if (isLoading) return
 
     if (!onboardingComplete) {
@@ -97,13 +118,54 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         playerViewModel.connectToService()
     }
 
+    LaunchedEffect(isOnline) {
+        if (isOnline && !wasOnline) {
+            loadingViewModel.loadAll(isBackgroundRefresh = true)
+            epgViewModel.load(isBackgroundRefresh = true)
+            controlViewModel.retryConnection()
+        }
+        wasOnline = isOnline
+    }
+
+    LaunchedEffect(streamQuality) {
+        playerViewModel.applyQuality(streamQuality)
+    }
+
+    LaunchedEffect(pendingUrl) {
+        val url = pendingUrl ?: return@LaunchedEffect
+        val host = url.removePrefix("http://").removePrefix("https://")
+        val result = snackbarHostState.showSnackbar(
+            message = "Server found at $host",
+            actionLabel = "Connect",
+            withDismissAction = true,
+        )
+        when (result) {
+            SnackbarResult.ActionPerformed -> {
+                serverHealthViewModel.confirmDiscoveredUrl(url)
+                controlViewModel.retryConnection()
+                loadingViewModel.loadAll(isBackgroundRefresh = true)
+                epgViewModel.load(isBackgroundRefresh = true)
+                settingsViewModel.checkHealth()
+            }
+
+            SnackbarResult.Dismissed -> serverHealthViewModel.dismissDiscoveredUrl()
+        }
+    }
+
     // Outer Box — true window bounds, no inset padding.
     // The player overlay is a direct child here so it fills the full screen.
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(NSColors.bg),
-    ) {
+    Scaffold(
+        modifier      = modifier.fillMaxSize(),
+        containerColor = NSColors.bg,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost  = { SnackbarHost(snackbarHostState) },
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(NSColors.bg),
+        ) {
 
         // Inner Box — safeDrawing + book-posture hinge padding for the nav shell only.
         Box(
@@ -114,7 +176,7 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                     if (foldPosture.isBook && foldPosture.hingeBounds != null) {
                         Modifier.windowInsetsPadding(
                             WindowInsets(
-                                left  = foldPosture.hingeBounds.width.toInt(),
+                                left = foldPosture.hingeBounds.width.toInt(),
                                 right = 0,
                             )
                         )
@@ -122,63 +184,67 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 ),
         ) {
             Row(modifier = Modifier.fillMaxSize()) {
-                    if (useRail && !isPlayerVisible) {
-                        NSNavRail(
+                if (useRail && !isPlayerVisible) {
+                    NSNavRail(
+                        navController = navController,
+                        destinations = bottomNavDestinations,
+                        onDestinationSelected = onDestinationSelected,
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    OfflineBanner(isOffline = !isOnline)
+                    NavHost(
+                        navController = navController,
+                        startDestination = AppDestination.Now.route,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        composable(AppDestination.Now.route) {
+                            NowScreen(
+                                playerViewModel = playerViewModel,
+                                epgViewModel = epgViewModel,
+                            )
+                        }
+                        composable(AppDestination.Browse.route) {
+                            BrowseScreen(
+                                playerViewModel = playerViewModel,
+                            )
+                        }
+                        composable(AppDestination.Settings.route) {
+                            SettingsScreen(
+                                settingsViewModel = settingsViewModel,
+                                loadingViewModel  = loadingViewModel,
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = hasActiveChannel && !isPlayerVisible,
+                        enter = slideInVertically { it },
+                        exit = slideOutVertically { it },
+                    ) {
+                        MiniPlayer(
+                            playerViewModel = playerViewModel,
+                            epgViewModel = epgViewModel,
+                            onExpand = { playerViewModel.showPlayer() },
+                            onClose = { playerViewModel.stop() },
+                        )
+                    }
+
+                    if (!isPlayerVisible) {
+                        ConnectBar(
+                            controlViewModel = controlViewModel,
+                            onTap = { showRemoteScreen = true },
+                        )
+                    }
+
+                    if (!useRail && !isPlayerVisible) {
+                        NSBottomNavBar(
                             navController = navController,
                             destinations = bottomNavDestinations,
                             onDestinationSelected = onDestinationSelected,
                         )
                     }
-                    Column(modifier = Modifier.weight(1f)) {
-                        NavHost(
-                            navController = navController,
-                            startDestination = AppDestination.Now.route,
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            composable(AppDestination.Now.route) {
-                                NowScreen(
-                                    playerViewModel = playerViewModel,
-                                    epgViewModel = epgViewModel,
-                                )
-                            }
-                            composable(AppDestination.Browse.route) {
-                                BrowseScreen(
-                                    playerViewModel = playerViewModel,
-                                )
-                            }
-                            composable(AppDestination.Settings.route) {
-                                SettingsScreen()
-                            }
-                        }
-
-                        AnimatedVisibility(
-                            visible = hasActiveChannel && !isPlayerVisible,
-                            enter = slideInVertically { it },
-                            exit = slideOutVertically { it },
-                        ) {
-                            MiniPlayer(
-                                playerViewModel = playerViewModel,
-                                epgViewModel = epgViewModel,
-                                onExpand = { playerViewModel.showPlayer() },
-                                onClose = { playerViewModel.stop() },
-                            )
-                        }
-
-                        if (!isPlayerVisible) {
-                            ConnectBar(
-                                controlViewModel = controlViewModel,
-                                onTap            = { showRemoteScreen = true },
-                            )
-                        }
-
-                        if (!useRail && !isPlayerVisible) {
-                            NSBottomNavBar(
-                                navController = navController,
-                                destinations = bottomNavDestinations,
-                                onDestinationSelected = onDestinationSelected,
-                            )
-                        }
-                    }
+                }
             }
         }
 
@@ -186,30 +252,31 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         // Renders at true window bounds; PlayerControls.kt applies its own
         // statusBarsPadding / navigationBarsPadding internally.
         AnimatedVisibility(
-            visible  = isPlayerVisible,
+            visible = isPlayerVisible,
             modifier = Modifier.fillMaxSize(),
-            enter    = slideInVertically { it } + fadeIn(),
-            exit     = slideOutVertically { it } + fadeOut(),
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut(),
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 PlayerScreen(
-                    playerViewModel   = playerViewModel,
-                    castViewModel     = castViewModel,
-                    epgViewModel      = epgViewModel,
-                    onDismiss         = { playerViewModel.hidePlayer() },
+                    playerViewModel = playerViewModel,
+                    castViewModel = castViewModel,
+                    epgViewModel = epgViewModel,
+                    onDismiss = { playerViewModel.hidePlayer() },
                 )
             }
         }
         if (showRemoteScreen) {
             RemoteScreen(
                 controlViewModel = controlViewModel,
-                onDismiss        = { showRemoteScreen = false },
-                onPullBackReady  = { channelId, channelName, streamUrl ->
+                onDismiss = { showRemoteScreen = false },
+                onPullBackReady = { channelId, channelName, streamUrl ->
                     playerViewModel.playFromRemote(channelId, channelName, streamUrl)
                     showRemoteScreen = false
                 },
             )
         }
     }
+}
 }
 
