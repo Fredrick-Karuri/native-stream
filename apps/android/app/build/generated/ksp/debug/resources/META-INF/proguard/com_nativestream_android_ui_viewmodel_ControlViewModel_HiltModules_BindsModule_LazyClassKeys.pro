@@ -1,1 +1,0 @@
--keep,allowobfuscation,allowshrinking class com.nativestream.android.ui.viewmodel.ControlViewModel
