@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package stream.v1;
+option go_package = "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1;streamv1";
 
 import "google/protobuf/timestamp.proto";
 
