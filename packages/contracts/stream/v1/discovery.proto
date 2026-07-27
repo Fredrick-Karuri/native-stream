@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package stream.v1;
+
+option go_package = "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1;streamv1";
+
+import "google/protobuf/timestamp.proto";
+
+// ── Discovery status ────────────────────────────────────────────────────────
+
+// Response for GET /api/discovery/status.
+message DiscoveryStatusResponse {
+  optional google.protobuf.Timestamp last_run = 1;
+  int32 found_today = 2;
+  int32 promoted_today = 3;
+  int32 unmatched_count = 4;
+}
+
+// ── Unmatched links ───────────────────────────────────────────────────────────
+
+message UnmatchedLink {
+  string url = 1;
+  string source_url = 2;
+  string context = 3;
+}
+
+// Request for GET /api/discovery/unmatched.
+// limit: max number of results to return; server defaults to 50 if unset.
+message GetUnmatchedRequest {
+  optional int32 limit = 1;
+}
+
+// Response for GET /api/discovery/unmatched.
+message UnmatchedResponse {
+  repeated UnmatchedLink unmatched = 1;
+  int32 total = 2;
+}
