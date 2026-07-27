@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package stream.v1;
+
+option go_package = "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1;streamv1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// ── Enums ─────────────────────────────────────────────────────────────────────
+
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  MESSAGE_TYPE_REGISTER = 1;
+  MESSAGE_TYPE_SESSION_LIST = 2;
+  MESSAGE_TYPE_PLAY = 3;
+  MESSAGE_TYPE_STOP = 4;
+  MESSAGE_TYPE_PULL_BACK = 5;
+  MESSAGE_TYPE_PULL_BACK_ACK = 6;
+  MESSAGE_TYPE_STATE_UPDATE = 7;
+  MESSAGE_TYPE_VOLUME_SET = 8;
+  MESSAGE_TYPE_PING = 9;
+  MESSAGE_TYPE_PONG = 10;
+}
+
+enum DeviceKind {
+  DEVICE_KIND_UNSPECIFIED = 0;
+  DEVICE_KIND_CONTROLLER = 1;
+  DEVICE_KIND_TARGET = 2;
+  DEVICE_KIND_TV = 3; // reserved for future TV client
+}
+
+// ── Envelope ──────────────────────────────────────────────────────────────────
+
+// Top-level wrapper for every LMC message.
+// to: device UUID for unicast, "broadcast" for all, "server" for hub-only.
+// auth: unset in zero-auth mode; populated for future token auth.
+message Envelope {
+  MessageType type = 1;
+  string from = 2;
+  string to = 3;
+  optional string auth = 4;
+  google.protobuf.Struct payload = 5;
+}
+
+// Canonical representation of a connected device.
+// Broadcast to all clients on any session change.
+message SessionInfo {
+  string device_id = 1;
+  string name = 2;
+  DeviceKind kind = 3;
+  string channel_id = 4;
+  string channel_name = 5;
+  string stream_url = 6;
+  bool playing = 7;
+  double volume = 8;
+  google.protobuf.Timestamp connected_at = 9;
+}
+
+// ── Payload types ─────────────────────────────────────────────────────────────
+
+// Sent by a device immediately after connecting.
+message RegisterPayload {
+  string name = 1;
+  DeviceKind kind = 2;
+}
+
+// Instructs a target to begin playback.
+message PlayPayload {
+  string channel_id = 1;
+  string channel_name = 2;
+  string stream_url = 3;
+}
+
+// Sent by a controller to request the target's stream.
+message PullBackPayload {
+  string from_device = 1;
+}
+
+// Sent by the server to the requesting controller.
+message PullBackAckPayload {
+  string channel_id = 1;
+  string channel_name = 2;
+  string stream_url = 3;
+}
+
+// Broadcast by a target on every playback state change.
+message StateUpdatePayload {
+  string channel_id = 1;
+  string channel_name = 2;
+  string stream_url = 3;
+  bool playing = 4;
+  double volume = 5;
+}
+
+message VolumeSetPayload {
+  double level = 1; // 0.0 - 1.0
+}
+
+// Wraps the current session list for broadcast.
+message SessionListPayload {
+  repeated SessionInfo sessions = 1;
+}

@@ -48,4 +48,5 @@ crawlers/*.py
 packages/sdk-gen/kotlin/build/
 packages/sdk-gen/kotlin/.gradle/
 packages/sdk-gen/swift/.build/
-packages/sdk-gen/swift/.swiftpm/
+packages/sdk-gen/swift/.swiftpm/packages/sdk-gen/kotlin/bin/
+packages/sdk-gen/kotlin/bin/
