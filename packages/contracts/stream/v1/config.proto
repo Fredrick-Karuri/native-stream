@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package stream.v1;
+
+option go_package = "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1;streamv1";
+import "stream/v1/control.proto";
+
+// ── Proxy config ──────────────────────────────────────────────────────────────
+
+// Shared response shape for GET and PUT /api/proxy/config.
+message ProxyConfigResponse {
+  bool enabled = 1;
+}
+
+// Request body for PUT /api/proxy/config.
+message UpdateProxyConfigRequest {
+  bool enabled = 1;
+}
+
+// ── Sessions ──────────────────────────────────────────────────────────────────
+
+// Response for GET /api/sessions.
+message SessionsResponse {
+  repeated SessionInfo sessions = 1;
+}
