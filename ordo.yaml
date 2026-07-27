@@ -4,23 +4,23 @@ groups:
     commands:
       dev:
         description: Run server with dev config
-        run: "cd app/server && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml go run ./cmd"
+        run: "cd apps/server && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml go run ./cmd"
       build:
         description: Build the server binary
-        run: "cd app/server && go build -o nativestream-server ./cmd/"
+        run: "cd apps/server && go build -o nativestream-server ./cmd/"
       run:
         description: Build and run the server
-        run: "cd app/server && go build -o nativestream-server ./cmd/ && ./nativestream-server"
+        run: "cd apps/server && go build -o nativestream-server ./cmd/ && ./nativestream-server"
       test:
         description: Run Go tests
-        run: "cd app/server && go test -race -v ./..."
+        run: "cd apps/server && go test -race -v ./..."
       vet:
         description: Run go vet
-        run: "cd app/server && go vet ./..."
+        run: "cd apps/server && go vet ./..."
       restart:
         description: Rebuild and restart server in background
         run: |
-          cd app/server && go build -o nativestream-server ./cmd/
+          cd apps/server && go build -o nativestream-server ./cmd/
           lsof -ti :8888 | xargs kill -9 2>/dev/null; sleep 1
           ./nativestream-server >> /tmp/nativestream.log 2>> /tmp/nativestream-error.log &
           sleep 1 && echo "✓ Restarted"
@@ -47,24 +47,24 @@ groups:
       build:
         description: Build Mac app (Release)
         run: |
-          xcodebuild -project app/macos/NativeStream/NativeStream.xcodeproj \
+          xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
                      -scheme NativeStream \
                      -configuration Release \
-                     -derivedDataPath app/macos/NativeStream/DerivedData \
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
                      build
-          xattr -cr app/macos/NativeStream/DerivedData/Build/Products/Release/NativeStream.app
+          xattr -cr apps/macos/NativeStream/DerivedData/Build/Products/Release/NativeStream.app
       run:
         description: Build and launch Mac app (Debug)
         run: |
-          xcodebuild -project app/macos/NativeStream/NativeStream.xcodeproj \
+          xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
                      -scheme NativeStream \
                      -configuration Debug \
-                     -derivedDataPath app/macos/NativeStream/DerivedData \
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
                      build
-          open app/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
+          open apps/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
       lint:
         description: Lint the macOS client with SwiftLint
-        run: "swiftlint lint --path app/macos/NativeStream"
+        run: "swiftlint lint --path apps/macos/NativeStream"
       release-patch:
         description: Bump patch version and release the macOS app
         run: "./release.sh macos patch"
@@ -83,18 +83,18 @@ groups:
     commands:
       test-unit:
         description: Run Android local unit and integration tests
-        run: "cd app/android && ./gradlew testDebugUnitTest"
+        run: "cd apps/android && ./gradlew testDebugUnitTest"
       test-ui:
         description: Run Android instrumented Compose UI tests (requires emulator/device)
-        run: "cd app/android && ./gradlew connectedDebugAndroidTest"
+        run: "cd apps/android && ./gradlew connectedDebugAndroidTest"
       test-all:
         description: Run all Android tests (unit + UI)
         run: |
-          cd app/android && ./gradlew testDebugUnitTest
+          cd apps/android && ./gradlew testDebugUnitTest
           ./gradlew connectedDebugAndroidTest
       lint:
         description: Run Android Lint
-        run: "cd app/android && ./gradlew lint"
+        run: "cd apps/android && ./gradlew lint"
       release-patch:
         description: Bump patch version and release the Android app
         run: "./release.sh android patch"
@@ -114,13 +114,13 @@ groups:
       start:
         description: Start server in background and launch app
         run: |
-          cd app/server && go build -o nativestream-server ./cmd/ && ./nativestream-server &
-          xcodebuild -project app/macos/NativeStream/NativeStream.xcodeproj \
+          cd apps/server && go build -o nativestream-server ./cmd/ && ./nativestream-server &
+          xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
                      -scheme NativeStream \
                      -configuration Debug \
-                     -derivedDataPath app/macos/NativeStream/DerivedData \
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
                      build
-          open app/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
+          open apps/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
 
   service:
     description: launchd service management
@@ -128,8 +128,8 @@ groups:
       install:
         description: Install server as launchd service
         run: |
-          cd app/server && go build -o nativestream-server ./cmd/
-          sudo cp app/server/nativestream-server /usr/local/bin/nativestream-server
+          cd apps/server && go build -o nativestream-server ./cmd/
+          sudo cp apps/server/nativestream-server /usr/local/bin/nativestream-server
           /usr/local/bin/nativestream-server --install-service
       uninstall:
         description: Remove launchd service
@@ -142,4 +142,4 @@ groups:
     commands:
       all:
         description: Remove binaries and derived data
-        run: "rm -f app/server/nativestream-server && rm -rf app/macos/NativeStream/DerivedData"
+        run: "rm -f apps/server/nativestream-server && rm -rf apps/macos/NativeStream/DerivedData"

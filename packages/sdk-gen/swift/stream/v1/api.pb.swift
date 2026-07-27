@@ -29,9 +29,23 @@ public nonisolated struct Stream_V1_HealthResponse: Sendable {
 
   public var uptime: String = String()
 
-  public var channels: Int32 = 0
+  public var channels: Int32 {
+    get {_channels ?? 0}
+    set {_channels = newValue}
+  }
+  /// Returns true if `channels` has been explicitly set.
+  public var hasChannels: Bool {self._channels != nil}
+  /// Clears the value of `channels`. Subsequent reads from it will return its default value.
+  public mutating func clearChannels() {self._channels = nil}
 
-  public var healthy: Int32 = 0
+  public var healthy: Int32 {
+    get {_healthy ?? 0}
+    set {_healthy = newValue}
+  }
+  /// Returns true if `healthy` has been explicitly set.
+  public var hasHealthy: Bool {self._healthy != nil}
+  /// Clears the value of `healthy`. Subsequent reads from it will return its default value.
+  public mutating func clearHealthy() {self._healthy = nil}
 
   public var lastProbe: SwiftProtobuf.Google_Protobuf_Timestamp {
     get {_lastProbe ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
@@ -66,6 +80,8 @@ public nonisolated struct Stream_V1_HealthResponse: Sendable {
 
   public init() {}
 
+  fileprivate var _channels: Int32? = nil
+  fileprivate var _healthy: Int32? = nil
   fileprivate var _lastProbe: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
   fileprivate var _serverName: String? = nil
   fileprivate var _addr: String? = nil
@@ -279,8 +295,8 @@ nonisolated extension Stream_V1_HealthResponse: SwiftProtobuf.Message, SwiftProt
       switch fieldNumber {
       case 1: try { try decoder.decodeSingularStringField(value: &self.status) }()
       case 2: try { try decoder.decodeSingularStringField(value: &self.uptime) }()
-      case 3: try { try decoder.decodeSingularInt32Field(value: &self.channels) }()
-      case 4: try { try decoder.decodeSingularInt32Field(value: &self.healthy) }()
+      case 3: try { try decoder.decodeSingularInt32Field(value: &self._channels) }()
+      case 4: try { try decoder.decodeSingularInt32Field(value: &self._healthy) }()
       case 5: try { try decoder.decodeSingularMessageField(value: &self._lastProbe) }()
       case 6: try { try decoder.decodeSingularStringField(value: &self.version) }()
       case 7: try { try decoder.decodeSingularStringField(value: &self._serverName) }()
@@ -301,12 +317,12 @@ nonisolated extension Stream_V1_HealthResponse: SwiftProtobuf.Message, SwiftProt
     if !self.uptime.isEmpty {
       try visitor.visitSingularStringField(value: self.uptime, fieldNumber: 2)
     }
-    if self.channels != 0 {
-      try visitor.visitSingularInt32Field(value: self.channels, fieldNumber: 3)
-    }
-    if self.healthy != 0 {
-      try visitor.visitSingularInt32Field(value: self.healthy, fieldNumber: 4)
-    }
+    try { if let v = self._channels {
+      try visitor.visitSingularInt32Field(value: v, fieldNumber: 3)
+    } }()
+    try { if let v = self._healthy {
+      try visitor.visitSingularInt32Field(value: v, fieldNumber: 4)
+    } }()
     try { if let v = self._lastProbe {
       try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
     } }()
@@ -325,8 +341,8 @@ nonisolated extension Stream_V1_HealthResponse: SwiftProtobuf.Message, SwiftProt
   public static func ==(lhs: Stream_V1_HealthResponse, rhs: Stream_V1_HealthResponse) -> Bool {
     if lhs.status != rhs.status {return false}
     if lhs.uptime != rhs.uptime {return false}
-    if lhs.channels != rhs.channels {return false}
-    if lhs.healthy != rhs.healthy {return false}
+    if lhs._channels != rhs._channels {return false}
+    if lhs._healthy != rhs._healthy {return false}
     if lhs._lastProbe != rhs._lastProbe {return false}
     if lhs.version != rhs.version {return false}
     if lhs._serverName != rhs._serverName {return false}

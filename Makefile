@@ -1,13 +1,13 @@
 .PHONY: build-server run-server clean build-app run-app dev test-server test-android-unit test-android-ui test-android-all \
         release-server-patch release-server-minor release-server-major release-server-current \
         release-android-patch release-android-minor release-android-major release-android-current \
-        release-macos-patch release-macos-minor release-macos-major release-macos-current
+        release-macos-patch release-macos-minor release-macos-major release-macos-current server-dev
 
 
 VERSION := $(shell cat VERSION)
 
 # ── Go Server ─────────────────────────────────────────────────────────────────
-SERVER_DIR := app/server
+SERVER_DIR := apps/server
 SERVER_BIN := $(SERVER_DIR)/nativestream-server
 
 build-server:
@@ -16,7 +16,7 @@ build-server:
 	@echo "✓ Binary: $(SERVER_BIN)"
 
 server-dev:
-	cd app/server && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml go run ./cmd
+	cd apps/server && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml go run ./cmd
 
 run-server: build-server
 	@echo "→ Starting server on http://127.0.0.1:8888"
@@ -30,7 +30,7 @@ vet-server:
 	cd $(SERVER_DIR) && go vet ./...
 
 lint-server:
-	cd app/server && golangci-lint run --timeout 5m
+	cd apps/server && golangci-lint run --timeout 5m
 
 restart-server: build-server
 	@echo "→ Stopping server..."
@@ -43,7 +43,7 @@ logs:
 	tail -f /tmp/nativestream.log /tmp/nativestream-error.log
 
 # ── Mac App ───────────────────────────────────────────────────────────────────
-APP_DIR     := app/macos/NativeStream
+APP_DIR     := apps/macos/NativeStream
 SCHEME      := NativeStream
 DERIVED     := $(APP_DIR)/DerivedData
 
@@ -69,10 +69,10 @@ run-app:
 	open $(DERIVED)/Build/Products/Debug/NativeStream.app
 
 lint-client:
-	swiftlint lint --path app/macos/NativeStream
+	swiftlint lint --path apps/macos/NativeStream
 
 # ── Android App ───────────────────────────────────────────────────────────────
-ANDROID_DIR := app/android
+ANDROID_DIR := apps/android
 
 test-android-unit:
 	@echo "→ Running Android local unit and integration tests..."
@@ -119,16 +119,16 @@ docker-test: docker-build
 release-binaries:
 	@echo "→ Building release binaries v$(VERSION)"
 	@mkdir -p dist
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -C app/server \
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -C apps/server \
 		-ldflags="-s -w -X main.version=$(VERSION)" \
 		-o ../../dist/nativestream-server-darwin-arm64 ./cmd/
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -C app/server \
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -C apps/server \
 		-ldflags="-s -w -X main.version=$(VERSION)" \
 		-o ../../dist/nativestream-server-darwin-amd64 ./cmd/
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -C app/server \
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -C apps/server \
 		-ldflags="-s -w -X main.version=$(VERSION)" \
 		-o ../../dist/nativestream-server-linux-amd64 ./cmd/
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C app/server \
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C apps/server \
 		-ldflags="-s -w -X main.version=$(VERSION)" \
 		-o ../../dist/nativestream-server-linux-arm64 ./cmd/
 	cd dist && shasum -a 256 nativestream-server-* > checksums.txt

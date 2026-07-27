@@ -10,8 +10,8 @@ import "google/protobuf/timestamp.proto";
 message HealthResponse {
   string status = 1;
   string uptime = 2;
-  int32 channels = 3;
-  int32 healthy = 4;
+  optional int32 channels = 3;
+  optional int32 healthy = 4;
   optional google.protobuf.Timestamp last_probe = 5;
   string version = 6;
   optional string server_name = 7;

@@ -90,63 +90,64 @@ public final class ApiProto {
   static {
     java.lang.String[] descriptorData = {
       "\n\023stream/v1/api.proto\022\tstream.v1\032\037google" +
-      "/protobuf/timestamp.proto\"\267\002\n\016HealthResp" +
+      "/protobuf/timestamp.proto\"\332\002\n\016HealthResp" +
       "onse\022\026\n\006status\030\001 \001(\tR\006status\022\026\n\006uptime\030\002" +
-      " \001(\tR\006uptime\022\032\n\010channels\030\003 \001(\005R\010channels" +
-      "\022\030\n\007healthy\030\004 \001(\005R\007healthy\022>\n\nlast_probe" +
-      "\030\005 \001(\0132\032.google.protobuf.TimestampH\000R\tla" +
-      "stProbe\210\001\001\022\030\n\007version\030\006 \001(\tR\007version\022$\n\013" +
-      "server_name\030\007 \001(\tH\001R\nserverName\210\001\001\022\027\n\004ad" +
-      "dr\030\010 \001(\tH\002R\004addr\210\001\001B\r\n\013_last_probeB\016\n\014_s" +
-      "erver_nameB\007\n\005_addr\"\226\002\n\017ChannelResponse\022" +
-      "\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022\037\n\013g" +
-      "roup_title\030\003 \001(\tR\ngroupTitle\022\025\n\006tvg_id\030\004" +
-      " \001(\tR\005tvgId\022\031\n\010logo_url\030\005 \001(\tR\007logoUrl\022\030" +
-      "\n\007healthy\030\006 \001(\010R\007healthy\022!\n\014active_score" +
-      "\030\007 \001(\001R\013activeScore\022\'\n\017candidate_count\030\010" +
-      " \001(\005R\016candidateCount\022&\n\017has_active_link\030" +
-      "\t \001(\010R\rhasActiveLink\"M\n\023ChannelListRespo" +
-      "nse\0226\n\010channels\030\001 \003(\0132\032.stream.v1.Channe" +
-      "lResponseR\010channels\"\274\002\n\025ChannelDetailRes" +
-      "ponse\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004nam" +
-      "e\022\037\n\013group_title\030\003 \001(\tR\ngroupTitle\022\025\n\006tv" +
-      "g_id\030\004 \001(\tR\005tvgId\022\031\n\010logo_url\030\005 \001(\tR\007log" +
-      "oUrl\022\032\n\010keywords\030\006 \003(\tR\010keywords\022B\n\013acti" +
-      "ve_link\030\007 \001(\0132\034.stream.v1.LinkScoreRespo" +
-      "nseH\000R\nactiveLink\210\001\001\022<\n\ncandidates\030\010 \003(\013" +
-      "2\034.stream.v1.LinkScoreResponseR\ncandidat" +
-      "esB\016\n\014_active_link\"\317\002\n\021LinkScoreResponse" +
-      "\022\020\n\003url\030\001 \001(\tR\003url\022\024\n\005score\030\002 \001(\001R\005score" +
-      "\022\035\n\nlatency_ms\030\003 \001(\005R\tlatencyMs\022\024\n\005state" +
-      "\030\004 \001(\tR\005state\022\035\n\nfail_count\030\005 \001(\005R\tfailC" +
-      "ount\022C\n\007headers\030\006 \003(\0132).stream.v1.LinkSc" +
-      "oreResponse.HeadersEntryR\007headers\022*\n\016fai" +
-      "lure_reason\030\007 \001(\tH\000R\rfailureReason\210\001\001\032:\n" +
-      "\014HeadersEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value" +
-      "\030\002 \001(\tR\005value:\0028\001B\021\n\017_failure_reason\"\325\002\n" +
-      "\024CreateChannelRequest\022\022\n\004name\030\001 \001(\tR\004nam" +
-      "e\022\037\n\013group_title\030\002 \001(\tR\ngroupTitle\022\025\n\006tv" +
-      "g_id\030\003 \001(\tR\005tvgId\022\031\n\010logo_url\030\004 \001(\tR\007log" +
-      "oUrl\022\035\n\nstream_url\030\005 \001(\tR\tstreamUrl\022\032\n\010k" +
-      "eywords\030\006 \003(\tR\010keywords\022Y\n\016stream_header" +
-      "s\030\007 \003(\01322.stream.v1.CreateChannelRequest" +
-      ".StreamHeadersEntryR\rstreamHeaders\032@\n\022St" +
-      "reamHeadersEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005va" +
-      "lue\030\002 \001(\tR\005value:\0028\001\"\332\002\n\024UpdateChannelRe" +
-      "quest\022\027\n\004name\030\001 \001(\tH\000R\004name\210\001\001\022$\n\013group_" +
-      "title\030\002 \001(\tH\001R\ngroupTitle\210\001\001\022\"\n\nstream_u" +
-      "rl\030\003 \001(\tH\002R\tstreamUrl\210\001\001\022\032\n\010keywords\030\004 \003" +
-      "(\tR\010keywords\022Y\n\016stream_headers\030\005 \003(\01322.s" +
-      "tream.v1.UpdateChannelRequest.StreamHead" +
-      "ersEntryR\rstreamHeaders\032@\n\022StreamHeaders" +
-      "Entry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005" +
-      "value:\0028\001B\007\n\005_nameB\016\n\014_group_titleB\r\n\013_s" +
-      "tream_url\"(\n\016StatusResponse\022\026\n\006status\030\001 " +
-      "\001(\tR\006statusB\245\001\n\rcom.stream.v1B\010ApiProtoP" +
-      "\001ZEgithub.com/fredrick-karuri/nativestre" +
-      "am/sdk-gen/go/stream/v1;streamv1\242\002\003SXX\252\002" +
-      "\tStream.V1\312\002\tStream\\V1\342\002\025Stream\\V1\\GPBMe" +
-      "tadata\352\002\nStream::V1b\006proto3"
+      " \001(\tR\006uptime\022\037\n\010channels\030\003 \001(\005H\000R\010channe" +
+      "ls\210\001\001\022\035\n\007healthy\030\004 \001(\005H\001R\007healthy\210\001\001\022>\n\n" +
+      "last_probe\030\005 \001(\0132\032.google.protobuf.Times" +
+      "tampH\002R\tlastProbe\210\001\001\022\030\n\007version\030\006 \001(\tR\007v" +
+      "ersion\022$\n\013server_name\030\007 \001(\tH\003R\nserverNam" +
+      "e\210\001\001\022\027\n\004addr\030\010 \001(\tH\004R\004addr\210\001\001B\013\n\t_channe" +
+      "lsB\n\n\010_healthyB\r\n\013_last_probeB\016\n\014_server" +
+      "_nameB\007\n\005_addr\"\226\002\n\017ChannelResponse\022\016\n\002id" +
+      "\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022\037\n\013group_" +
+      "title\030\003 \001(\tR\ngroupTitle\022\025\n\006tvg_id\030\004 \001(\tR" +
+      "\005tvgId\022\031\n\010logo_url\030\005 \001(\tR\007logoUrl\022\030\n\007hea" +
+      "lthy\030\006 \001(\010R\007healthy\022!\n\014active_score\030\007 \001(" +
+      "\001R\013activeScore\022\'\n\017candidate_count\030\010 \001(\005R" +
+      "\016candidateCount\022&\n\017has_active_link\030\t \001(\010" +
+      "R\rhasActiveLink\"M\n\023ChannelListResponse\0226" +
+      "\n\010channels\030\001 \003(\0132\032.stream.v1.ChannelResp" +
+      "onseR\010channels\"\274\002\n\025ChannelDetailResponse" +
+      "\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022\037\n\013" +
+      "group_title\030\003 \001(\tR\ngroupTitle\022\025\n\006tvg_id\030" +
+      "\004 \001(\tR\005tvgId\022\031\n\010logo_url\030\005 \001(\tR\007logoUrl\022" +
+      "\032\n\010keywords\030\006 \003(\tR\010keywords\022B\n\013active_li" +
+      "nk\030\007 \001(\0132\034.stream.v1.LinkScoreResponseH\000" +
+      "R\nactiveLink\210\001\001\022<\n\ncandidates\030\010 \003(\0132\034.st" +
+      "ream.v1.LinkScoreResponseR\ncandidatesB\016\n" +
+      "\014_active_link\"\317\002\n\021LinkScoreResponse\022\020\n\003u" +
+      "rl\030\001 \001(\tR\003url\022\024\n\005score\030\002 \001(\001R\005score\022\035\n\nl" +
+      "atency_ms\030\003 \001(\005R\tlatencyMs\022\024\n\005state\030\004 \001(" +
+      "\tR\005state\022\035\n\nfail_count\030\005 \001(\005R\tfailCount\022" +
+      "C\n\007headers\030\006 \003(\0132).stream.v1.LinkScoreRe" +
+      "sponse.HeadersEntryR\007headers\022*\n\016failure_" +
+      "reason\030\007 \001(\tH\000R\rfailureReason\210\001\001\032:\n\014Head" +
+      "ersEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(" +
+      "\tR\005value:\0028\001B\021\n\017_failure_reason\"\325\002\n\024Crea" +
+      "teChannelRequest\022\022\n\004name\030\001 \001(\tR\004name\022\037\n\013" +
+      "group_title\030\002 \001(\tR\ngroupTitle\022\025\n\006tvg_id\030" +
+      "\003 \001(\tR\005tvgId\022\031\n\010logo_url\030\004 \001(\tR\007logoUrl\022" +
+      "\035\n\nstream_url\030\005 \001(\tR\tstreamUrl\022\032\n\010keywor" +
+      "ds\030\006 \003(\tR\010keywords\022Y\n\016stream_headers\030\007 \003" +
+      "(\01322.stream.v1.CreateChannelRequest.Stre" +
+      "amHeadersEntryR\rstreamHeaders\032@\n\022StreamH" +
+      "eadersEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002" +
+      " \001(\tR\005value:\0028\001\"\332\002\n\024UpdateChannelRequest" +
+      "\022\027\n\004name\030\001 \001(\tH\000R\004name\210\001\001\022$\n\013group_title" +
+      "\030\002 \001(\tH\001R\ngroupTitle\210\001\001\022\"\n\nstream_url\030\003 " +
+      "\001(\tH\002R\tstreamUrl\210\001\001\022\032\n\010keywords\030\004 \003(\tR\010k" +
+      "eywords\022Y\n\016stream_headers\030\005 \003(\01322.stream" +
+      ".v1.UpdateChannelRequest.StreamHeadersEn" +
+      "tryR\rstreamHeaders\032@\n\022StreamHeadersEntry" +
+      "\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value" +
+      ":\0028\001B\007\n\005_nameB\016\n\014_group_titleB\r\n\013_stream" +
+      "_url\"(\n\016StatusResponse\022\026\n\006status\030\001 \001(\tR\006" +
+      "statusB\245\001\n\rcom.stream.v1B\010ApiProtoP\001ZEgi" +
+      "thub.com/fredrick-karuri/nativestream/sd" +
+      "k-gen/go/stream/v1;streamv1\242\002\003SXX\252\002\tStre" +
+      "am.V1\312\002\tStream\\V1\342\002\025Stream\\V1\\GPBMetadat" +
+      "a\352\002\nStream::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

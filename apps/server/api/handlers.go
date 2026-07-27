@@ -18,9 +18,29 @@ import (
 	"github.com/fredrick-karuri/nativestream/server/store"
 	"github.com/fredrick-karuri/nativestream/server/validator"
 	"github.com/fredrick-karuri/nativestream/server/control"
+	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"nhooyr.io/websocket"
 	"github.com/google/uuid"
 )
+
+var protoMarshaler = protojson.MarshalOptions{
+	UseProtoNames:   true,
+	EmitUnpopulated: false,
+}
+
+func writeProtoJSON(w http.ResponseWriter, status int, msg proto.Message) {
+	data, err := protoMarshaler.Marshal(msg)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write(data)
+}
 
 type Handler struct {
 	store     *store.Store
@@ -32,6 +52,7 @@ type Handler struct {
 	serverAddr  string
 	serverName  string
 	hub        *control.Hub
+	version    string
 }
 
 func New(
@@ -42,6 +63,7 @@ func New(
 	proxyCfg proxy.Config,
 	serverAddr string,
 	hub *control.Hub,
+	version string,
 ) *Handler {
 	return &Handler{
 		store:      s,
@@ -53,6 +75,7 @@ func New(
 		serverAddr: serverAddr,
 		serverName: func() string { h, _ := os.Hostname(); return "NativeStream @ " + h }(),
 		hub:        hub,
+		version:    version,
 	}
 }
 
@@ -246,16 +269,21 @@ func (h *Handler) handleDeleteChannel(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
 	total, healthy := h.store.Count()
-	writeJSON(w, http.StatusOK, map[string]any{
-		"status":       "ok",
-		"uptime":       time.Since(h.startTime).Round(time.Second).String(),
-		"channels":     total,
-		"healthy":      healthy,
-		"last_probe":   h.validator.LastProbeTime(),
-		"version":      "4.0",
-		"server_name":  h.serverName,
-		"addr":         h.serverAddr,
-	})
+
+	resp := &streamv1.HealthResponse{
+		Status:     "ok",
+		Uptime:     time.Since(h.startTime).Round(time.Second).String(),
+		Channels:   proto.Int32(int32(total)),
+		Healthy:    proto.Int32(int32(healthy)),
+		Version:    h.version,
+		ServerName: proto.String(h.serverName),
+		Addr:       proto.String(h.serverAddr),
+	}
+	if lp := h.validator.LastProbeTime(); !lp.IsZero() {
+		resp.LastProbe = timestamppb.New(lp)
+	}
+
+	writeProtoJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) handleProbe(w http.ResponseWriter, r *http.Request) {

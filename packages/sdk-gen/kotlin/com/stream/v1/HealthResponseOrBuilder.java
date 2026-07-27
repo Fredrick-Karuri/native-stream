@@ -34,13 +34,23 @@ public interface HealthResponseOrBuilder extends
       getUptimeBytes();
 
   /**
-   * <code>int32 channels = 3 [json_name = "channels"];</code>
+   * <code>optional int32 channels = 3 [json_name = "channels"];</code>
+   * @return Whether the channels field is set.
+   */
+  boolean hasChannels();
+  /**
+   * <code>optional int32 channels = 3 [json_name = "channels"];</code>
    * @return The channels.
    */
   int getChannels();
 
   /**
-   * <code>int32 healthy = 4 [json_name = "healthy"];</code>
+   * <code>optional int32 healthy = 4 [json_name = "healthy"];</code>
+   * @return Whether the healthy field is set.
+   */
+  boolean hasHealthy();
+  /**
+   * <code>optional int32 healthy = 4 [json_name = "healthy"];</code>
    * @return The healthy.
    */
   int getHealthy();

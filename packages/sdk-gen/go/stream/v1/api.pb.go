@@ -26,8 +26,8 @@ type HealthResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
 	Uptime        string                 `protobuf:"bytes,2,opt,name=uptime,proto3" json:"uptime,omitempty"`
-	Channels      int32                  `protobuf:"varint,3,opt,name=channels,proto3" json:"channels,omitempty"`
-	Healthy       int32                  `protobuf:"varint,4,opt,name=healthy,proto3" json:"healthy,omitempty"`
+	Channels      *int32                 `protobuf:"varint,3,opt,name=channels,proto3,oneof" json:"channels,omitempty"`
+	Healthy       *int32                 `protobuf:"varint,4,opt,name=healthy,proto3,oneof" json:"healthy,omitempty"`
 	LastProbe     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_probe,json=lastProbe,proto3,oneof" json:"last_probe,omitempty"`
 	Version       string                 `protobuf:"bytes,6,opt,name=version,proto3" json:"version,omitempty"`
 	ServerName    *string                `protobuf:"bytes,7,opt,name=server_name,json=serverName,proto3,oneof" json:"server_name,omitempty"`
@@ -81,15 +81,15 @@ func (x *HealthResponse) GetUptime() string {
 }
 
 func (x *HealthResponse) GetChannels() int32 {
-	if x != nil {
-		return x.Channels
+	if x != nil && x.Channels != nil {
+		return *x.Channels
 	}
 	return 0
 }
 
 func (x *HealthResponse) GetHealthy() int32 {
-	if x != nil {
-		return x.Healthy
+	if x != nil && x.Healthy != nil {
+		return *x.Healthy
 	}
 	return 0
 }
@@ -685,18 +685,21 @@ var File_stream_v1_api_proto protoreflect.FileDescriptor
 
 const file_stream_v1_api_proto_rawDesc = "" +
 	"\n" +
-	"\x13stream/v1/api.proto\x12\tstream.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb7\x02\n" +
+	"\x13stream/v1/api.proto\x12\tstream.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xda\x02\n" +
 	"\x0eHealthResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x16\n" +
-	"\x06uptime\x18\x02 \x01(\tR\x06uptime\x12\x1a\n" +
-	"\bchannels\x18\x03 \x01(\x05R\bchannels\x12\x18\n" +
-	"\ahealthy\x18\x04 \x01(\x05R\ahealthy\x12>\n" +
+	"\x06uptime\x18\x02 \x01(\tR\x06uptime\x12\x1f\n" +
+	"\bchannels\x18\x03 \x01(\x05H\x00R\bchannels\x88\x01\x01\x12\x1d\n" +
+	"\ahealthy\x18\x04 \x01(\x05H\x01R\ahealthy\x88\x01\x01\x12>\n" +
 	"\n" +
-	"last_probe\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\tlastProbe\x88\x01\x01\x12\x18\n" +
+	"last_probe\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampH\x02R\tlastProbe\x88\x01\x01\x12\x18\n" +
 	"\aversion\x18\x06 \x01(\tR\aversion\x12$\n" +
-	"\vserver_name\x18\a \x01(\tH\x01R\n" +
+	"\vserver_name\x18\a \x01(\tH\x03R\n" +
 	"serverName\x88\x01\x01\x12\x17\n" +
-	"\x04addr\x18\b \x01(\tH\x02R\x04addr\x88\x01\x01B\r\n" +
+	"\x04addr\x18\b \x01(\tH\x04R\x04addr\x88\x01\x01B\v\n" +
+	"\t_channelsB\n" +
+	"\n" +
+	"\b_healthyB\r\n" +
 	"\v_last_probeB\x0e\n" +
 	"\f_server_nameB\a\n" +
 	"\x05_addr\"\x96\x02\n" +

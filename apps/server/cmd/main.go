@@ -6,24 +6,25 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"time"
-	"net"
 
-	"github.com/grandcat/zeroconf"
+	"github.com/fredrick-karuri/nativestream/server"
 	"github.com/fredrick-karuri/nativestream/server/api"
 	"github.com/fredrick-karuri/nativestream/server/config"
+	"github.com/fredrick-karuri/nativestream/server/control"
 	"github.com/fredrick-karuri/nativestream/server/discovery"
 	"github.com/fredrick-karuri/nativestream/server/discovery/crawlers"
 	"github.com/fredrick-karuri/nativestream/server/epg"
+	"github.com/fredrick-karuri/nativestream/server/logging"
 	"github.com/fredrick-karuri/nativestream/server/proxy"
 	"github.com/fredrick-karuri/nativestream/server/service"
+	"github.com/fredrick-karuri/nativestream/server/shutdown"
 	"github.com/fredrick-karuri/nativestream/server/store"
 	"github.com/fredrick-karuri/nativestream/server/validator"
-	"github.com/fredrick-karuri/nativestream/server/logging"
-	"github.com/fredrick-karuri/nativestream/server/shutdown"
-	"github.com/fredrick-karuri/nativestream/server/control"
+	"github.com/grandcat/zeroconf"
 )
 
 func main() {
@@ -46,7 +47,7 @@ func main() {
 			}
 			return
 		case "--help", "-h":
-			fmt.Println("NativeStream Server v4.0")
+			fmt.Println("NativeStream Server")
 			fmt.Println("  nativestream-server                     Start")
 			fmt.Println("  nativestream-server --install-service   Register launchd service")
 			fmt.Println("  nativestream-server --uninstall-service Remove launchd service")
@@ -61,7 +62,7 @@ func main() {
 		os.Exit(1)
 	}
 	logging.Init("info", false)
-	slog.Info("NativeStream Server v4.0", "addr", cfg.Server.Addr())
+	slog.Info("NativeStream Server", "addr", cfg.Server.Addr())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -149,7 +150,7 @@ func main() {
 
 	// ── API ────────────────────────────────────────────────────────────────────
 	serverAddr := fmt.Sprintf("http://%s:%d", getLANIP(), cfg.Server.Port)
-	h := api.New(s, e, px, v, proxyCfg, serverAddr,hub)
+	h := api.New(s, e, px, v, proxyCfg, serverAddr,hub,server.Version)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -190,7 +191,7 @@ func main() {
 		"_nativestream._tcp",
 		"local.",
 		cfg.Server.Port,
-		[]string{"version=4.0"},
+		[]string{fmt.Sprintf("version=%s",server.Version)},
 		nil,
 	)
 	if err != nil {

@@ -63,7 +63,7 @@ public object HealthResponseKt {
     }
 
     /**
-     * `int32 channels = 3 [json_name = "channels"];`
+     * `optional int32 channels = 3 [json_name = "channels"];`
      */
     public var channels: kotlin.Int
       @JvmName("getChannels")
@@ -73,14 +73,21 @@ public object HealthResponseKt {
         _builder.channels = value
       }
     /**
-     * `int32 channels = 3 [json_name = "channels"];`
+     * `optional int32 channels = 3 [json_name = "channels"];`
      */
     public fun clearChannels() {
       _builder.clearChannels()
     }
+    /**
+     * `optional int32 channels = 3 [json_name = "channels"];`
+     * @return Whether the channels field is set.
+     */
+    public fun hasChannels(): kotlin.Boolean {
+      return _builder.hasChannels()
+    }
 
     /**
-     * `int32 healthy = 4 [json_name = "healthy"];`
+     * `optional int32 healthy = 4 [json_name = "healthy"];`
      */
     public var healthy: kotlin.Int
       @JvmName("getHealthy")
@@ -90,10 +97,17 @@ public object HealthResponseKt {
         _builder.healthy = value
       }
     /**
-     * `int32 healthy = 4 [json_name = "healthy"];`
+     * `optional int32 healthy = 4 [json_name = "healthy"];`
      */
     public fun clearHealthy() {
       _builder.clearHealthy()
+    }
+    /**
+     * `optional int32 healthy = 4 [json_name = "healthy"];`
+     * @return Whether the healthy field is set.
+     */
+    public fun hasHealthy(): kotlin.Boolean {
+      return _builder.hasHealthy()
     }
 
     /**

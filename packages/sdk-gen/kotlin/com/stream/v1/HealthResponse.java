@@ -129,7 +129,15 @@ private static final long serialVersionUID = 0L;
   public static final int CHANNELS_FIELD_NUMBER = 3;
   private int channels_ = 0;
   /**
-   * <code>int32 channels = 3 [json_name = "channels"];</code>
+   * <code>optional int32 channels = 3 [json_name = "channels"];</code>
+   * @return Whether the channels field is set.
+   */
+  @java.lang.Override
+  public boolean hasChannels() {
+    return ((bitField0_ & 0x00000001) != 0);
+  }
+  /**
+   * <code>optional int32 channels = 3 [json_name = "channels"];</code>
    * @return The channels.
    */
   @java.lang.Override
@@ -140,7 +148,15 @@ private static final long serialVersionUID = 0L;
   public static final int HEALTHY_FIELD_NUMBER = 4;
   private int healthy_ = 0;
   /**
-   * <code>int32 healthy = 4 [json_name = "healthy"];</code>
+   * <code>optional int32 healthy = 4 [json_name = "healthy"];</code>
+   * @return Whether the healthy field is set.
+   */
+  @java.lang.Override
+  public boolean hasHealthy() {
+    return ((bitField0_ & 0x00000002) != 0);
+  }
+  /**
+   * <code>optional int32 healthy = 4 [json_name = "healthy"];</code>
    * @return The healthy.
    */
   @java.lang.Override
@@ -156,7 +172,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasLastProbe() {
-    return ((bitField0_ & 0x00000001) != 0);
+    return ((bitField0_ & 0x00000004) != 0);
   }
   /**
    * <code>optional .google.protobuf.Timestamp last_probe = 5 [json_name = "lastProbe"];</code>
@@ -222,7 +238,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasServerName() {
-    return ((bitField0_ & 0x00000002) != 0);
+    return ((bitField0_ & 0x00000008) != 0);
   }
   /**
    * <code>optional string server_name = 7 [json_name = "serverName"];</code>
@@ -269,7 +285,7 @@ private static final long serialVersionUID = 0L;
    */
   @java.lang.Override
   public boolean hasAddr() {
-    return ((bitField0_ & 0x00000004) != 0);
+    return ((bitField0_ & 0x00000010) != 0);
   }
   /**
    * <code>optional string addr = 8 [json_name = "addr"];</code>
@@ -327,22 +343,22 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(uptime_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, uptime_);
     }
-    if (channels_ != 0) {
+    if (((bitField0_ & 0x00000001) != 0)) {
       output.writeInt32(3, channels_);
     }
-    if (healthy_ != 0) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       output.writeInt32(4, healthy_);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       output.writeMessage(5, getLastProbe());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(version_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 6, version_);
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
+    if (((bitField0_ & 0x00000008) != 0)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, serverName_);
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000010) != 0)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, addr_);
     }
     getUnknownFields().writeTo(output);
@@ -360,25 +376,25 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(uptime_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(2, uptime_);
     }
-    if (channels_ != 0) {
+    if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(3, channels_);
     }
-    if (healthy_ != 0) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(4, healthy_);
     }
-    if (((bitField0_ & 0x00000001) != 0)) {
+    if (((bitField0_ & 0x00000004) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getLastProbe());
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(version_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(6, version_);
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
+    if (((bitField0_ & 0x00000008) != 0)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, serverName_);
     }
-    if (((bitField0_ & 0x00000004) != 0)) {
+    if (((bitField0_ & 0x00000010) != 0)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(8, addr_);
     }
     size += getUnknownFields().getSerializedSize();
@@ -400,10 +416,16 @@ private static final long serialVersionUID = 0L;
         .equals(other.getStatus())) return false;
     if (!getUptime()
         .equals(other.getUptime())) return false;
-    if (getChannels()
-        != other.getChannels()) return false;
-    if (getHealthy()
-        != other.getHealthy()) return false;
+    if (hasChannels() != other.hasChannels()) return false;
+    if (hasChannels()) {
+      if (getChannels()
+          != other.getChannels()) return false;
+    }
+    if (hasHealthy() != other.hasHealthy()) return false;
+    if (hasHealthy()) {
+      if (getHealthy()
+          != other.getHealthy()) return false;
+    }
     if (hasLastProbe() != other.hasLastProbe()) return false;
     if (hasLastProbe()) {
       if (!getLastProbe()
@@ -436,10 +458,14 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getStatus().hashCode();
     hash = (37 * hash) + UPTIME_FIELD_NUMBER;
     hash = (53 * hash) + getUptime().hashCode();
-    hash = (37 * hash) + CHANNELS_FIELD_NUMBER;
-    hash = (53 * hash) + getChannels();
-    hash = (37 * hash) + HEALTHY_FIELD_NUMBER;
-    hash = (53 * hash) + getHealthy();
+    if (hasChannels()) {
+      hash = (37 * hash) + CHANNELS_FIELD_NUMBER;
+      hash = (53 * hash) + getChannels();
+    }
+    if (hasHealthy()) {
+      hash = (37 * hash) + HEALTHY_FIELD_NUMBER;
+      hash = (53 * hash) + getHealthy();
+    }
     if (hasLastProbe()) {
       hash = (37 * hash) + LAST_PROBE_FIELD_NUMBER;
       hash = (53 * hash) + getLastProbe().hashCode();
@@ -642,29 +668,31 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000002) != 0)) {
         result.uptime_ = uptime_;
       }
+      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.channels_ = channels_;
+        to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000008) != 0)) {
         result.healthy_ = healthy_;
+        to_bitField0_ |= 0x00000002;
       }
-      int to_bitField0_ = 0;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.lastProbe_ = lastProbeBuilder_ == null
             ? lastProbe_
             : lastProbeBuilder_.build();
-        to_bitField0_ |= 0x00000001;
+        to_bitField0_ |= 0x00000004;
       }
       if (((from_bitField0_ & 0x00000020) != 0)) {
         result.version_ = version_;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.serverName_ = serverName_;
-        to_bitField0_ |= 0x00000002;
+        to_bitField0_ |= 0x00000008;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.addr_ = addr_;
-        to_bitField0_ |= 0x00000004;
+        to_bitField0_ |= 0x00000010;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -691,10 +719,10 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (other.getChannels() != 0) {
+      if (other.hasChannels()) {
         setChannels(other.getChannels());
       }
-      if (other.getHealthy() != 0) {
+      if (other.hasHealthy()) {
         setHealthy(other.getHealthy());
       }
       if (other.hasLastProbe()) {
@@ -946,7 +974,15 @@ private static final long serialVersionUID = 0L;
 
     private int channels_ ;
     /**
-     * <code>int32 channels = 3 [json_name = "channels"];</code>
+     * <code>optional int32 channels = 3 [json_name = "channels"];</code>
+     * @return Whether the channels field is set.
+     */
+    @java.lang.Override
+    public boolean hasChannels() {
+      return ((bitField0_ & 0x00000004) != 0);
+    }
+    /**
+     * <code>optional int32 channels = 3 [json_name = "channels"];</code>
      * @return The channels.
      */
     @java.lang.Override
@@ -954,7 +990,7 @@ private static final long serialVersionUID = 0L;
       return channels_;
     }
     /**
-     * <code>int32 channels = 3 [json_name = "channels"];</code>
+     * <code>optional int32 channels = 3 [json_name = "channels"];</code>
      * @param value The channels to set.
      * @return This builder for chaining.
      */
@@ -966,7 +1002,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>int32 channels = 3 [json_name = "channels"];</code>
+     * <code>optional int32 channels = 3 [json_name = "channels"];</code>
      * @return This builder for chaining.
      */
     public Builder clearChannels() {
@@ -978,7 +1014,15 @@ private static final long serialVersionUID = 0L;
 
     private int healthy_ ;
     /**
-     * <code>int32 healthy = 4 [json_name = "healthy"];</code>
+     * <code>optional int32 healthy = 4 [json_name = "healthy"];</code>
+     * @return Whether the healthy field is set.
+     */
+    @java.lang.Override
+    public boolean hasHealthy() {
+      return ((bitField0_ & 0x00000008) != 0);
+    }
+    /**
+     * <code>optional int32 healthy = 4 [json_name = "healthy"];</code>
      * @return The healthy.
      */
     @java.lang.Override
@@ -986,7 +1030,7 @@ private static final long serialVersionUID = 0L;
       return healthy_;
     }
     /**
-     * <code>int32 healthy = 4 [json_name = "healthy"];</code>
+     * <code>optional int32 healthy = 4 [json_name = "healthy"];</code>
      * @param value The healthy to set.
      * @return This builder for chaining.
      */
@@ -998,7 +1042,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>int32 healthy = 4 [json_name = "healthy"];</code>
+     * <code>optional int32 healthy = 4 [json_name = "healthy"];</code>
      * @return This builder for chaining.
      */
     public Builder clearHealthy() {
