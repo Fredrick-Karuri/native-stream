@@ -1,4 +1,4 @@
-// api/middleware.go — NS-302
+// api/middleware.go
 // HTTP middleware: structured request logging and panic recovery.
 
 package api

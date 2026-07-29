@@ -80,6 +80,11 @@ public final class ApiProto {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_stream_v1_StatusResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_stream_v1_ErrorResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_stream_v1_ErrorResponse_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -143,11 +148,12 @@ public final class ApiProto {
       "\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005value\030\002 \001(\tR\005value" +
       ":\0028\001B\007\n\005_nameB\016\n\014_group_titleB\r\n\013_stream" +
       "_url\"(\n\016StatusResponse\022\026\n\006status\030\001 \001(\tR\006" +
-      "statusB\245\001\n\rcom.stream.v1B\010ApiProtoP\001ZEgi" +
-      "thub.com/fredrick-karuri/nativestream/sd" +
-      "k-gen/go/stream/v1;streamv1\242\002\003SXX\252\002\tStre" +
-      "am.V1\312\002\tStream\\V1\342\002\025Stream\\V1\\GPBMetadat" +
-      "a\352\002\nStream::V1b\006proto3"
+      "status\"%\n\rErrorResponse\022\024\n\005error\030\001 \001(\tR\005" +
+      "errorB\245\001\n\rcom.stream.v1B\010ApiProtoP\001ZEgit" +
+      "hub.com/fredrick-karuri/nativestream/sdk" +
+      "-gen/go/stream/v1;streamv1\242\002\003SXX\252\002\tStrea" +
+      "m.V1\312\002\tStream\\V1\342\002\025Stream\\V1\\GPBMetadata" +
+      "\352\002\nStream::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -220,6 +226,12 @@ public final class ApiProto {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_stream_v1_StatusResponse_descriptor,
         new java.lang.String[] { "Status", });
+    internal_static_stream_v1_ErrorResponse_descriptor =
+      getDescriptor().getMessageTypes().get(8);
+    internal_static_stream_v1_ErrorResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_stream_v1_ErrorResponse_descriptor,
+        new java.lang.String[] { "Error", });
     descriptor.resolveAllFeaturesImmutable();
     com.google.protobuf.TimestampProto.getDescriptor();
   }

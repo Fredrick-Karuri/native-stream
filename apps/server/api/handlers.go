@@ -19,28 +19,12 @@ import (
 	"github.com/fredrick-karuri/nativestream/server/validator"
 	"github.com/fredrick-karuri/nativestream/server/control"
 	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
-	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/fredrick-karuri/nativestream/server/httpx"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"nhooyr.io/websocket"
 	"github.com/google/uuid"
 )
-
-var protoMarshaler = protojson.MarshalOptions{
-	UseProtoNames:   true,
-	EmitUnpopulated: false,
-}
-
-func writeProtoJSON(w http.ResponseWriter, status int, msg proto.Message) {
-	data, err := protoMarshaler.Marshal(msg)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	w.Write(data)
-}
 
 type Handler struct {
 	store     *store.Store
@@ -259,10 +243,10 @@ func (h *Handler) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleDeleteChannel(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if err := h.store.Delete(id); err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+		httpx.WriteProtoJSON(w, http.StatusNotFound, &streamv1.ErrorResponse{Error: err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.StatusResponse{Status: "deleted"})
 }
 
 // ── Health & probe ────────────────────────────────────────────────────────────
@@ -283,12 +267,12 @@ func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
 		resp.LastProbe = timestamppb.New(lp)
 	}
 
-	writeProtoJSON(w, http.StatusOK, resp)
+	httpx.WriteProtoJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) handleProbe(w http.ResponseWriter, r *http.Request) {
 	h.validator.TriggerProbeAll()
-	writeJSON(w, http.StatusOK, map[string]string{"status": "triggered"})
+	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.StatusResponse{Status: "triggered"})
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -314,7 +298,7 @@ func slugify(s string) string {
 
 func (h *Handler) handleDeleteAllChannels(w http.ResponseWriter, r *http.Request) {
     h.store.DeleteAll()
-    writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
+	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.StatusResponse{Status: "deleted"})
 }
 
 // ── Local Media Connect ───────────────────────────────────────────────────────

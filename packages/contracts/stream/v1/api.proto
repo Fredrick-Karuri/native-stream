@@ -87,3 +87,7 @@ message UpdateChannelRequest {
 message StatusResponse {
   string status = 1;
 }
+
+message ErrorResponse {
+  string error = 1;
+}

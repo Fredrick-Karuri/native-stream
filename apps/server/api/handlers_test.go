@@ -69,3 +69,65 @@ func TestHandleHealth(t *testing.T) {
 	}
 
 }
+
+func TestHandleDeleteChannel_NotFound(t *testing.T) {
+	h := newTestHandler()
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/channels/nope", nil)
+	req.SetPathValue("id", "nope")
+	rec := httptest.NewRecorder()
+
+	h.handleDeleteChannel(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("response is not valid JSON: %v", err)
+	}
+	if _, ok := body["error"]; !ok {
+		t.Errorf("expected 'error' field in response, got: %v", body)
+	}
+}
+
+func TestHandleDeleteChannel_Success(t *testing.T) {
+	h := newTestHandler()
+	h.store.Add(&store.Channel{ID: "ch1", Name: "Test Channel"})
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/channels/ch1", nil)
+	req.SetPathValue("id", "ch1")
+	rec := httptest.NewRecorder()
+
+	h.handleDeleteChannel(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var body map[string]any
+	json.Unmarshal(rec.Body.Bytes(), &body)
+	if got := body["status"]; got != "deleted" {
+		t.Errorf("expected status 'deleted', got %v", got)
+	}
+}
+
+func TestHandleProbe(t *testing.T) {
+	h := newTestHandler()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/probe", nil)
+	rec := httptest.NewRecorder()
+
+	h.handleProbe(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var body map[string]any
+	json.Unmarshal(rec.Body.Bytes(), &body)
+	if got := body["status"]; got != "triggered" {
+		t.Errorf("expected status 'triggered', got %v", got)
+	}
+}

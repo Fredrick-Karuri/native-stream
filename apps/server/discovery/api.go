@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
+	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
+	"github.com/fredrick-karuri/nativestream/server/httpx"
 )
 
 func (e *Engine) RegisterRoutes(mux *http.ServeMux) {
@@ -20,7 +23,7 @@ func (e *Engine) handleStatus(w http.ResponseWriter, r *http.Request) {
 
 func (e *Engine) handleTriggerRun(w http.ResponseWriter, r *http.Request) {
     e.TriggerRun(context.Background())
-    discoveryWriteJSON(w, http.StatusOK, map[string]string{"status": "triggered"})
+	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.StatusResponse{Status: "triggered"})
 }
 
 func (e *Engine) handleUnmatched(w http.ResponseWriter, r *http.Request) {
