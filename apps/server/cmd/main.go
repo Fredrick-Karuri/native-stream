@@ -1,4 +1,4 @@
-// cmd/main.go — hardened with slog, circuit breaker, graceful shutdown.
+// cmd/main.go
 
 package main
 
@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -24,6 +23,7 @@ import (
 	"github.com/fredrick-karuri/nativestream/server/shutdown"
 	"github.com/fredrick-karuri/nativestream/server/store"
 	"github.com/fredrick-karuri/nativestream/server/validator"
+	"github.com/fredrick-karuri/nativestream/server/netutil"
 	"github.com/grandcat/zeroconf"
 )
 
@@ -149,7 +149,7 @@ func main() {
 	go hub.Run(ctx)
 
 	// ── API ────────────────────────────────────────────────────────────────────
-	serverAddr := fmt.Sprintf("http://%s:%d", getLANIP(), cfg.Server.Port)
+	serverAddr := fmt.Sprintf("http://%s:%d", netutil.GetLANIP(), cfg.Server.Port)
 	h := api.New(s, e, px, v, proxyCfg, serverAddr,hub,server.Version)
 
 	mux := http.NewServeMux()
@@ -231,16 +231,4 @@ func main() {
 		slog.Error("server error", "err", err)
 		os.Exit(1)
 	}
-}
-
-func getLANIP() string {
-    addrs, _ := net.InterfaceAddrs()
-    for _, addr := range addrs {
-        if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-            if ipnet.IP.To4() != nil {
-                return ipnet.IP.String()
-            }
-        }
-    }
-    return "127.0.0.1"
 }
