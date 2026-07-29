@@ -368,30 +368,31 @@ func (h *Handler) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleSessions(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"sessions": h.hub.Sessions(),
-	})
+	sessions := h.hub.Sessions()
+	pbSessions := make([]*streamv1.SessionInfo, len(sessions))
+	for i, s := range sessions {
+		pbSessions[i] = toProtoSessionInfo(s)
+	}
+	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.SessionsResponse{Sessions: pbSessions})
 }
 
 // ── Proxy config ──────────────────────────────────────────────────────────────
 
 func (h *Handler) handleGetProxyConfig(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"enabled": h.proxy.IsEnabled(),
+	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.ProxyConfigResponse{
+		Enabled: h.proxy.IsEnabled(),
 	})
 }
 
 func (h *Handler) handlePutProxyConfig(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Enabled bool `json:"enabled"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+	var req streamv1.UpdateProxyConfigRequest
+	if err := httpx.ReadProtoJSON(r, &req); err != nil {
+		httpx.WriteProtoJSON(w, http.StatusBadRequest, &streamv1.ErrorResponse{Error: "invalid JSON"})
 		return
 	}
-	h.proxy.SetEnabled(body.Enabled)
-	slog.Info("proxy toggled", "enabled", body.Enabled)
-	writeJSON(w, http.StatusOK, map[string]any{
-		"enabled": h.proxy.IsEnabled(),
+	h.proxy.SetEnabled(req.Enabled)
+	slog.Info("proxy toggled", "enabled", req.Enabled)
+	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.ProxyConfigResponse{
+		Enabled: h.proxy.IsEnabled(),
 	})
 }
