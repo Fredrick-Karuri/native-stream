@@ -3,6 +3,7 @@
 
 import Foundation
 import Observation
+import SdkGenSwift
 
 enum ServerStatus {
     case unknown
@@ -38,8 +39,8 @@ final class ServerHealthViewModel {
         }
         let hasEpg = epg?.isEmpty == false
         connectionState = .success(
-            channels:        h.channels,
-            healthy:         h.healthy,
+            channels:        Int(h.channels),
+            healthy:         Int(h.healthy),
             hasEpg:          hasEpg,
             epgFromPlaylist: false
         )
@@ -58,7 +59,7 @@ final class ServerHealthViewModel {
 
         do {
             let health = try await APIClient.shared.health()
-            status = .connected(channels: health.channels, healthy: health.healthy)
+            status = .connected(channels: Int(health.channels), healthy: Int(health.healthy))
         } catch {
             status = .unreachable
         }

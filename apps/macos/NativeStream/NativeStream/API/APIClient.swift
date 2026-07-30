@@ -3,6 +3,8 @@
 // All methods are async throws. Errors are mapped to APIError.
 
 import Foundation
+import SwiftProtobuf
+import SdkGenSwift
 
 
 
@@ -47,8 +49,13 @@ actor APIClient {
 
     // MARK: - Health
 
-    func health() async throws -> HealthResponse {
-        try await get("api/health")
+    func health() async throws -> Stream_V1_HealthResponse {
+        let data = try await rawGet("api/health")
+        do {
+            return try Stream_V1_HealthResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
 
     // MARK: - Playlist & EPG (raw Data — parsed by existing parsers)
