@@ -1,4 +1,4 @@
-// NS-014: AppError + PlayerError
+// AppError + PlayerError
 // Typed, user-readable errors. No raw Error objects escape to the UI.
 
 import Foundation

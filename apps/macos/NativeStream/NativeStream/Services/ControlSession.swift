@@ -1,11 +1,3 @@
-//
-//  ControlSession.swift
-//  NativeStream
-//
-//  Created by Fredrick Karuri on 30/06/2026.
-//
-
-
 /// Services/ControlSession.swift
 ///
 /// WebSocket client for Local Media Connect control plane.
@@ -106,7 +98,7 @@ final class ControlSession {
         }
     }
 
-    private func handleMessage(_ message: URLSessionWebSocketTask.Message) {
+    func handleMessage(_ message: URLSessionWebSocketTask.Message) {
         guard case .string(let text) = message,
               let data = text.data(using: .utf8),
               let envelope = try? JSONDecoder().decode(Envelope.self, from: data)
@@ -123,7 +115,7 @@ final class ControlSession {
         }
     }
 
-    private func makeWebSocketURL(from httpURL: URL) -> URL? {
+    func makeWebSocketURL(from httpURL: URL) -> URL? {
         var components = URLComponents(url: httpURL, resolvingAgainstBaseURL: false)
         components?.scheme = "ws"
         components?.path = "/ws"

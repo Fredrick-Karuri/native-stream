@@ -1,4 +1,4 @@
-// NS-012: Programme
+// Programme
 // Represents a single EPG programme entry linked to a channel.
 
 import Foundation

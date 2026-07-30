@@ -8,6 +8,8 @@ import Foundation
 struct EPGStore: Sendable {
     private let programmes: [String: [Programme]]
     private let programmesLower: [String: [Programme]]
+    
+    // TODO: crashes if two channel IDs differ only by case (uniqueKeysWithValues traps on duplicate lowercased keys) — merge instead
 
     init(programmes: [String: [Programme]]) {
         self.programmes = programmes
