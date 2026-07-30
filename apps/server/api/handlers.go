@@ -125,119 +125,110 @@ func (h *Handler) handleEPG(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleListChannels(w http.ResponseWriter, r *http.Request) {
 	channels := h.store.All()
-	type row struct {
-		ID             string  `json:"id"`
-		Name           string  `json:"name"`
-		GroupTitle     string  `json:"group_title"`
-		TvgID          string  `json:"tvg_id"`
-		LogoURL        string  `json:"logo_url"`
-		Healthy        bool    `json:"healthy"`
-		ActiveScore    float64 `json:"active_score"`
-		CandidateCount int     `json:"candidate_count"`
-		HasActiveLink  bool    `json:"has_active_link"`
+	resp := &streamv1.ChannelListResponse{
+		Channels: make([]*streamv1.ChannelResponse, len(channels)),
 	}
-	rows := make([]row, len(channels))
 	for i, ch := range channels {
-		r := row{
-			ID:             ch.ID,
-			Name:           ch.Name,
-			GroupTitle:     ch.GroupTitle,
-			TvgID:          ch.TvgID,
-			LogoURL:        ch.LogoURL,
-			CandidateCount: len(ch.Candidates),
-			HasActiveLink:  ch.ActiveLink != nil,
-		}
-		if ch.ActiveLink != nil {
-			r.ActiveScore = ch.ActiveLink.Score
-			r.Healthy = ch.ActiveLink.Score >= 0.3
-		}
-		rows[i] = r
+		resp.Channels[i] = toProtoChannelResponse(ch)
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"channels": rows})
+	httpx.WriteProtoJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) handleGetChannel(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	ch := h.store.Get(id)
 	if ch == nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "channel not found"})
+		httpx.WriteProtoJSON(w, http.StatusNotFound, &streamv1.ErrorResponse{Error: "channel not found"})
 		return
 	}
-	writeJSON(w, http.StatusOK, ch)
+	httpx.WriteProtoJSON(w, http.StatusOK, toProtoChannelDetail(ch))
 }
 
 func (h *Handler) handleCreateChannel(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		ID         string   `json:"id"`
-		Name       string   `json:"name"`
-		GroupTitle string   `json:"group_title"`
-		TvgID      string   `json:"tvg_id"`
-		LogoURL    string   `json:"logo_url"`
-		StreamURL  string   `json:"stream_url"`
-		Keywords   []string `json:"keywords"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+	var body streamv1.CreateChannelRequest
+	if err := httpx.ReadProtoJSON(r, &body); err != nil {
+		httpx.WriteProtoJSON(w, http.StatusBadRequest, &streamv1.ErrorResponse{Error: "invalid JSON"})
 		return
 	}
 	if body.Name == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name required"})
+		httpx.WriteProtoJSON(w, http.StatusBadRequest, &streamv1.ErrorResponse{Error: "name required"})
 		return
 	}
 
-	// Auto-generate ID from name if not provided
-	id := body.ID
-	if id == "" {
-		id = slugify(body.Name)
-	}
+	id := slugify(body.Name)
 
 	ch := &store.Channel{
 		ID:         id,
 		Name:       body.Name,
 		GroupTitle: body.GroupTitle,
-		TvgID:      body.TvgID,
-		LogoURL:    body.LogoURL,
+		TvgID:      body.TvgId,
+		LogoURL:    body.LogoUrl,
 		Keywords:   body.Keywords,
 	}
 
-	if body.StreamURL != "" {
+	if body.StreamUrl != "" {
 		link := &store.LinkScore{
-			URL:       body.StreamURL,
+			URL:       body.StreamUrl,
 			ChannelID: id,
 			State:     store.StateCandidate,
+			Headers:   body.StreamHeaders,
 		}
 		ch.Candidates = []*store.LinkScore{link}
-		// Submit for immediate validation
 		h.validator.Submit(validator.Candidate{
-			URL:       body.StreamURL,
+			URL:       body.StreamUrl,
 			ChannelID: id,
+			Headers:   body.StreamHeaders,
 		})
 	}
 
 	h.store.Add(ch)
-	writeJSON(w, http.StatusCreated, ch)
+	httpx.WriteProtoJSON(w, http.StatusCreated, toProtoChannelDetail(ch))
 }
 
 func (h *Handler) handleUpdateChannel(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	var body map[string]any
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
+	var body streamv1.UpdateChannelRequest
+	if err := httpx.ReadProtoJSON(r, &body); err != nil {
+		httpx.WriteProtoJSON(w, http.StatusBadRequest, &streamv1.ErrorResponse{Error: "invalid JSON"})
 		return
 	}
 
-	if err := h.store.Update(id, body); err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
+	updates := map[string]any{}
+	if body.Name != nil {
+		updates["name"] = *body.Name
+	}
+	if body.GroupTitle != nil {
+		updates["group_title"] = *body.GroupTitle
+	}
+	if body.StreamUrl != nil {
+		updates["stream_url"] = *body.StreamUrl
+	}
+	if body.Keywords != nil {
+		kws := make([]interface{}, len(body.Keywords))
+		for i, k := range body.Keywords {
+			kws[i] = k
+		}
+		updates["keywords"] = kws
+	}
+	if body.StreamHeaders != nil {
+		headers := make(map[string]interface{}, len(body.StreamHeaders))
+		for k, v := range body.StreamHeaders {
+			headers[k] = v
+		}
+		updates["stream_headers"] = headers
+	}
+
+	if err := h.store.Update(id, updates); err != nil {
+		httpx.WriteProtoJSON(w, http.StatusNotFound, &streamv1.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	// If a new stream_url was given, submit immediately for validation
-	if url, ok := body["stream_url"].(string); ok && url != "" {
-		h.validator.Submit(validator.Candidate{URL: url, ChannelID: id})
+	if body.StreamUrl != nil && *body.StreamUrl != "" {
+		h.validator.Submit(validator.Candidate{URL: *body.StreamUrl, ChannelID: id})
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.StatusResponse{Status: "updated"})
 }
 
 func (h *Handler) handleDeleteChannel(w http.ResponseWriter, r *http.Request) {
