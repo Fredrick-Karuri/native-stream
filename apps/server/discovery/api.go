@@ -1,14 +1,14 @@
-// discovery/api.go — NS-230, NS-231
+// discovery/api.go
 package discovery
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
 	"github.com/fredrick-karuri/nativestream/server/httpx"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (e *Engine) RegisterRoutes(mux *http.ServeMux) {
@@ -18,8 +18,24 @@ func (e *Engine) RegisterRoutes(mux *http.ServeMux) {
 }
 
 func (e *Engine) handleStatus(w http.ResponseWriter, r *http.Request) {
-	discoveryWriteJSON(w, http.StatusOK, e.Status())
+	httpx.WriteProtoJSON(w, http.StatusOK, e.toProtoStatus())
 }
+
+func (e *Engine) toProtoStatus() *streamv1.DiscoveryStatusResponse {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	resp := &streamv1.DiscoveryStatusResponse{
+		FoundToday:     int32(e.foundToday),
+		PromotedToday:  int32(e.promotedToday),
+		UnmatchedCount: int32(len(e.unmatched)),
+	}
+	if !e.lastRun.IsZero() {
+		resp.LastRun = timestamppb.New(e.lastRun)
+	}
+	return resp
+}
+
 
 func (e *Engine) handleTriggerRun(w http.ResponseWriter, r *http.Request) {
     e.TriggerRun(context.Background())
@@ -34,20 +50,12 @@ func (e *Engine) handleUnmatched(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	links := e.Unmatched(limit)
-	type row struct {
-		URL       string `json:"url"`
-		SourceURL string `json:"source_url"`
-		Context   string `json:"context"`
-	}
-	rows := make([]row, len(links))
+	rows := make([]*streamv1.UnmatchedLink, len(links))
 	for i, l := range links {
-		rows[i] = row{URL: l.URL, SourceURL: l.SourceURL, Context: l.ContextText}
+		rows[i] = &streamv1.UnmatchedLink{Url: l.URL, SourceUrl: l.SourceURL, Context: l.ContextText}
 	}
-	discoveryWriteJSON(w, http.StatusOK, map[string]interface{}{"unmatched": rows, "total": len(rows)})
-}
-
-func discoveryWriteJSON(w http.ResponseWriter, status int, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(v)
+	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.UnmatchedResponse{
+		Unmatched: rows,
+		Total:     int32(len(rows)),
+	})
 }
