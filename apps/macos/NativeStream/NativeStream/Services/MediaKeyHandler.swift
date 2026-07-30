@@ -1,4 +1,4 @@
-// MediaKeyHandler.swift — NS-313
+// MediaKeyHandler.swift
 // Wires macOS media keys and Control Center remote commands to the player.
 
 import Foundation
@@ -51,30 +51,16 @@ final class MediaKeyHandler {
     }
 
     private func playNextChannel() {
-        guard let playerVM, let playlistVM else { return }
-        let channels = playlistVM.channels
-        guard !channels.isEmpty else { return }
-        let next: Channel
-        if let current = playerVM.currentChannel,
-           let idx = channels.firstIndex(of: current) {
-            next = channels[(idx + 1) % channels.count]
-        } else {
-            next = channels[0]
-        }
+        guard let playerVM, let playlistVM,
+              let next = ChannelNavigation.nextChannel(after: playerVM.currentChannel, in: playlistVM.channels)
+        else { return }
         Task { try? await playerVM.play(channel: next) }
     }
 
     private func playPreviousChannel() {
-        guard let playerVM, let playlistVM else { return }
-        let channels = playlistVM.channels
-        guard !channels.isEmpty else { return }
-        let prev: Channel
-        if let current = playerVM.currentChannel,
-           let idx = channels.firstIndex(of: current) {
-            prev = channels[(idx - 1 + channels.count) % channels.count]
-        } else {
-            prev = channels[channels.count - 1]
-        }
+        guard let playerVM, let playlistVM,
+              let prev = ChannelNavigation.previousChannel(before: playerVM.currentChannel, in: playlistVM.channels)
+        else { return }
         Task { try? await playerVM.play(channel: prev) }
     }
 }

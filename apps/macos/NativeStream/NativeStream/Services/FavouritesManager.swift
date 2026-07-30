@@ -1,8 +1,4 @@
-// FavouritesManager.swift — FX-010
-// FX-010: favouriteIDs is now a stored @Observable property.
-// Loaded once from UserDefaults in init(). Written back on toggle().
-// @Observable observes the stored property directly — cross-component
-// updates propagate correctly without repeated UserDefaults reads.
+// FavouritesManager.swift
 
 import Foundation
 import Observation
@@ -10,16 +6,18 @@ import Observation
 @Observable
 final class FavouritesManager {
 
-    private let key = "favouriteChannelIDs"
+    private static let favouriteChannelIDsKey = "favouriteChannelIDs"
+
+    private let defaults: UserDefaults
 
     // Stored — not computed. @Observable tracks mutations here.
     var favouriteIDs: Set<String>
 
-    init() {
-        let stored = UserDefaults.standard.stringArray(forKey: key) ?? []
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        let stored = defaults.stringArray(forKey: Self.favouriteChannelIDsKey) ?? []
         favouriteIDs = Set(stored)
     }
-
     func toggle(_ channel: Channel) {
         if favouriteIDs.contains(channel.id) {
             favouriteIDs.remove(channel.id)
@@ -38,6 +36,6 @@ final class FavouritesManager {
     }
 
     private func persist() {
-        UserDefaults.standard.set(Array(favouriteIDs), forKey: key)
+        defaults.set(Array(favouriteIDs), forKey: Self.favouriteChannelIDsKey)
     }
 }
