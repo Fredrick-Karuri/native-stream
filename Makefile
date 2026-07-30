@@ -1,7 +1,7 @@
 .PHONY: build-server run-server clean build-app run-app dev test-server test-android-unit test-android-ui test-android-all \
         release-server-patch release-server-minor release-server-major release-server-current \
         release-android-patch release-android-minor release-android-major release-android-current \
-        release-macos-patch release-macos-minor release-macos-major release-macos-current server-dev
+        release-macos-patch release-macos-minor release-macos-major release-macos-current server-dev test-mac-unit test-mac-ui
 
 
 VERSION := $(shell cat VERSION)
@@ -70,6 +70,25 @@ run-app:
 
 lint-client:
 	swiftlint lint --path apps/macos/NativeStream
+
+test-mac-unit:
+	@echo "→ Running macOS unit tests..."
+	set -o pipefail && xcodebuild -project $(APP_DIR)/NativeStream.xcodeproj \
+	           -scheme $(SCHEME) \
+	           -derivedDataPath $(DERIVED) \
+	           -only-testing:NativeStreamTests \
+	           test | xcbeautify
+
+test-mac-ui:
+	@echo "→ Running macOS UI tests..."
+	set -o pipefail && xcodebuild -project $(APP_DIR)/NativeStream.xcodeproj \
+	           -scheme $(SCHEME) \
+	           -derivedDataPath $(DERIVED) \
+	           -destination 'platform=macOS' \
+	           -only-testing:NativeStreamUITests \
+	           test | xcbeautify
+
+test-mac: test-mac-unit test-mac-ui
 
 # ── Android App ───────────────────────────────────────────────────────────────
 ANDROID_DIR := apps/android

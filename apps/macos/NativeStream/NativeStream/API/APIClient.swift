@@ -7,7 +7,6 @@ import SwiftProtobuf
 import SdkGenSwift
 
 
-
 // MARK: - APIClient
 
 actor APIClient {
@@ -28,8 +27,24 @@ actor APIClient {
         e.dateEncodingStrategy = .iso8601
         return e
     }()
+    
+    private func rawProtoBody(
+        method: String, path: String, message: any SwiftProtobuf.Message
+    ) async throws -> Data {
+        let url = try resolve(path)
+        var req = URLRequest(url: url)
+        req.httpMethod = method
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        var options = JSONEncodingOptions()
+        options.preserveProtoFieldNames = true
+        req.httpBody = try message.jsonUTF8Data(options: options)
+        return try await execute(req)
+    }
 
-    init(baseURL: URL = URL(string: "http://localhost:8888")!) {
+    init(
+        baseURL: URL = URL(string: "http://localhost:8888")!,
+        protocolClasses: [AnyClass]? = nil
+    ) {
         self.baseURL = baseURL
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest  = 10
@@ -40,6 +55,9 @@ actor APIClient {
             diskPath:       "nativestream_api_cache"
         )
         config.requestCachePolicy = .useProtocolCachePolicy
+        if let protocolClasses {
+            config.protocolClasses = protocolClasses
+        }
         self.session = URLSession(configuration: config)
     }
 
@@ -139,15 +157,23 @@ actor APIClient {
     // MARK: - Proxy config
 
     func getProxyEnabled() async throws -> Bool {
-        struct ProxyConfig: Decodable { let enabled: Bool }
-        let r: ProxyConfig = try await get("api/proxy/config")
-        return r.enabled
+        let data = try await rawGet("api/proxy/config")
+        do {
+            return try Stream_V1_ProxyConfigResponse(jsonUTF8Data: data).enabled
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
-
+    
     func setProxyEnabled(_ enabled: Bool) async throws {
-        struct Body: Encodable { let enabled: Bool }
-        struct ProxyConfig: Decodable { let enabled: Bool }
-        let _: ProxyConfig = try await put("api/proxy/config", body: Body(enabled: enabled))
+        var req = Stream_V1_UpdateProxyConfigRequest()
+        req.enabled = enabled
+        let data = try await rawProtoBody(method: "PUT", path: "api/proxy/config", message: req)
+        do {
+            _ = try Stream_V1_ProxyConfigResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
 
     // MARK: - Private HTTP primitives

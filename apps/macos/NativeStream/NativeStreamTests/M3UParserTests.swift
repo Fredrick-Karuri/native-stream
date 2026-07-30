@@ -1,4 +1,4 @@
-// NS-022: M3UParserTests
+// M3UParserTests
 // Unit tests for the M3U playlist parser.
 // Run with: swift test (from package root, or via Xcode Test Navigator)
 

@@ -65,6 +65,37 @@ groups:
       lint:
         description: Lint the macOS client with SwiftLint
         run: "swiftlint lint --path apps/macos/NativeStream"
+      test-unit:
+        description: Run macOS unit tests
+        run: |
+          set -o pipefail && xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
+                     -only-testing:NativeStreamTests \
+                     test | xcbeautify
+      test-ui:
+        description: Run macOS UI tests
+        run: |
+          set -o pipefail && xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
+                     -destination 'platform=macOS' \
+                     -only-testing:NativeStreamUITests \
+                     test | xcbeautify
+      test-all:
+        description: Run all macOS tests (unit + UI)
+        run: |
+          set -o pipefail && xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
+                     -only-testing:NativeStreamTests \
+                     test | xcbeautify
+          set -o pipefail && xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
+                     -destination 'platform=macOS' \
+                     -only-testing:NativeStreamUITests \
+                     test | xcbeautify
       release-patch:
         description: Bump patch version and release the macOS app
         run: "./release.sh macos patch"
