@@ -11,46 +11,56 @@ import SwiftUI
 final class SettingsStore {
 
     // MARK: - Stored properties (loaded from UserDefaults in init)
-
+    
     var bufferPreset: BufferPreset {
-        didSet { UserDefaults.standard.set(bufferPreset.rawValue, forKey: Keys.bufferPreset) }
+        didSet { defaults.set(bufferPreset.rawValue, forKey: Keys.bufferPreset) }
     }
 
     var epgURLString: String {
-        didSet { UserDefaults.standard.set(epgURLString, forKey: Keys.epgURL) }
+        didSet { defaults.set(epgURLString, forKey: Keys.epgURL) }
     }
 
     var epgRefreshInterval: RefreshInterval {
-        didSet { UserDefaults.standard.set(epgRefreshInterval.rawValue, forKey: Keys.epgRefreshInterval) }
+        didSet { defaults.set(epgRefreshInterval.rawValue, forKey: Keys.epgRefreshInterval) }
     }
 
     var serverURLString: String {
-        didSet { UserDefaults.standard.set(serverURLString, forKey: Keys.serverURL) }
+        didSet { defaults.set(serverURLString, forKey: Keys.serverURL) }
     }
 
     var onboardingComplete: Bool {
-        didSet { UserDefaults.standard.set(onboardingComplete, forKey: Keys.onboardingComplete) }
+        didSet { defaults.set(onboardingComplete, forKey: Keys.onboardingComplete) }
     }
     
     var proxyEnabled: Bool {
-        didSet { UserDefaults.standard.set(proxyEnabled, forKey: Keys.proxyEnabled) }
+        didSet { defaults.set(proxyEnabled, forKey: Keys.proxyEnabled) }
     }
     
     var controlDeviceID: String {
-        didSet { UserDefaults.standard.set(controlDeviceID, forKey: Keys.controlDeviceID) }
+        didSet { defaults.set(controlDeviceID, forKey: Keys.controlDeviceID) }
     }
-
+    
     // MARK: - Init
 
-    init() {
-        let ud = UserDefaults.standard
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        let ud = defaults
         bufferPreset       = BufferPreset(rawValue: ud.string(forKey: Keys.bufferPreset) ?? "") ?? .balanced
         epgURLString       = ud.string(forKey: Keys.epgURL) ?? ""
         epgRefreshInterval = RefreshInterval(rawValue: ud.string(forKey: Keys.epgRefreshInterval) ?? "") ?? .sixHours
         serverURLString    = ud.string(forKey: Keys.serverURL) ?? "http://localhost:8888"
         onboardingComplete = ud.bool(forKey: Keys.onboardingComplete)
         proxyEnabled       = ud.bool(forKey: Keys.proxyEnabled)
-        controlDeviceID = ud.string(forKey: Keys.controlDeviceID) ?? UUID().uuidString
+
+        if let existingID = ud.string(forKey: Keys.controlDeviceID) {
+            controlDeviceID = existingID
+        } else {
+            let newID = UUID().uuidString
+            controlDeviceID = newID
+            ud.set(newID, forKey: Keys.controlDeviceID)  // didSet won't fire during init — persist explicitly
+        }
     }
 
     // MARK: - Computed
@@ -84,11 +94,12 @@ final class SettingsStore {
     // MARK: - Reset
 
     func resetAll() {
-        Keys.allKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) }
+        Keys.allKeys.forEach { defaults.removeObject(forKey: $0) }
         bufferPreset       = .balanced
         epgURLString       = ""
         epgRefreshInterval = .sixHours
         serverURLString    = "http://localhost:8888"
         onboardingComplete = false
+        proxyEnabled       = false
     }
 }
