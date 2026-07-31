@@ -1,10 +1,3 @@
-//
-//  ServerDiscoveryService.swift
-//  NativeStream
-//
-//  Created by Fredrick Karuri on 25/06/2026.
-//
-
 ///
 /// Scans the local network for _nativestream._tcp via NWBrowser,
 /// verifies candidates via /api/health, and emits a confirmed URL.
@@ -82,11 +75,7 @@ final class ServerDiscoveryService {
                     connection.cancel()
                     return
                 }
-                let hostString = "\(h)"
-                    .replacingOccurrences(of: "%en0", with: "")
-                    .replacingOccurrences(of: "%lo0", with: "")
-                let portInt    = Int(port.rawValue)
-                let candidate  = URL(string: "http://\(hostString):\(portInt)")
+                let candidate = DiscoveryCandidateURL.build(hostString: "\(h)", port: Int(port.rawValue))
                 connection.cancel()
                 guard let candidate else { return }
                 Task { await self.verifyCandidate(candidate) }

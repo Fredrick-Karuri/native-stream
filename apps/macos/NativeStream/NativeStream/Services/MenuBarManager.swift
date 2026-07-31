@@ -1,4 +1,4 @@
-// MenuBarManager.swift — NS-312
+// MenuBarManager.swift
 // Manages the menu bar status item with a mini player popover.
 // Shows during active playback only.
 

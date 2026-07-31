@@ -1,10 +1,5 @@
 /// BrowserViewModel.swift
 ///
-/// Owns all state and logic for the All Channels browser.
-/// MAC-BROWSE-002: selectedSource + source-aware filtering
-/// MAC-BROWSE-006: favourites chip
-/// MAC-BROWSE-007: sub-group chips
-/// MAC-BROWSE-010: debounced off-main-actor recomputation
 
 import Foundation
 import Observation

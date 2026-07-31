@@ -2,7 +2,6 @@
 //
 // Unit tests for APIClient's HTTP primitives, endpoint wiring, and error mapping.
 // Network calls are intercepted with MockURLProtocol so tests never touch a real server.
-// Requires the `protocolClasses` init parameter added in APIClient+TestSeam.patch.md.
 //
 // Run with: swift test (from package root, or via Xcode Test Navigator)
 
