@@ -4,12 +4,13 @@
 
 import Foundation
 import Observation
+import SdkGenSwift
 
 @Observable
 @MainActor
 final class ChannelManagerViewModel {
 
-    var channels: [ChannelResponse] = []
+    var channels: [Stream_V1_ChannelResponse] = []
     var discoveryStatus: DiscoveryStatusResponse? = nil
     var unmatched: [UnmatchedLink] = []
     var isLoading = false
@@ -38,11 +39,13 @@ final class ChannelManagerViewModel {
     ) async -> Channel? {
         isLoading = true
         defer { isLoading = false }
-        let req = CreateChannelRequest(
-            name: name, groupTitle: groupTitle,
-            tvgID: tvgID, logoURL: logoURL,
-            streamURL: streamURL, keywords: keywords
-        )
+        var req = Stream_V1_CreateChannelRequest()
+        req.name = name
+        req.groupTitle = groupTitle
+        req.tvgID = tvgID
+        req.logoURL = logoURL
+        req.streamURL = streamURL
+        req.keywords = keywords
         
         do {
             let response = try await APIClient.shared.createChannel(req)
@@ -63,9 +66,9 @@ final class ChannelManagerViewModel {
 
     func updateStreamURL(channelID: String, url: String) async {
         do {
-            try await APIClient.shared.updateChannel(
-                id: channelID, UpdateChannelRequest(streamURL: url)
-            )
+            var req = Stream_V1_UpdateChannelRequest()
+            req.streamURL = url
+            try await APIClient.shared.updateChannel(id: channelID, req)
             await loadChannels()
         } catch {
             self.error = error.localizedDescription

@@ -8,6 +8,7 @@ import Observation
 import Combine
 import AVKit
 import IOKit.pwr_mgt
+import SdkGenSwift
 
 @Observable
 @MainActor
@@ -155,11 +156,12 @@ final class PlayerViewModel:NSObject {
 
         // Re-fetch — server may have a fresher active link after a probe
         guard let detail = try? await APIClient.shared.getChannel(id: channel.id),
-              let activeURL = detail.activeLink.flatMap({ URL(string: $0.url) }) else {
+              detail.hasActiveLink,
+              let activeURL = URL(string: detail.activeLink.url) else {
             error = .noActiveLink
             return
         }
-        activeLinkFailureReason = detail.activeLink?.failureReason
+        activeLinkFailureReason = detail.hasActiveLink ? detail.activeLink.failureReason : nil
         startPlayback(url: activeURL)
     }
 
@@ -168,7 +170,7 @@ final class PlayerViewModel:NSObject {
     private func refreshActiveLinkFailureReason() async {
         guard let channel = currentChannel else { return }
         let detail = try? await APIClient.shared.getChannel(id: channel.id)
-        activeLinkFailureReason = detail?.activeLink?.failureReason
+        activeLinkFailureReason = (detail?.hasActiveLink == true) ? detail?.activeLink.failureReason : nil
     }
 
     /// Enables the proxy and retries the current stream — mirrors Android's

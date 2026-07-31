@@ -170,15 +170,15 @@ final class APIClientTests: XCTestCase {
                  "active_link":null,"candidates":[]}
                 """#.utf8)
         MockURLProtocol.requestHandler = { _ in .init(statusCode: 200, body: responseJSON) }
-        
-        let request = CreateChannelRequest(
-                    name: "BBC One",
-                    groupTitle: "News",
-                    tvgID: "bbc-one.uk",
-                    logoURL: "http://example.com/bbc-one.png",
-                    streamURL: "http://example.com/bbc.m3u8",
-                    keywords: ["news", "uk"]
-                )
+
+        var request = Stream_V1_CreateChannelRequest()
+        request.name = "BBC One"
+        request.groupTitle = "News"
+        request.tvgID = "bbc-one.uk"
+        request.logoURL = "http://example.com/bbc-one.png"
+        request.streamURL = "http://example.com/bbc.m3u8"
+        request.keywords = ["news", "uk"]
+
         _ = try await client.createChannel(request)
 
         let sent = try XCTUnwrap(MockURLProtocol.recordedRequests.first)
@@ -192,7 +192,9 @@ final class APIClientTests: XCTestCase {
         let statusJSON = Data(#"{"status":"ok"}"#.utf8)
         MockURLProtocol.requestHandler = { _ in .init(statusCode: 200, body: statusJSON) }
 
-        try await client.updateChannel(id: "abc", UpdateChannelRequest(streamURL: "http://example.com/new.m3u8"))
+        var request = Stream_V1_UpdateChannelRequest()
+        request.streamURL = "http://example.com/new.m3u8"
+        try await client.updateChannel(id: "abc", request)
 
         let sent = try XCTUnwrap(MockURLProtocol.recordedRequests.first)
         XCTAssertEqual(sent.httpMethod, "PUT")

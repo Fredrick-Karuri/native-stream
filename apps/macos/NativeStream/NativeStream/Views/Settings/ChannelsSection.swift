@@ -1,18 +1,19 @@
 // ChannelsSection.swift
 
 import SwiftUI
+import SdkGenSwift
 
 // MARK: - Channels section
 
 struct ChannelsSection: View {
 
-    @State private var channels: [ChannelResponse] = []
+    @State private var channels: [Stream_V1_ChannelResponse] = []
     @State private var isLoading = true
     @State private var searchText = ""
     @State private var loadError: String? = nil
 
-    private var filtered: [ChannelResponse] {
-        let managed = channels.filter(\.hasActiveLink)
+    private var filtered: [Stream_V1_ChannelResponse] {
+        let managed = channels.filter(\.hasActiveLink_p)
         guard !searchText.isEmpty else { return managed }
         return managed.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
@@ -33,7 +34,7 @@ struct ChannelsSection: View {
                      : "No channels match “\(searchText)”.")
                     .font(NS.Font.caption).foregroundStyle(NS.text3)
             } else {
-                ForEach(filtered) { channel in
+                ForEach(filtered, id: \.id) { channel in
                     ChannelHeaderRow(channel: channel)
                 }
             }
@@ -56,7 +57,7 @@ struct ChannelsSection: View {
 // MARK: - Channel header row
 
 struct ChannelHeaderRow: View {
-    let channel: ChannelResponse
+    let channel: Stream_V1_ChannelResponse
 
     @State private var expanded = false
     @State private var isLoadingHeaders = false
@@ -145,8 +146,8 @@ struct ChannelHeaderRow: View {
     private func loadHeaders() async {
         isLoadingHeaders = true
         if let detail = try? await APIClient.shared.getChannel(id: channel.id),
-           let existing = detail.activeLink?.headers {
-            headers = existing.map { (key: $0.key, value: $0.value) }
+           detail.hasActiveLink {
+            headers = detail.activeLink.headers.map { (key: $0.key, value: $0.value) }
         }
         isLoadingHeaders = false
     }
@@ -156,10 +157,9 @@ struct ChannelHeaderRow: View {
         saveError = nil
         let dict = Dictionary(uniqueKeysWithValues: headers.map { ($0.key, $0.value) })
         do {
-            try await APIClient.shared.updateChannel(
-                id: channel.id,
-                UpdateChannelRequest(streamHeaders: dict)
-            )
+            var req = Stream_V1_UpdateChannelRequest()
+            req.streamHeaders = dict
+            try await APIClient.shared.updateChannel(id: channel.id, req)
         } catch {
             saveError = "Save failed: \(error.localizedDescription)"
         }

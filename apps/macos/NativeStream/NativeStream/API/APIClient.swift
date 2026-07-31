@@ -109,27 +109,54 @@ actor APIClient {
 
     // MARK: - Channels
 
-    func listChannels() async throws -> [ChannelResponse] {
-        let r: ChannelListResponse = try await get("api/channels")
-        return r.channels
+    func listChannels() async throws -> [Stream_V1_ChannelResponse] {
+        let data = try await rawGet("api/channels")
+        do {
+            return try Stream_V1_ChannelListResponse(jsonUTF8Data: data).channels
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
 
-    func getChannel(id: String) async throws -> ChannelDetailResponse {
-        try await get("api/channels/\(id)")
+    func getChannel(id: String) async throws -> Stream_V1_ChannelDetailResponse {
+        let data = try await rawGet("api/channels/\(id)")
+        do {
+            return try Stream_V1_ChannelDetailResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
 
-    func createChannel(_ req: CreateChannelRequest) async throws -> ChannelDetailResponse {
-        try await post("api/channels", body: req)
+    func createChannel(_ req: Stream_V1_CreateChannelRequest) async throws -> Stream_V1_ChannelDetailResponse {
+        let data = try await rawProtoBody(method: "POST", path: "api/channels", message: req)
+        do {
+            return try Stream_V1_ChannelDetailResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
 
-    func updateChannel(id: String, _ req: UpdateChannelRequest) async throws {
-        let _: StatusResponse = try await put("api/channels/\(id)", body: req)
+    func updateChannel(id: String, _ req: Stream_V1_UpdateChannelRequest) async throws {
+        let data = try await rawProtoBody(method: "PUT", path: "api/channels/\(id)", message: req)
+        do {
+            _ = try Stream_V1_StatusResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
 
     func deleteChannel(id: String) async throws {
-        let _: StatusResponse = try await delete("api/channels/\(id)")
+        let url = try resolve("api/channels/\(id)")
+        var req = URLRequest(url: url)
+        req.httpMethod = "DELETE"
+        let data = try await execute(req)
+        do {
+            _ = try Stream_V1_StatusResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
-
+    
     // MARK: - Discovery
 
     func discoveryStatus() async throws -> DiscoveryStatusResponse {
@@ -145,7 +172,9 @@ actor APIClient {
     }
 
     func assignUnmatchedLink(channelID: String, url: String) async throws {
-        try await updateChannel(id: channelID, UpdateChannelRequest(streamURL: url))
+        var req = Stream_V1_UpdateChannelRequest()
+        req.streamURL = url
+        try await updateChannel(id: channelID, req)
     }
 
     // MARK: - Probe
