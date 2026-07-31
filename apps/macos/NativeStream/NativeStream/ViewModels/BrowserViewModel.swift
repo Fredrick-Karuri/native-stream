@@ -99,7 +99,7 @@ final class BrowserViewModel {
 
     // MARK: - Pure computation (nonisolated)
 
-    private nonisolated static func compute(
+    nonisolated static func compute(
         channels:     [Channel],
         search:       String,
         group:        String?,
@@ -212,7 +212,7 @@ final class BrowserViewModel {
 
     // MARK: - Private types
 
-    private struct ComputeResult {
+    struct ComputeResult {
         let sections:      [ChannelSection]
         let groupNames:    [String]
         let subGroupNames: [String]
