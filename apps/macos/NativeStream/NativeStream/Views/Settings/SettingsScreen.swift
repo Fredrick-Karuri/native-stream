@@ -26,7 +26,8 @@ enum SettingsSection: String, CaseIterable {
 struct SettingsScreen: View {
 
     @Environment(SettingsStore.self)         private var settings
-    @Environment(PlaylistViewModel.self)     private var playlistVM
+    @Environment(SourceViewModel.self)         private var sourceVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
     @Environment(ServerHealthViewModel.self) private var serverHealth
     @Environment(ServerDiscoveryService.self) private var discovery
     @Environment(ControlViewModel.self)       private var controlVM
@@ -106,7 +107,8 @@ struct SettingsScreen: View {
             titleVisibility: .visible
         ) {
             Button("Reset Everything", role: .destructive) {
-                playlistVM.resetAll()
+                sourceVM.resetAll()
+                channelLoadingVM.resetAll()
                 settings.resetAll()
             }
             Button("Cancel", role: .cancel) {}

@@ -17,7 +17,8 @@ extension BrowserScreen {
         let onSelectSource: (PlaylistSource?) -> Void
         let onAddPlaylist:  () -> Void
         let onAddChannel:   () -> Void
-        let playlistVM:     PlaylistViewModel
+        let sourceVM:         SourceViewModel
+        let channelLoadingVM: ChannelLoadingViewModel
         
         @State private var showSourcePicker = false
         @State private var showAddSource = false
@@ -63,8 +64,8 @@ extension BrowserScreen {
                 AddSourceSheet { source in
                     showAddSource = false
                     if let source {
-                        playlistVM.addSource(source)
-                        Task { await playlistVM.loadAll() }
+                        sourceVM.addSource(source)
+                        Task { await channelLoadingVM.loadAll() }
                     }
                 }
             }

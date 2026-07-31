@@ -15,13 +15,26 @@ struct NativeStreamApp: App {
     @State private var channelManager = ChannelManagerViewModel()
     @State private var controlVM = ControlViewModel(controlSession: ControlSession())
     @State private var toastCenter    = ToastCenter()
-    @State private var playlistVM: PlaylistViewModel
+    @State private var sourceVM: SourceViewModel
+    @State private var channelLoadingVM: ChannelLoadingViewModel
     @State private var settings: SettingsStore
     
     init() {
         let s = SettingsStore()
-        _settings    = State(initialValue: s)
-        _playlistVM  = State(initialValue: PlaylistViewModel(settings: s))
+        let dataStore = SettingsDataStore()
+        let source = SourceViewModel(dataStore: dataStore)
+        let loading = ChannelLoadingViewModel(
+            sourceViewModel: source,
+            settings: s,
+            repository: ChannelRepositoryImpl(),
+            dataStore: dataStore
+        )
+        source.onAutoRefreshTriggered = { [weak loading] in
+            await loading?.loadAll()
+        }
+        _settings        = State(initialValue: s)
+        _sourceVM         = State(initialValue: source)
+        _channelLoadingVM = State(initialValue: loading)
     }
 
     var body: some Scene {
@@ -31,13 +44,15 @@ struct NativeStreamApp: App {
                     OnboardingView { }
                         .environment(settings)
                         .environment(serverHealth)
-                        .environment(playlistVM)
+                        .environment(sourceVM)
+                        .environment(channelLoadingVM)
                         .environment(discoveryService)
                         .onAppear { serverHealth.resetConnectionState() }
 
                 } else {
                     AppShell()
-                        .environment(playlistVM)
+                        .environment(sourceVM)
+                        .environment(channelLoadingVM)
                         .environment(epgVM)
                         .environment(playerVM)
                         .environment(settings)
@@ -80,7 +95,8 @@ struct NativeStreamApp: App {
         Settings {
             SettingsScreen()
                 .environment(settings)
-                .environment(playlistVM)
+                .environment(sourceVM)
+                .environment(channelLoadingVM)
                 .environment(serverHealth)
                 .environment(channelManager)
                 .environment(discoveryService)

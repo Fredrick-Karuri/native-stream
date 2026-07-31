@@ -4,7 +4,8 @@ import SwiftUI
 
 struct BrowserScreen: View {
 
-    @Environment(PlaylistViewModel.self)       private var playlistVM
+    @Environment(SourceViewModel.self)         private var sourceVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
     @Environment(EPGViewModel.self)            private var epgVM
     @Environment(ChannelManagerViewModel.self) private var channelManager
     @Environment(BrowserViewModel.self)        private var browserVM
@@ -46,17 +47,17 @@ struct BrowserScreen: View {
         .sheet(isPresented: Bindable(browserVM).showAddChannel) {
             AddChannelSheet { newChannel in
                 browserVM.showAddChannel = false
-                if let newChannel { playlistVM.insert(newChannel) }
+                if let newChannel { channelLoadingVM.insert(newChannel) }
             }
             .environment(channelManager)
         }
         .onAppear {
             browserVM.restoreSelection(
-                from:     playlistVM.sources,
-                channels: playlistVM.channels
+                from:     sourceVM.sources,
+                channels: channelLoadingVM.channels
             )
         }
-        .task(id: playlistVM.channels.count) {
+        .task(id: channelLoadingVM.channels.count) {
             recompute()
         }
         .task(id: browserVM.selectedGroup) {
@@ -64,7 +65,7 @@ struct BrowserScreen: View {
         }
         .onChange(of: browserVM.searchText) {
             browserVM.clearGroupWhenSearching(
-                channels:     playlistVM.channels,
+                channels:     channelLoadingVM.channels,
                 favouriteIDs: favourites.favouriteIDs
             )
             recompute()
@@ -81,14 +82,15 @@ struct BrowserScreen: View {
             searchText:     Bindable(browserVM).searchText,
             searchFocused:  $searchFocused,
             channelCount:   browserVM.filteredCount,
-            sources:        playlistVM.sources,
+            sources:        sourceVM.sources,
             selectedSource: browserVM.selectedSource,
             onSelectSource: { source in
-                browserVM.selectSource(source, channels: playlistVM.channels)
+                browserVM.selectSource(source, channels: channelLoadingVM.channels)
             },
             onAddPlaylist:  { /* navigate to Settings → Sources */ },
             onAddChannel:   { browserVM.showAddChannel = true },
-            playlistVM:     playlistVM
+            sourceVM:       sourceVM,
+            channelLoadingVM: channelLoadingVM
         )
     }
 
@@ -105,34 +107,34 @@ struct BrowserScreen: View {
             onSelectAll: {
                 browserVM.selectGroup(
                     nil,
-                    channels:     playlistVM.channels,
+                    channels:     channelLoadingVM.channels,
                     favouriteIDs: favourites.favouriteIDs
                 )
             },
             onSelectGroup: { group in
                 browserVM.selectGroup(
                     group,
-                    channels:     playlistVM.channels,
+                    channels:     channelLoadingVM.channels,
                     favouriteIDs: favourites.favouriteIDs
                 )
             },
             onSelectSubGroup: { sub in
                 browserVM.selectSubGroup(
                     sub,
-                    channels:     playlistVM.channels,
+                    channels:     channelLoadingVM.channels,
                     favouriteIDs: favourites.favouriteIDs
                 )
             },
             onSelectSport: { sport in
                 browserVM.selectSport(
                     sport,
-                    channels:     playlistVM.channels,
+                    channels:     channelLoadingVM.channels,
                     favouriteIDs: favourites.favouriteIDs
                 )
             },
             onToggleFavourites: {
                 browserVM.toggleFavourites(
-                    channels:     playlistVM.channels,
+                    channels:     channelLoadingVM.channels,
                     favouriteIDs: favourites.favouriteIDs
                 )
             }
@@ -142,19 +144,19 @@ struct BrowserScreen: View {
     private var content: some View {
         BrowserContent(
             sections:        displayedSections,
-            isLoading:       playlistVM.isLoading,
+            isLoading:       channelLoadingVM.isLoading,
             searchText:      browserVM.searchText,
             onSelectChannel: onSelectChannel,
             showSourceBadge: browserVM.selectedSource == nil
                              || browserVM.selectedSource!.isAll,
-            sources:         playlistVM.sources
+            sources:         sourceVM.sources
         )
     }
     // MARK: - Helpers
 
     private func recompute() {
         browserVM.recomputeSections(
-            channels:     playlistVM.channels,
+            channels:     channelLoadingVM.channels,
             favouriteIDs: favourites.favouriteIDs
         )
     }
@@ -165,7 +167,7 @@ struct BrowserScreen: View {
             activeSports = []
             return
         }
-        let channels = playlistVM.channels
+        let channels = channelLoadingVM.channels
         Task.detached(priority: .userInitiated) {
             let sports = epgVM.activeSports(in: channels)
             await MainActor.run { activeSports = sports }

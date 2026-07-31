@@ -9,7 +9,7 @@ import Combine
 
 struct NowScreen: View {
 
-    @Environment(PlaylistViewModel.self) private var playlistVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
     @Environment(EPGViewModel.self)      private var epgVM
 
     let onSelectChannel: (Channel) -> Void
@@ -27,16 +27,16 @@ struct NowScreen: View {
             scrollContent
         }
         .background(NS.bg)
-        .task(id: playlistVM.channels.count) { vm.recompute(channels: playlistVM.channels, epgVM: epgVM) }
-        .task(id: epgVM.stores.count)        { vm.recompute(channels: playlistVM.channels, epgVM: epgVM) }
-        .onReceive(clockTick)                { _ in vm.recompute(channels: playlistVM.channels, epgVM: epgVM) }
+        .task(id: channelLoadingVM.channels.count) { vm.recompute(channels: channelLoadingVM.channels, epgVM: epgVM) }
+        .task(id: epgVM.stores.count)        { vm.recompute(channels: channelLoadingVM.channels, epgVM: epgVM) }
+        .onReceive(clockTick)                { _ in vm.recompute(channels: channelLoadingVM.channels, epgVM: epgVM) }
     }
 
     // MARK: - Scroll content
 
     @ViewBuilder
     private var scrollContent: some View {
-        if playlistVM.isLoading {
+        if channelLoadingVM.isLoading {
             NowLoadingView()
         } else if vm.liveCount == 0 && vm.soonCount == 0 {
             NowEmptyView()

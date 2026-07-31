@@ -9,7 +9,7 @@ enum MatchCardVariant { case live, featured, ucl, plain }
 struct MatchDayScreen: View {
 
     @Environment(EPGViewModel.self)      private var epgVM
-    @Environment(PlaylistViewModel.self) private var playlistVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
 
     let sport: SportCategory
     let onSelectChannel: (Channel) -> Void
@@ -106,7 +106,7 @@ struct MatchDayScreen: View {
 
     private var allMatches: [MatchItem] {
         var items: [MatchItem] = []
-        for ch in playlistVM.channels {
+        for ch in channelLoadingVM.channels {
             for prog in epgVM.schedule(for: ch, hours: 8) {
                 // EPG keyword match first, fall back to groupTitle
                 let titleLower = prog.title.lowercased()
@@ -151,7 +151,7 @@ struct MatchDayScreen: View {
     }
 
     private func channelFor(_ match: MatchItem) -> Channel? {
-        playlistVM.channels.first { $0.tvgId == match.channelTvgID }
+        channelLoadingVM.channels.first { $0.tvgId == match.channelTvgID }
     }
 }
 

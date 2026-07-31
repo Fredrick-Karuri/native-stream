@@ -60,11 +60,11 @@ struct SportNavRail: View {
     @Binding var destination: AppDestination
 
     @Environment(EPGViewModel.self)      private var epgVM
-    @Environment(PlaylistViewModel.self) private var playlistVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
 
     private var visibleSports: [SportCategory] {
         if epgVM.isLoading { return SportCategory.allCases }
-        let active = epgVM.activeSports(in: playlistVM.channels)
+        let active = epgVM.activeSports(in: channelLoadingVM.channels)
         return active.isEmpty ? SportCategory.allCases : active
     }
 

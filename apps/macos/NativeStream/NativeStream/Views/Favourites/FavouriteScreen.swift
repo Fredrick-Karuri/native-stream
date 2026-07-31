@@ -5,14 +5,14 @@ import SwiftUI
 
 struct FavouritesScreen: View {
 
-    @Environment(PlaylistViewModel.self)  private var playlistVM
+    @Environment(ChannelLoadingViewModel.self)  private var channelLoadingVM
     @Environment(EPGViewModel.self)       private var epgVM
     @Environment(FavouritesManager.self)  private var favourites
     @Environment(PlayerViewModel.self)    private var playerVM
 
     let onSelectChannel: (Channel) -> Void
 
-    private var starred: [Channel] { favourites.favourites(from: playlistVM.channels) }
+    private var starred: [Channel] { favourites.favourites(from: channelLoadingVM.channels) }
 
     private var liveNow: [(channel: Channel, programme: Programme)] {
         starred.compactMap { ch in

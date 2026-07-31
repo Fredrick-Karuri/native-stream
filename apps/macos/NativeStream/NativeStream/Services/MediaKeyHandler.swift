@@ -8,11 +8,11 @@ import MediaPlayer
 final class MediaKeyHandler {
 
     private weak var playerVM: PlayerViewModel?
-    private weak var playlistVM: PlaylistViewModel?
+    private weak var channelLoadingVM: ChannelLoadingViewModel?
 
-    func configure(playerVM: PlayerViewModel, playlistVM: PlaylistViewModel) {
+    func configure(playerVM: PlayerViewModel, channelLoadingVM: ChannelLoadingViewModel) {
         self.playerVM = playerVM
-        self.playlistVM = playlistVM
+        self.channelLoadingVM = channelLoadingVM
 
         let cc = MPRemoteCommandCenter.shared()
 
@@ -51,15 +51,15 @@ final class MediaKeyHandler {
     }
 
     private func playNextChannel() {
-        guard let playerVM, let playlistVM,
-              let next = ChannelNavigation.nextChannel(after: playerVM.currentChannel, in: playlistVM.channels)
+        guard let playerVM, let channelLoadingVM,
+              let next = ChannelNavigation.nextChannel(after: playerVM.currentChannel, in: channelLoadingVM.channels)
         else { return }
         Task { try? await playerVM.play(channel: next) }
     }
 
     private func playPreviousChannel() {
-        guard let playerVM, let playlistVM,
-              let prev = ChannelNavigation.previousChannel(before: playerVM.currentChannel, in: playlistVM.channels)
+        guard let playerVM, let channelLoadingVM,
+              let prev = ChannelNavigation.previousChannel(before: playerVM.currentChannel, in: channelLoadingVM.channels)
         else { return }
         Task { try? await playerVM.play(channel: prev) }
     }

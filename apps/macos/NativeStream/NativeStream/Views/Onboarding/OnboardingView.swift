@@ -9,7 +9,8 @@ private enum OnboardingStep {
 struct OnboardingView: View {
 
     @Environment(SettingsStore.self)          private var settings
-    @Environment(PlaylistViewModel.self)      private var playlistVM
+    @Environment(SourceViewModel.self)         private var sourceVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
     @Environment(ServerHealthViewModel.self)  private var serverHealth
     @Environment(ServerDiscoveryService.self) private var discovery
 
@@ -44,9 +45,9 @@ struct OnboardingView: View {
                         },
                         onAdvance: {
                             // auto-add server playlist
-                            if playlistVM.sources.isEmpty {
+                            if sourceVM.sources.isEmpty {
                                 if let url = settings.serverURL {
-                                    playlistVM.addSource(PlaylistSource(
+                                    sourceVM.addSource(PlaylistSource(
                                         label:           "StreamServer",
                                         url:             url.appendingPathComponent("playlist.m3u"),
                                         refreshInterval: .sixHours
@@ -65,12 +66,12 @@ struct OnboardingView: View {
                     PlaylistStep(
                         connectionState: serverHealth.connectionState,
                         onSourceAdded: { url, label in
-                            playlistVM.addSource(PlaylistSource(
+                            sourceVM.addSource(PlaylistSource(
                                 label:           label.isEmpty ? url.lastPathComponent : label,
                                 url:             url,
                                 refreshInterval: .sixHours
                             ))
-                            Task { await playlistVM.loadAll() }
+                            Task { await channelLoadingVM.loadAll() }
                         },
                         onAdvance: { epgURL in
                             foundEpgURL = epgURL

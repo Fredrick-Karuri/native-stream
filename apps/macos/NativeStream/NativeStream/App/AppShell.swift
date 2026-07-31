@@ -4,7 +4,8 @@ import AVKit
 
 struct AppShell: View {
 
-    @Environment(PlaylistViewModel.self)     private var playlistVM
+    @Environment(SourceViewModel.self)         private var sourceVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
     @Environment(EPGViewModel.self)          private var epgVM
     @Environment(PlayerViewModel.self)       private var playerVM
     @Environment(SettingsStore.self)         private var settings
@@ -130,21 +131,23 @@ struct AppShell: View {
 
     // MARK: - Load
     private func loadAll() async {
-        await playlistVM.loadAll()
+        await sourceVM.loadSourcesFromDisk()
+        await channelLoadingVM.loadCachedChannelsFromDisk()
+        await channelLoadingVM.loadAll()
         if let url = settings.serverURL { serverHealth.startPolling(serverURL: url) }
         if let serverProxyEnabled = try? await APIClient.shared.getProxyEnabled() {
             settings.proxyEnabled = serverProxyEnabled
         }
-        playlistVM.scheduleAutoRefresh()
+        sourceVM.scheduleAutoRefresh()
         Task(priority: .background) {
             await loadEPG()
-            epgVM.logMatchDiagnostic(for: playlistVM.channels)
+            epgVM.logMatchDiagnostic(for: channelLoadingVM.channels)
         }
     }
 
     private func loadEPG() async {
         epgVM.epgURL = settings.epgURL
-        await epgVM.load(sources: playlistVM.sources)
+        await epgVM.load(sources: sourceVM.sources)
     }
 
     // MARK: - Routing

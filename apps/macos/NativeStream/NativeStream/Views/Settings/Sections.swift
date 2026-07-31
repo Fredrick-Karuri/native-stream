@@ -9,7 +9,8 @@ import SwiftUI
 
 struct SourcesSection: View {
 
-    @Environment(PlaylistViewModel.self) private var playlistVM
+    @Environment(SourceViewModel.self)         private var sourceVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
     
     @State private var showAddSheet = false
 
@@ -17,8 +18,8 @@ struct SourcesSection: View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
             SectionTitle("Playlist Sources")
 
-            ForEach(playlistVM.sources) { source in
-                SourceRow(source: source) { playlistVM.removeSource(id: source.id) }
+            ForEach(sourceVM.sources) { source in
+                SourceRow(source: source) { sourceVM.removeSource(id: source.id) }
             }
 
             AddButton(label: "+ Add Source") { showAddSheet = true }
@@ -27,8 +28,8 @@ struct SourcesSection: View {
             AddSourceSheet { source in
                 showAddSheet = false
                 if let source {
-                    playlistVM.addSource(source)
-                    Task { await playlistVM.loadAll() }
+                    sourceVM.addSource(source)
+                    Task { await channelLoadingVM.loadAll() }
                 }
             }
         
@@ -39,7 +40,8 @@ struct SourcesSection: View {
 
 
 struct SourceRow: View {
-    @Environment(PlaylistViewModel.self) private var playlistVM
+    @Environment(SourceViewModel.self)         private var sourceVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
     let source: PlaylistSource
     let onDelete: () -> Void
 
@@ -108,7 +110,7 @@ struct SourceRow: View {
                     Button("Save") {
                         var updated = source
                         updated.epgURLString = epgInput
-                        playlistVM.updateSource(updated)
+                        sourceVM.updateSource(updated)
                         withAnimation { showEPG = false }
                     }
                     .buttonStyle(.borderedProminent)

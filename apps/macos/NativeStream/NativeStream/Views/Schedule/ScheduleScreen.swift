@@ -6,7 +6,7 @@ import SwiftUI
 
 struct ScheduleScreen: View {
 
-    @Environment(PlaylistViewModel.self) private var playlistVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
     @Environment(EPGViewModel.self)      private var epgVM
 
     let onSelectChannel: (Channel) -> Void
@@ -60,7 +60,7 @@ struct ScheduleScreen: View {
         let from = selectedDate.date
         let to   = selectedDate.dayEnd
 
-        return playlistVM.channels.flatMap { ch in
+        return channelLoadingVM.channels.flatMap { ch in
             epgVM.schedule(for: ch, from: from, to: to)
                 .filter { prog in
                     if let sport = selectedSport {
@@ -93,7 +93,7 @@ struct ScheduleScreen: View {
     }
 
     private func eventCount(for date: DateItem) -> Int {
-        playlistVM.channels.reduce(0) { count, ch in
+        channelLoadingVM.channels.reduce(0) { count, ch in
             count + epgVM.schedule(for: ch, from: date.date, to: date.dayEnd)
                 .filter { $0.isSportMatch }
                 .count

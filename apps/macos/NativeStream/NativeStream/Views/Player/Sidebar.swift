@@ -8,7 +8,7 @@ extension PlayerScreen{
     struct PlayerSidebar: View {
         
         @Environment(EPGViewModel.self)      private var epgVM
-        @Environment(PlaylistViewModel.self) private var playlistVM
+        @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
         @Environment(PlayerViewModel.self)   private var playerVM
         
         let currentChannel: Channel?
@@ -62,7 +62,7 @@ extension PlayerScreen{
 struct PlayerOnNowTab: View {
 
     @Environment(EPGViewModel.self)      private var epgVM
-    @Environment(PlaylistViewModel.self) private var playlistVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
     @Environment(PlayerViewModel.self)   private var playerVM
 
     let currentChannel: Channel?
@@ -71,7 +71,7 @@ struct PlayerOnNowTab: View {
     // Falls back to all channels if EPG has no data at all.
 
     private var filteredChannels: [Channel] {
-        let all = playlistVM.channels
+        let all = channelLoadingVM.channels
         let withEPG = all.filter {
             epgVM.currentProgramme(for: $0) != nil || epgVM.nextProgramme(for: $0) != nil
         }
