@@ -221,27 +221,14 @@ final class PlayerViewModel:NSObject {
         }
     }
 
-    // MARK: - Quality (NS-054)
-
+    // MARK: - Quality
+    
     func setQuality(_ q: StreamQuality) {
         quality = q
-        // AVFoundation adaptive bitrate: restrict via preferredPeakBitRate
-        switch q {
-        case .auto:
-            player?.currentItem?.preferredPeakBitRate = 0    // unlimited
-        case .locked(let height):
-            // Approximate bitrate caps per resolution
-            let bitrate: Double = switch height {
-            case 1080: 8_000_000
-            case 720:  4_000_000
-            case 480:  1_500_000
-            default:   0
-            }
-            player?.currentItem?.preferredPeakBitRate = bitrate
-        }
+        player?.currentItem?.preferredPeakBitRate = PlaybackBitrate.preferredPeakBitRate(for: q)
     }
 
-    // MARK: - Now Playing (NS-046)
+    // MARK: - Now Playing
 
     func setupNowPlaying() {
         guard let channel = currentChannel else { return }
