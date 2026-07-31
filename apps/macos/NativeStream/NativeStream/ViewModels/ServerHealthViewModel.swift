@@ -29,21 +29,7 @@ final class ServerHealthViewModel {
         let playlist = await playlistTask
         let epg      = await epgTask
 
-        guard let h = health else {
-            connectionState = .failure(.unreachable)
-            return
-        }
-        guard let p = playlist, !p.isEmpty else {
-            connectionState = .failure(.noPlaylist)
-            return
-        }
-        let hasEpg = epg?.isEmpty == false
-        connectionState = .success(
-            channels:        Int(h.channels),
-            healthy:         Int(h.healthy),
-            hasEpg:          hasEpg,
-            epgFromPlaylist: false
-        )
+        connectionState = ConnectionStateDecider.decide(health: health, playlist: playlist, epg: epg)
     }
 
     func resetConnectionState() {
