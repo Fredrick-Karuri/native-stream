@@ -55,43 +55,21 @@ final class ControlViewModel {
     // MARK: - Private
 
     private func handle(_ envelope: Envelope, playerVM: PlayerViewModel) async {
-        switch envelope.type {
-        case .play:
-            await handlePlay(envelope, playerVM: playerVM)
+        switch ControlActionDecider.decide(for: envelope) {
+        case .play(let channel):
+            lastPlayWasRemote = true
+            try? await playerVM.play(channel: channel)
         case .stop:
             playerVM.stop()
-        case .volumeSet:
-            handleVolumeSet(envelope, playerVM: playerVM)
-        case .sessionList:
-            handleSessionList(envelope)
-        case .ping:
+        case .setVolume(let level):
+            playerVM.player?.volume = level
+        case .updateSessions(let sessions):
+            self.sessions = sessions
+        case .sendPong:
             await sendPong()
-        default:
+        case .none:
             break
         }
-    }
-
-    private func handlePlay(_ envelope: Envelope, playerVM: PlayerViewModel) async {
-        guard let payload = envelope.decoding(as: PlayPayload.self) else { return }
-        lastPlayWasRemote = true
-        let channel = Channel(
-            tvgId: "",
-            name: payload.channelName,
-            groupTitle: "Remote",
-            streamURL: URL(string: payload.streamURL) ?? URL(string: "about:blank")!,
-            streamHeaders: [:]
-        )
-        try? await playerVM.play(channel: channel)
-    }
-
-    private func handleSessionList(_ envelope: Envelope) {
-        guard let payload = envelope.decoding(as: SessionListPayload.self) else { return }
-        sessions = payload.sessions.filter { $0.kind == .controller }
-    }
-    
-    private func handleVolumeSet(_ envelope: Envelope, playerVM: PlayerViewModel) {
-        guard let payload = envelope.decoding(as: VolumeSetPayload.self) else { return }
-        playerVM.player?.volume = Float(payload.level)
     }
 
     private func sendPong() async {

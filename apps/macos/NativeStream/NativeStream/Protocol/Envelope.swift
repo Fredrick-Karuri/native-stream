@@ -71,7 +71,7 @@ struct Envelope: Codable {
     }
 }
 
-struct SessionInfo: Codable, Identifiable {
+struct SessionInfo: Codable, Identifiable,Equatable {
     var id: String { deviceID }
     let deviceID: String
     let name: String
