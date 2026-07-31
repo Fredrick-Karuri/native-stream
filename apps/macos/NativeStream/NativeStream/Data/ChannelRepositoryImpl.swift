@@ -83,13 +83,21 @@ actor ChannelRepositoryImpl: ChannelRepository {
     }
 
     private func playlistData(for source: PlaylistSource) async throws -> Data {
-        if let host = source.url.host, localHostNames.contains(host) {
-            return try await apiClient.playlistData()
+            if isLocalSource(source) {
+                return try await apiClient.playlistData()
+            }
+            return try await URLSession.shared.data(from: source.url).0
         }
-        return try await URLSession.shared.data(from: source.url).0
+
+    /// Whether this source's URL points at the local NativeStream server
+    /// (loopback host), in which case playlist data comes from apiClient
+    /// rather than a direct URLSession fetch.
+    nonisolated func isLocalSource(_ source: PlaylistSource) -> Bool {
+        guard let host = source.url.host else { return false }
+        return localHostNames.contains(host)
     }
 
-    private func taggedChannel(_ channel: Channel, sourceID: UUID) -> Channel {
+    nonisolated func taggedChannel(_ channel: Channel, sourceID: UUID) -> Channel {
         Channel(
             tvgId:         channel.tvgId,
             name:          channel.name,
@@ -108,7 +116,7 @@ actor ChannelRepositoryImpl: ChannelRepository {
         }
     }
 
-    private func deduplicated(_ channels: [Channel]) -> [Channel] {
+    nonisolated func deduplicated(_ channels: [Channel]) -> [Channel] {
         var seenChannelIDs = Set<String>()
         return channels.filter { seenChannelIDs.insert($0.id).inserted }
     }

@@ -2,9 +2,7 @@
 //
 // Pure channel-list navigation logic extracted from MediaKeyHandler. Given the
 // current channel (if any) and the full channel list, decides which channel
-// "next"/"previous" should select, with wraparound. No dependency on
-// MPRemoteCommandCenter, PlayerViewModel, or PlaylistViewModel — this is what
-// makes it testable without a live media session.
+// "next"/"previous" should select, with wraparound
 
 import Foundation
 

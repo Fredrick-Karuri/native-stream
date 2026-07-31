@@ -87,13 +87,13 @@ final class SourceViewModel {
         Task { await dataStore.deleteAll() }
     }
 
-    // MARK: - Auto-refresh scheduling (NS-032)
+    // MARK: - Auto-refresh scheduling
 
     /// Starts (or re-tunes) the recurring auto-refresh job at the shortest
     /// non-manual interval across all sources. Re-invoked on every source
     /// mutation while active, so a newly added shorter interval takes
     /// effect on the next cycle rather than waiting for the old one to
-    /// finish — matching the prior PlaylistViewModel behavior.
+    /// finish
     func scheduleAutoRefresh() {
         isAutoRefreshActive = true
         let interval = shortestConfiguredRefreshInterval()
@@ -124,7 +124,7 @@ final class SourceViewModel {
         scheduleAutoRefresh()
     }
 
-    private func shortestConfiguredRefreshInterval() -> TimeInterval {
+    func shortestConfiguredRefreshInterval() -> TimeInterval {
         sources
             .filter { $0.refreshInterval != .manual }
             .map { $0.refreshInterval.seconds }

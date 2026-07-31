@@ -40,14 +40,14 @@ let developerSections: [HelpSection] = [
             .code("AppShell\n├── SportNavRail (persistent)\n├── NowScreen           (.now)\n├── MatchDayScreen      (.sport(SportCategory))\n├── FavouritesScreen    (.favourites)\n├── ScheduleScreen      (.schedule)\n├── BrowserScreen       (.allChannels)\n├── PlayerScreen        (modal)\n│   ├── PlayerOnNowTab\n│   └── PlayerScheduleTab\n├── HelpScreen          (.help)\n└── SettingsScreen      (sheet)")
         ]),
         HelpItem(title: "Environment objects", blocks: [
-            .text("Five environment objects are injected at AppShell and available across all screens."),
-            .code("PlaylistViewModel   // channels, sources, isLoading\nEPGViewModel        // currentProgramme, nextProgramme, schedule\nPlayerViewModel     // currentChannel, play, stop, PiP\nFavouritesManager   // toggle, isFavourite, favourites(from:)\nServerHealthViewModel // isConnected, status, startPolling")
+            .text("Six environment objects are injected at AppShell and available across all screens."),
+            .code("SourceViewModel     // sources, add/remove/updateSource, scheduleAutoRefresh\nChannelLoadingViewModel // channels, isLoading, loadAll, insert\nEPGViewModel        // currentProgramme, nextProgramme, schedule\nPlayerViewModel     // currentChannel, play, stop, PiP\nFavouritesManager   // toggle, isFavourite, favourites(from:)\nServerHealthViewModel // isConnected, status, startPolling")
         ])
     ]),
     HelpSection(title: "Data flow", icon: "arrow.triangle.2.circlepath", items: [
         HelpItem(title: "Startup sequence", blocks: [
-            .text("On launch, AppShell.task fires loadAll() which runs playlist and EPG loading in parallel using async let. Server health polling starts after both complete."),
-            .code("async let playlist = playlistVM.loadAll()\nasync let epg      = loadEPG()\n_ = await (playlist, epg)\nserverHealth.startPolling(serverURL: url)"),
+            .text("On launch, AppShell.task fires loadAll() which loads cached sources/channels from disk, then fetches fresh channels and EPG data. Server health polling starts after both complete."),
+            .code("await sourceVM.loadSourcesFromDisk()\nawait channelLoadingVM.loadCachedChannelsFromDisk()\nawait channelLoadingVM.loadAll()\nserverHealth.startPolling(serverURL: url)"),
             .text("EPG reloads automatically when the EPG URL changes in Settings via .onChange(of: settings.epgURLString).")
         ]),
         HelpItem(title: "EPG lookups", blocks: [
