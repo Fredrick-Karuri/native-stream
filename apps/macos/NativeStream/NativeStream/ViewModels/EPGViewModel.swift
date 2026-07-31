@@ -127,7 +127,7 @@ final class EPGViewModel {
         return URL(string: fixed) ?? url
     }
     
-    private nonisolated static func stripGzipHeader(_ data: Data) -> Data? {
+    nonisolated static func stripGzipHeader(_ data: Data) -> Data? {
         guard data.count > 18 else { return nil }
         var offset = 10
         let flags = data[3]
