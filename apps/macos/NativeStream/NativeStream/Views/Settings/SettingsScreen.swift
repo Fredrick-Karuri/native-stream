@@ -2,6 +2,7 @@
 // Settings as a full rail destination. No fixed frame, no sheet.
 
 import SwiftUI
+import SdkGenSwift
 
 enum SettingsSection: String, CaseIterable {
     case sources    = "Sources"

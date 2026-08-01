@@ -79,58 +79,56 @@ public final class ControlProto {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\027stream/v1/control.proto\022\tstream.v1\032\034go" +
-      "ogle/protobuf/struct.proto\032\037google/proto" +
-      "buf/timestamp.proto\"\257\001\n\010Envelope\022*\n\004type" +
-      "\030\001 \001(\0162\026.stream.v1.MessageTypeR\004type\022\022\n\004" +
-      "from\030\002 \001(\tR\004from\022\016\n\002to\030\003 \001(\tR\002to\022\027\n\004auth" +
-      "\030\004 \001(\tH\000R\004auth\210\001\001\0221\n\007payload\030\005 \001(\0132\027.goo" +
-      "gle.protobuf.StructR\007payloadB\007\n\005_auth\"\273\002" +
-      "\n\013SessionInfo\022\033\n\tdevice_id\030\001 \001(\tR\010device" +
-      "Id\022\022\n\004name\030\002 \001(\tR\004name\022)\n\004kind\030\003 \001(\0162\025.s" +
-      "tream.v1.DeviceKindR\004kind\022\035\n\nchannel_id\030" +
-      "\004 \001(\tR\tchannelId\022!\n\014channel_name\030\005 \001(\tR\013" +
-      "channelName\022\035\n\nstream_url\030\006 \001(\tR\tstreamU" +
-      "rl\022\030\n\007playing\030\007 \001(\010R\007playing\022\026\n\006volume\030\010" +
-      " \001(\001R\006volume\022=\n\014connected_at\030\t \001(\0132\032.goo" +
-      "gle.protobuf.TimestampR\013connectedAt\"P\n\017R" +
-      "egisterPayload\022\022\n\004name\030\001 \001(\tR\004name\022)\n\004ki" +
-      "nd\030\002 \001(\0162\025.stream.v1.DeviceKindR\004kind\"n\n" +
-      "\013PlayPayload\022\035\n\nchannel_id\030\001 \001(\tR\tchanne" +
-      "lId\022!\n\014channel_name\030\002 \001(\tR\013channelName\022\035" +
-      "\n\nstream_url\030\003 \001(\tR\tstreamUrl\"2\n\017PullBac" +
-      "kPayload\022\037\n\013from_device\030\001 \001(\tR\nfromDevic" +
-      "e\"u\n\022PullBackAckPayload\022\035\n\nchannel_id\030\001 " +
-      "\001(\tR\tchannelId\022!\n\014channel_name\030\002 \001(\tR\013ch" +
-      "annelName\022\035\n\nstream_url\030\003 \001(\tR\tstreamUrl" +
-      "\"\247\001\n\022StateUpdatePayload\022\035\n\nchannel_id\030\001 " +
-      "\001(\tR\tchannelId\022!\n\014channel_name\030\002 \001(\tR\013ch" +
-      "annelName\022\035\n\nstream_url\030\003 \001(\tR\tstreamUrl" +
-      "\022\030\n\007playing\030\004 \001(\010R\007playing\022\026\n\006volume\030\005 \001" +
-      "(\001R\006volume\"(\n\020VolumeSetPayload\022\024\n\005level\030" +
-      "\001 \001(\001R\005level\"H\n\022SessionListPayload\0222\n\010se" +
-      "ssions\030\001 \003(\0132\026.stream.v1.SessionInfoR\010se" +
-      "ssions*\271\002\n\013MessageType\022\034\n\030MESSAGE_TYPE_U" +
-      "NSPECIFIED\020\000\022\031\n\025MESSAGE_TYPE_REGISTER\020\001\022" +
-      "\035\n\031MESSAGE_TYPE_SESSION_LIST\020\002\022\025\n\021MESSAG" +
-      "E_TYPE_PLAY\020\003\022\025\n\021MESSAGE_TYPE_STOP\020\004\022\032\n\026" +
-      "MESSAGE_TYPE_PULL_BACK\020\005\022\036\n\032MESSAGE_TYPE" +
-      "_PULL_BACK_ACK\020\006\022\035\n\031MESSAGE_TYPE_STATE_U" +
-      "PDATE\020\007\022\033\n\027MESSAGE_TYPE_VOLUME_SET\020\010\022\025\n\021" +
-      "MESSAGE_TYPE_PING\020\t\022\025\n\021MESSAGE_TYPE_PONG" +
-      "\020\n*q\n\nDeviceKind\022\033\n\027DEVICE_KIND_UNSPECIF" +
-      "IED\020\000\022\032\n\026DEVICE_KIND_CONTROLLER\020\001\022\026\n\022DEV" +
-      "ICE_KIND_TARGET\020\002\022\022\n\016DEVICE_KIND_TV\020\003B\251\001" +
-      "\n\rcom.stream.v1B\014ControlProtoP\001ZEgithub." +
-      "com/fredrick-karuri/nativestream/sdk-gen" +
-      "/go/stream/v1;streamv1\242\002\003SXX\252\002\tStream.V1" +
-      "\312\002\tStream\\V1\342\002\025Stream\\V1\\GPBMetadata\352\002\nS" +
-      "tream::V1b\006proto3"
+      "\n\027stream/v1/control.proto\022\tstream.v1\032\037go" +
+      "ogle/protobuf/timestamp.proto\"\237\001\n\010Envelo" +
+      "pe\022*\n\004type\030\001 \001(\0162\026.stream.v1.MessageType" +
+      "R\004type\022\022\n\004from\030\002 \001(\tR\004from\022\016\n\002to\030\003 \001(\tR\002" +
+      "to\022\027\n\004auth\030\004 \001(\tH\000R\004auth\210\001\001\022!\n\014payload_j" +
+      "son\030\005 \001(\tR\013payloadJsonB\007\n\005_auth\"\273\002\n\013Sess" +
+      "ionInfo\022\033\n\tdevice_id\030\001 \001(\tR\010deviceId\022\022\n\004" +
+      "name\030\002 \001(\tR\004name\022)\n\004kind\030\003 \001(\0162\025.stream." +
+      "v1.DeviceKindR\004kind\022\035\n\nchannel_id\030\004 \001(\tR" +
+      "\tchannelId\022!\n\014channel_name\030\005 \001(\tR\013channe" +
+      "lName\022\035\n\nstream_url\030\006 \001(\tR\tstreamUrl\022\030\n\007" +
+      "playing\030\007 \001(\010R\007playing\022\026\n\006volume\030\010 \001(\001R\006" +
+      "volume\022=\n\014connected_at\030\t \001(\0132\032.google.pr" +
+      "otobuf.TimestampR\013connectedAt\"P\n\017Registe" +
+      "rPayload\022\022\n\004name\030\001 \001(\tR\004name\022)\n\004kind\030\002 \001" +
+      "(\0162\025.stream.v1.DeviceKindR\004kind\"n\n\013PlayP" +
+      "ayload\022\035\n\nchannel_id\030\001 \001(\tR\tchannelId\022!\n" +
+      "\014channel_name\030\002 \001(\tR\013channelName\022\035\n\nstre" +
+      "am_url\030\003 \001(\tR\tstreamUrl\"2\n\017PullBackPaylo" +
+      "ad\022\037\n\013from_device\030\001 \001(\tR\nfromDevice\"u\n\022P" +
+      "ullBackAckPayload\022\035\n\nchannel_id\030\001 \001(\tR\tc" +
+      "hannelId\022!\n\014channel_name\030\002 \001(\tR\013channelN" +
+      "ame\022\035\n\nstream_url\030\003 \001(\tR\tstreamUrl\"\247\001\n\022S" +
+      "tateUpdatePayload\022\035\n\nchannel_id\030\001 \001(\tR\tc" +
+      "hannelId\022!\n\014channel_name\030\002 \001(\tR\013channelN" +
+      "ame\022\035\n\nstream_url\030\003 \001(\tR\tstreamUrl\022\030\n\007pl" +
+      "aying\030\004 \001(\010R\007playing\022\026\n\006volume\030\005 \001(\001R\006vo" +
+      "lume\"(\n\020VolumeSetPayload\022\024\n\005level\030\001 \001(\001R" +
+      "\005level\"H\n\022SessionListPayload\0222\n\010sessions" +
+      "\030\001 \003(\0132\026.stream.v1.SessionInfoR\010sessions" +
+      "*\271\002\n\013MessageType\022\034\n\030MESSAGE_TYPE_UNSPECI" +
+      "FIED\020\000\022\031\n\025MESSAGE_TYPE_REGISTER\020\001\022\035\n\031MES" +
+      "SAGE_TYPE_SESSION_LIST\020\002\022\025\n\021MESSAGE_TYPE" +
+      "_PLAY\020\003\022\025\n\021MESSAGE_TYPE_STOP\020\004\022\032\n\026MESSAG" +
+      "E_TYPE_PULL_BACK\020\005\022\036\n\032MESSAGE_TYPE_PULL_" +
+      "BACK_ACK\020\006\022\035\n\031MESSAGE_TYPE_STATE_UPDATE\020" +
+      "\007\022\033\n\027MESSAGE_TYPE_VOLUME_SET\020\010\022\025\n\021MESSAG" +
+      "E_TYPE_PING\020\t\022\025\n\021MESSAGE_TYPE_PONG\020\n*q\n\n" +
+      "DeviceKind\022\033\n\027DEVICE_KIND_UNSPECIFIED\020\000\022" +
+      "\032\n\026DEVICE_KIND_CONTROLLER\020\001\022\026\n\022DEVICE_KI" +
+      "ND_TARGET\020\002\022\022\n\016DEVICE_KIND_TV\020\003B\251\001\n\rcom." +
+      "stream.v1B\014ControlProtoP\001ZEgithub.com/fr" +
+      "edrick-karuri/nativestream/sdk-gen/go/st" +
+      "ream/v1;streamv1\242\002\003SXX\252\002\tStream.V1\312\002\tStr" +
+      "eam\\V1\342\002\025Stream\\V1\\GPBMetadata\352\002\nStream:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          com.google.protobuf.StructProto.getDescriptor(),
           com.google.protobuf.TimestampProto.getDescriptor(),
         });
     internal_static_stream_v1_Envelope_descriptor =
@@ -138,7 +136,7 @@ public final class ControlProto {
     internal_static_stream_v1_Envelope_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_stream_v1_Envelope_descriptor,
-        new java.lang.String[] { "Type", "From", "To", "Auth", "Payload", });
+        new java.lang.String[] { "Type", "From", "To", "Auth", "PayloadJson", });
     internal_static_stream_v1_SessionInfo_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_stream_v1_SessionInfo_fieldAccessorTable = new
@@ -188,7 +186,6 @@ public final class ControlProto {
         internal_static_stream_v1_SessionListPayload_descriptor,
         new java.lang.String[] { "Sessions", });
     descriptor.resolveAllFeaturesImmutable();
-    com.google.protobuf.StructProto.getDescriptor();
     com.google.protobuf.TimestampProto.getDescriptor();
   }
 

@@ -7,12 +7,13 @@
 import Foundation
 import Observation
 import AVFoundation
+import SdkGenSwift
 
 @Observable
 @MainActor
 final class ControlViewModel {
 
-    var sessions: [SessionInfo] = []
+    var sessions: [Stream_V1_SessionInfo] = []
     var lastPlayWasRemote: Bool = false
     var connected: Bool { controlSession.connected }
 
@@ -45,16 +46,21 @@ final class ControlViewModel {
     }
 
     func broadcastState(channelID: String, channelName: String, streamURL: String, playing: Bool, volume: Double) async {
-        guard let envelope = Envelope.encoding(
-            type: .stateUpdate, from: deviceID, to: "broadcast",
-            payload: StateUpdatePayload(channelID: channelID, channelName: channelName, streamURL: streamURL, playing: playing, volume: volume)
+        var payload = Stream_V1_StateUpdatePayload()
+        payload.channelID = channelID
+        payload.channelName = channelName
+        payload.streamURL = streamURL
+        payload.playing = playing
+        payload.volume = volume
+        guard let envelope = Stream_V1_Envelope.encoding(
+            type: .stateUpdate, from: deviceID, to: "broadcast", payload: payload
         ) else { return }
         await controlSession.send(envelope)
     }
     
     // MARK: - Private
 
-    private func handle(_ envelope: Envelope, playerVM: PlayerViewModel) async {
+    private func handle(_ envelope: Stream_V1_Envelope, playerVM: PlayerViewModel) async {
         switch ControlActionDecider.decide(for: envelope) {
         case .play(let channel):
             lastPlayWasRemote = true
@@ -73,9 +79,10 @@ final class ControlViewModel {
     }
 
     private func sendPong() async {
-        guard let envelope = Envelope.encoding(
-            type: .pong, from: deviceID, to: "server", payload: EmptyPayload()
-        ) else { return }
+        var envelope = Stream_V1_Envelope()
+        envelope.type = .pong
+        envelope.from = deviceID
+        envelope.to = "server"
         await controlSession.send(envelope)
     }
 }

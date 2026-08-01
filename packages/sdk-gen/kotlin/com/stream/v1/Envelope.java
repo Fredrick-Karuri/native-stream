@@ -37,6 +37,7 @@ private static final long serialVersionUID = 0L;
     from_ = "";
     to_ = "";
     auth_ = "";
+    payloadJson_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -196,30 +197,43 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int PAYLOAD_FIELD_NUMBER = 5;
-  private com.google.protobuf.Struct payload_;
+  public static final int PAYLOAD_JSON_FIELD_NUMBER = 5;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object payloadJson_ = "";
   /**
-   * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-   * @return Whether the payload field is set.
+   * <code>string payload_json = 5 [json_name = "payloadJson"];</code>
+   * @return The payloadJson.
    */
   @java.lang.Override
-  public boolean hasPayload() {
-    return ((bitField0_ & 0x00000002) != 0);
+  public java.lang.String getPayloadJson() {
+    java.lang.Object ref = payloadJson_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      payloadJson_ = s;
+      return s;
+    }
   }
   /**
-   * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-   * @return The payload.
+   * <code>string payload_json = 5 [json_name = "payloadJson"];</code>
+   * @return The bytes for payloadJson.
    */
   @java.lang.Override
-  public com.google.protobuf.Struct getPayload() {
-    return payload_ == null ? com.google.protobuf.Struct.getDefaultInstance() : payload_;
-  }
-  /**
-   * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-   */
-  @java.lang.Override
-  public com.google.protobuf.StructOrBuilder getPayloadOrBuilder() {
-    return payload_ == null ? com.google.protobuf.Struct.getDefaultInstance() : payload_;
+  public com.google.protobuf.ByteString
+      getPayloadJsonBytes() {
+    java.lang.Object ref = payloadJson_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      payloadJson_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
   }
 
   private byte memoizedIsInitialized = -1;
@@ -248,8 +262,8 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 4, auth_);
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      output.writeMessage(5, getPayload());
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadJson_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 5, payloadJson_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -273,9 +287,8 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(4, auth_);
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(5, getPayload());
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(payloadJson_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(5, payloadJson_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -302,11 +315,8 @@ private static final long serialVersionUID = 0L;
       if (!getAuth()
           .equals(other.getAuth())) return false;
     }
-    if (hasPayload() != other.hasPayload()) return false;
-    if (hasPayload()) {
-      if (!getPayload()
-          .equals(other.getPayload())) return false;
-    }
+    if (!getPayloadJson()
+        .equals(other.getPayloadJson())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -328,10 +338,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + AUTH_FIELD_NUMBER;
       hash = (53 * hash) + getAuth().hashCode();
     }
-    if (hasPayload()) {
-      hash = (37 * hash) + PAYLOAD_FIELD_NUMBER;
-      hash = (53 * hash) + getPayload().hashCode();
-    }
+    hash = (37 * hash) + PAYLOAD_JSON_FIELD_NUMBER;
+    hash = (53 * hash) + getPayloadJson().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -457,19 +465,13 @@ private static final long serialVersionUID = 0L;
 
     // Construct using com.stream.v1.Envelope.newBuilder()
     private Builder() {
-      maybeForceBuilderInitialization();
+
     }
 
     private Builder(
         com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       super(parent);
-      maybeForceBuilderInitialization();
-    }
-    private void maybeForceBuilderInitialization() {
-      if (com.google.protobuf.GeneratedMessage
-              .alwaysUseFieldBuilders) {
-        getPayloadFieldBuilder();
-      }
+
     }
     @java.lang.Override
     public Builder clear() {
@@ -479,11 +481,7 @@ private static final long serialVersionUID = 0L;
       from_ = "";
       to_ = "";
       auth_ = "";
-      payload_ = null;
-      if (payloadBuilder_ != null) {
-        payloadBuilder_.dispose();
-        payloadBuilder_ = null;
-      }
+      payloadJson_ = "";
       return this;
     }
 
@@ -532,10 +530,7 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000010) != 0)) {
-        result.payload_ = payloadBuilder_ == null
-            ? payload_
-            : payloadBuilder_.build();
-        to_bitField0_ |= 0x00000002;
+        result.payloadJson_ = payloadJson_;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -570,8 +565,10 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000008;
         onChanged();
       }
-      if (other.hasPayload()) {
-        mergePayload(other.getPayload());
+      if (!other.getPayloadJson().isEmpty()) {
+        payloadJson_ = other.payloadJson_;
+        bitField0_ |= 0x00000010;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -620,9 +617,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 34
             case 42: {
-              input.readMessage(
-                  getPayloadFieldBuilder().getBuilder(),
-                  extensionRegistry);
+              payloadJson_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000010;
               break;
             } // case 42
@@ -919,125 +914,76 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private com.google.protobuf.Struct payload_;
-    private com.google.protobuf.SingleFieldBuilder<
-        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> payloadBuilder_;
+    private java.lang.Object payloadJson_ = "";
     /**
-     * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-     * @return Whether the payload field is set.
+     * <code>string payload_json = 5 [json_name = "payloadJson"];</code>
+     * @return The payloadJson.
      */
-    public boolean hasPayload() {
-      return ((bitField0_ & 0x00000010) != 0);
-    }
-    /**
-     * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-     * @return The payload.
-     */
-    public com.google.protobuf.Struct getPayload() {
-      if (payloadBuilder_ == null) {
-        return payload_ == null ? com.google.protobuf.Struct.getDefaultInstance() : payload_;
+    public java.lang.String getPayloadJson() {
+      java.lang.Object ref = payloadJson_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        payloadJson_ = s;
+        return s;
       } else {
-        return payloadBuilder_.getMessage();
+        return (java.lang.String) ref;
       }
     }
     /**
-     * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
+     * <code>string payload_json = 5 [json_name = "payloadJson"];</code>
+     * @return The bytes for payloadJson.
      */
-    public Builder setPayload(com.google.protobuf.Struct value) {
-      if (payloadBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        payload_ = value;
+    public com.google.protobuf.ByteString
+        getPayloadJsonBytes() {
+      java.lang.Object ref = payloadJson_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        payloadJson_ = b;
+        return b;
       } else {
-        payloadBuilder_.setMessage(value);
+        return (com.google.protobuf.ByteString) ref;
       }
+    }
+    /**
+     * <code>string payload_json = 5 [json_name = "payloadJson"];</code>
+     * @param value The payloadJson to set.
+     * @return This builder for chaining.
+     */
+    public Builder setPayloadJson(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      payloadJson_ = value;
       bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
     /**
-     * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
+     * <code>string payload_json = 5 [json_name = "payloadJson"];</code>
+     * @return This builder for chaining.
      */
-    public Builder setPayload(
-        com.google.protobuf.Struct.Builder builderForValue) {
-      if (payloadBuilder_ == null) {
-        payload_ = builderForValue.build();
-      } else {
-        payloadBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000010;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-     */
-    public Builder mergePayload(com.google.protobuf.Struct value) {
-      if (payloadBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0) &&
-          payload_ != null &&
-          payload_ != com.google.protobuf.Struct.getDefaultInstance()) {
-          getPayloadBuilder().mergeFrom(value);
-        } else {
-          payload_ = value;
-        }
-      } else {
-        payloadBuilder_.mergeFrom(value);
-      }
-      if (payload_ != null) {
-        bitField0_ |= 0x00000010;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-     */
-    public Builder clearPayload() {
+    public Builder clearPayloadJson() {
+      payloadJson_ = getDefaultInstance().getPayloadJson();
       bitField0_ = (bitField0_ & ~0x00000010);
-      payload_ = null;
-      if (payloadBuilder_ != null) {
-        payloadBuilder_.dispose();
-        payloadBuilder_ = null;
-      }
       onChanged();
       return this;
     }
     /**
-     * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
+     * <code>string payload_json = 5 [json_name = "payloadJson"];</code>
+     * @param value The bytes for payloadJson to set.
+     * @return This builder for chaining.
      */
-    public com.google.protobuf.Struct.Builder getPayloadBuilder() {
+    public Builder setPayloadJsonBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      payloadJson_ = value;
       bitField0_ |= 0x00000010;
       onChanged();
-      return getPayloadFieldBuilder().getBuilder();
-    }
-    /**
-     * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-     */
-    public com.google.protobuf.StructOrBuilder getPayloadOrBuilder() {
-      if (payloadBuilder_ != null) {
-        return payloadBuilder_.getMessageOrBuilder();
-      } else {
-        return payload_ == null ?
-            com.google.protobuf.Struct.getDefaultInstance() : payload_;
-      }
-    }
-    /**
-     * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder> 
-        getPayloadFieldBuilder() {
-      if (payloadBuilder_ == null) {
-        payloadBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            com.google.protobuf.Struct, com.google.protobuf.Struct.Builder, com.google.protobuf.StructOrBuilder>(
-                getPayload(),
-                getParentForChildren(),
-                isClean());
-        payload_ = null;
-      }
-      return payloadBuilder_;
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:stream.v1.Envelope)

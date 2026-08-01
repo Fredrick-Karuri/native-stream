@@ -9,7 +9,6 @@ package streamv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -157,7 +156,7 @@ type Envelope struct {
 	From          string                 `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
 	To            string                 `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
 	Auth          *string                `protobuf:"bytes,4,opt,name=auth,proto3,oneof" json:"auth,omitempty"`
-	Payload       *structpb.Struct       `protobuf:"bytes,5,opt,name=payload,proto3" json:"payload,omitempty"`
+	PayloadJson   string                 `protobuf:"bytes,5,opt,name=payload_json,json=payloadJson,proto3" json:"payload_json,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -220,11 +219,11 @@ func (x *Envelope) GetAuth() string {
 	return ""
 }
 
-func (x *Envelope) GetPayload() *structpb.Struct {
+func (x *Envelope) GetPayloadJson() string {
 	if x != nil {
-		return x.Payload
+		return x.PayloadJson
 	}
-	return nil
+	return ""
 }
 
 // Canonical representation of a connected device.
@@ -727,13 +726,13 @@ var File_stream_v1_control_proto protoreflect.FileDescriptor
 
 const file_stream_v1_control_proto_rawDesc = "" +
 	"\n" +
-	"\x17stream/v1/control.proto\x12\tstream.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xaf\x01\n" +
+	"\x17stream/v1/control.proto\x12\tstream.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9f\x01\n" +
 	"\bEnvelope\x12*\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x16.stream.v1.MessageTypeR\x04type\x12\x12\n" +
 	"\x04from\x18\x02 \x01(\tR\x04from\x12\x0e\n" +
 	"\x02to\x18\x03 \x01(\tR\x02to\x12\x17\n" +
-	"\x04auth\x18\x04 \x01(\tH\x00R\x04auth\x88\x01\x01\x121\n" +
-	"\apayload\x18\x05 \x01(\v2\x17.google.protobuf.StructR\apayloadB\a\n" +
+	"\x04auth\x18\x04 \x01(\tH\x00R\x04auth\x88\x01\x01\x12!\n" +
+	"\fpayload_json\x18\x05 \x01(\tR\vpayloadJsonB\a\n" +
 	"\x05_auth\"\xbb\x02\n" +
 	"\vSessionInfo\x12\x1b\n" +
 	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\x12\x12\n" +
@@ -825,21 +824,19 @@ var file_stream_v1_control_proto_goTypes = []any{
 	(*StateUpdatePayload)(nil),    // 8: stream.v1.StateUpdatePayload
 	(*VolumeSetPayload)(nil),      // 9: stream.v1.VolumeSetPayload
 	(*SessionListPayload)(nil),    // 10: stream.v1.SessionListPayload
-	(*structpb.Struct)(nil),       // 11: google.protobuf.Struct
-	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
+	(*timestamppb.Timestamp)(nil), // 11: google.protobuf.Timestamp
 }
 var file_stream_v1_control_proto_depIdxs = []int32{
 	0,  // 0: stream.v1.Envelope.type:type_name -> stream.v1.MessageType
-	11, // 1: stream.v1.Envelope.payload:type_name -> google.protobuf.Struct
-	1,  // 2: stream.v1.SessionInfo.kind:type_name -> stream.v1.DeviceKind
-	12, // 3: stream.v1.SessionInfo.connected_at:type_name -> google.protobuf.Timestamp
-	1,  // 4: stream.v1.RegisterPayload.kind:type_name -> stream.v1.DeviceKind
-	3,  // 5: stream.v1.SessionListPayload.sessions:type_name -> stream.v1.SessionInfo
-	6,  // [6:6] is the sub-list for method output_type
-	6,  // [6:6] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	1,  // 1: stream.v1.SessionInfo.kind:type_name -> stream.v1.DeviceKind
+	11, // 2: stream.v1.SessionInfo.connected_at:type_name -> google.protobuf.Timestamp
+	1,  // 3: stream.v1.RegisterPayload.kind:type_name -> stream.v1.DeviceKind
+	3,  // 4: stream.v1.SessionListPayload.sessions:type_name -> stream.v1.SessionInfo
+	5,  // [5:5] is the sub-list for method output_type
+	5,  // [5:5] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_stream_v1_control_proto_init() }

@@ -1,6 +1,7 @@
 // File: AppShell.swift
 import SwiftUI
 import AVKit
+import SdkGenSwift
 
 struct AppShell: View {
 

@@ -62,17 +62,14 @@ public interface EnvelopeOrBuilder extends
       getAuthBytes();
 
   /**
-   * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-   * @return Whether the payload field is set.
+   * <code>string payload_json = 5 [json_name = "payloadJson"];</code>
+   * @return The payloadJson.
    */
-  boolean hasPayload();
+  java.lang.String getPayloadJson();
   /**
-   * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-   * @return The payload.
+   * <code>string payload_json = 5 [json_name = "payloadJson"];</code>
+   * @return The bytes for payloadJson.
    */
-  com.google.protobuf.Struct getPayload();
-  /**
-   * <code>.google.protobuf.Struct payload = 5 [json_name = "payload"];</code>
-   */
-  com.google.protobuf.StructOrBuilder getPayloadOrBuilder();
+  com.google.protobuf.ByteString
+      getPayloadJsonBytes();
 }

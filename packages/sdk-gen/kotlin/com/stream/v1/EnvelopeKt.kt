@@ -117,37 +117,24 @@ public object EnvelopeKt {
     }
 
     /**
-     * `.google.protobuf.Struct payload = 5 [json_name = "payload"];`
+     * `string payload_json = 5 [json_name = "payloadJson"];`
      */
-    public var payload: com.google.protobuf.Struct
-      @JvmName("getPayload")
-      get() = _builder.payload
-      @JvmName("setPayload")
+    public var payloadJson: kotlin.String
+      @JvmName("getPayloadJson")
+      get() = _builder.payloadJson
+      @JvmName("setPayloadJson")
       set(value) {
-        _builder.payload = value
+        _builder.payloadJson = value
       }
     /**
-     * `.google.protobuf.Struct payload = 5 [json_name = "payload"];`
+     * `string payload_json = 5 [json_name = "payloadJson"];`
      */
-    public fun clearPayload() {
-      _builder.clearPayload()
+    public fun clearPayloadJson() {
+      _builder.clearPayloadJson()
     }
-    /**
-     * `.google.protobuf.Struct payload = 5 [json_name = "payload"];`
-     * @return Whether the payload field is set.
-     */
-    public fun hasPayload(): kotlin.Boolean {
-      return _builder.hasPayload()
-    }
-
-    public val EnvelopeKt.Dsl.payloadOrNull: com.google.protobuf.Struct?
-      get() = _builder.payloadOrNull
   }
 }
 @kotlin.jvm.JvmSynthetic
 public inline fun com.stream.v1.Envelope.copy(block: `com.stream.v1`.EnvelopeKt.Dsl.() -> kotlin.Unit): com.stream.v1.Envelope =
   `com.stream.v1`.EnvelopeKt.Dsl._create(this.toBuilder()).apply { block() }._build()
-
-public val com.stream.v1.EnvelopeOrBuilder.payloadOrNull: com.google.protobuf.Struct?
-  get() = if (hasPayload()) getPayload() else null
 

@@ -157,21 +157,13 @@ public nonisolated struct Stream_V1_Envelope: Sendable {
   /// Clears the value of `auth`. Subsequent reads from it will return its default value.
   public mutating func clearAuth() {self._auth = nil}
 
-  public var payload: SwiftProtobuf.Google_Protobuf_Struct {
-    get {_payload ?? SwiftProtobuf.Google_Protobuf_Struct()}
-    set {_payload = newValue}
-  }
-  /// Returns true if `payload` has been explicitly set.
-  public var hasPayload: Bool {self._payload != nil}
-  /// Clears the value of `payload`. Subsequent reads from it will return its default value.
-  public mutating func clearPayload() {self._payload = nil}
+  public var payloadJson: String = String()
 
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public init() {}
 
   fileprivate var _auth: String? = nil
-  fileprivate var _payload: SwiftProtobuf.Google_Protobuf_Struct? = nil
 }
 
 /// Canonical representation of a connected device.
@@ -336,7 +328,7 @@ nonisolated extension Stream_V1_DeviceKind: SwiftProtobuf._ProtoNameProviding {
 
 nonisolated extension Stream_V1_Envelope: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   public static let protoMessageName: String = _protobuf_package + ".Envelope"
-  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}type\0\u{1}from\0\u{1}to\0\u{1}auth\0\u{1}payload\0")
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}type\0\u{1}from\0\u{1}to\0\u{1}auth\0\u{3}payload_json\0")
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -348,7 +340,7 @@ nonisolated extension Stream_V1_Envelope: SwiftProtobuf.Message, SwiftProtobuf._
       case 2: try { try decoder.decodeSingularStringField(value: &self.from) }()
       case 3: try { try decoder.decodeSingularStringField(value: &self.to) }()
       case 4: try { try decoder.decodeSingularStringField(value: &self._auth) }()
-      case 5: try { try decoder.decodeSingularMessageField(value: &self._payload) }()
+      case 5: try { try decoder.decodeSingularStringField(value: &self.payloadJson) }()
       default: break
       }
     }
@@ -371,9 +363,9 @@ nonisolated extension Stream_V1_Envelope: SwiftProtobuf.Message, SwiftProtobuf._
     try { if let v = self._auth {
       try visitor.visitSingularStringField(value: v, fieldNumber: 4)
     } }()
-    try { if let v = self._payload {
-      try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
-    } }()
+    if !self.payloadJson.isEmpty {
+      try visitor.visitSingularStringField(value: self.payloadJson, fieldNumber: 5)
+    }
     try unknownFields.traverse(visitor: &visitor)
   }
 
@@ -382,7 +374,7 @@ nonisolated extension Stream_V1_Envelope: SwiftProtobuf.Message, SwiftProtobuf._
     if lhs.from != rhs.from {return false}
     if lhs.to != rhs.to {return false}
     if lhs._auth != rhs._auth {return false}
-    if lhs._payload != rhs._payload {return false}
+    if lhs.payloadJson != rhs.payloadJson {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

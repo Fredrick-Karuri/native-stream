@@ -7,6 +7,8 @@
 
 import Foundation
 import Observation
+import SwiftProtobuf
+import SdkGenSwift
 
 private let pingIntervalSeconds: TimeInterval     = 30
 private let reconnectBaseDelaySeconds: TimeInterval = 1
@@ -22,10 +24,10 @@ final class ControlSession {
     private var session = URLSession(configuration: .default)
     
     @ObservationIgnored
-    private var continuation: AsyncStream<Envelope>.Continuation?
+    private var continuation: AsyncStream<Stream_V1_Envelope>.Continuation?
 
     @ObservationIgnored
-    let incomingMessages: AsyncStream<Envelope>
+    let incomingMessages: AsyncStream<Stream_V1_Envelope>
 
     private var explicitDisconnect = false
     private var reconnectDelay: TimeInterval = reconnectBaseDelaySeconds
@@ -34,7 +36,7 @@ final class ControlSession {
     private var lastDeviceName = ""
     
     init() {
-        var cont: AsyncStream<Envelope>.Continuation!
+        var cont: AsyncStream<Stream_V1_Envelope>.Continuation!
         self.incomingMessages = AsyncStream { continuation in
             cont = continuation
         }
@@ -58,9 +60,10 @@ final class ControlSession {
         receive()
     }
 
-    func send(_ envelope: Envelope) async {
-        guard let data = try? JSONEncoder().encode(envelope),
-              let text = String(data: data, encoding: .utf8) else { return }
+    func send(_ envelope: Stream_V1_Envelope) async {
+        var options = JSONEncodingOptions()
+        options.preserveProtoFieldNames = true
+        guard let text = try? envelope.jsonString(options: options) else { return }
         try? await task?.send(.string(text))
     }
 
@@ -74,13 +77,14 @@ final class ControlSession {
     // MARK: - Private
 
     private func register(deviceID: String, name: String) async {
-        guard let envelope = Envelope.encoding(
-            type: .register, from: deviceID, to: "server",
-            payload: RegisterPayload(name: name, kind: .target)
+        var payload = Stream_V1_RegisterPayload()
+        payload.name = name
+        payload.kind = .target
+        guard let envelope = Stream_V1_Envelope.encoding(
+            type: .register, from: deviceID, to: "server", payload: payload
         ) else { return }
         await send(envelope)
     }
-
     private func receive() {
         task?.receive { [weak self] result in
             guard let self else { return }
@@ -100,8 +104,7 @@ final class ControlSession {
 
     func handleMessage(_ message: URLSessionWebSocketTask.Message) {
         guard case .string(let text) = message,
-              let data = text.data(using: .utf8),
-              let envelope = try? JSONDecoder().decode(Envelope.self, from: data)
+              let envelope = try? Stream_V1_Envelope(jsonString: text)
         else { return }
         continuation?.yield(envelope)
     }

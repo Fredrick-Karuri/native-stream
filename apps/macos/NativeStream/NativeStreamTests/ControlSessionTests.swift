@@ -9,6 +9,8 @@
 
 import XCTest
 @testable import NativeStream
+import SdkGenSwift
+import SwiftProtobuf
 
 @MainActor
 final class ControlSessionTests: XCTestCase {
@@ -67,14 +69,12 @@ final class ControlSessionTests: XCTestCase {
     // MARK: handleMessage
 
     func testHandleMessageYieldsDecodedEnvelopeForValidStringMessage() async throws {
-        let envelope = Envelope(
-            type: .stateUpdate,
-            from: "target-1",
-            to: "controller-1",
-            payload: .object(["playing": .bool(true)])
-        )
-        let data = try JSONEncoder().encode(envelope)
-        let text = String(data: data, encoding: .utf8)!
+        var envelope = Stream_V1_Envelope()
+        envelope.type = .stateUpdate
+        envelope.from = "target-1"
+        envelope.to = "controller-1"
+
+        let text = try envelope.jsonString()
 
         var iterator = session.incomingMessages.makeAsyncIterator()
         session.handleMessage(.string(text))

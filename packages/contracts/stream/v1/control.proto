@@ -4,7 +4,6 @@ package stream.v1;
 
 option go_package = "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1;streamv1";
 
-import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
@@ -40,7 +39,7 @@ message Envelope {
   string from = 2;
   string to = 3;
   optional string auth = 4;
-  google.protobuf.Struct payload = 5;
+  string payload_json = 5;
 }
 
 // Canonical representation of a connected device.

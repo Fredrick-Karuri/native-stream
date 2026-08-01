@@ -7,35 +7,30 @@
 // and executes the corresponding side effect.
 
 import Foundation
+import SdkGenSwift
 
 enum ControlAction: Equatable {
     case play(Channel)
     case stop
     case setVolume(Float)
-    case updateSessions([SessionInfo])
+    case updateSessions([Stream_V1_SessionInfo])
     case sendPong
-    /// No handling defined for this envelope type (mirrors the original
-    /// switch's `default: break`).
     case none
 }
 
 enum ControlActionDecider {
-
-    /// Decides what action should result from an incoming envelope.
-    /// Mirrors ControlViewModel.handle's switch exactly, including which
-    /// payload-decode failures silently produce no action.
-    static func decide(for envelope: Envelope) -> ControlAction {
+    static func decide(for envelope: Stream_V1_Envelope) -> ControlAction {
         switch envelope.type {
         case .play:
-            guard let payload = envelope.decoding(as: PlayPayload.self) else { return .none }
+            guard let payload = envelope.decoding(as: Stream_V1_PlayPayload.self) else { return .none }
             return .play(channel(from: payload))
         case .stop:
             return .stop
         case .volumeSet:
-            guard let payload = envelope.decoding(as: VolumeSetPayload.self) else { return .none }
+            guard let payload = envelope.decoding(as: Stream_V1_VolumeSetPayload.self) else { return .none }
             return .setVolume(Float(payload.level))
         case .sessionList:
-            guard let payload = envelope.decoding(as: SessionListPayload.self) else { return .none }
+            guard let payload = envelope.decoding(as: Stream_V1_SessionListPayload.self) else { return .none }
             return .updateSessions(payload.sessions.filter { $0.kind == .controller })
         case .ping:
             return .sendPong
@@ -44,10 +39,7 @@ enum ControlActionDecider {
         }
     }
 
-    /// Builds the temporary remote-play Channel exactly as handlePlay does:
-    /// no tvgId, groupTitle fixed to "Remote", falls back to "about:blank"
-    /// if the payload's streamURL string doesn't parse.
-    static func channel(from payload: PlayPayload) -> Channel {
+    static func channel(from payload: Stream_V1_PlayPayload) -> Channel {
         Channel(
             tvgId: "",
             name: payload.channelName,
