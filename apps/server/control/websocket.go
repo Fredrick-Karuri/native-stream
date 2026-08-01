@@ -8,9 +8,11 @@ package control
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"time"
+
+	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const readTimeout = 70 * time.Second // slightly longer than 2 missed pings (60s)
@@ -32,14 +34,14 @@ func ReadLoop(ctx context.Context, hub *Hub, client *Client) {
 			return
 		}
 
-		var env Envelope
-		if err := json.Unmarshal(data, &env); err != nil {
+		var env streamv1.Envelope
+		if err := protojson.Unmarshal(data, &env); err != nil {
 			slog.Warn("lmc: bad envelope from client", "device_id", client.DeviceID, "err", err)
 			continue
 		}
 
 		// Stamp from field with the registered device ID — don't trust client-supplied from
 		env.From = client.DeviceID
-		hub.Dispatch(env)
+		hub.Dispatch(&env)
 	}
 }

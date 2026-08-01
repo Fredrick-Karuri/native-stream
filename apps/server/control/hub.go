@@ -3,38 +3,42 @@
 // WebSocket hub — central broker for all LMC control messages.
 // Routes envelopes by To field, maintains session registry,
 // handles pull-back, and pings clients on a 30s heartbeat.
+//
+// Migrated to streamv1.Envelope (generated proto type) — see
+// protocol.go for NewProtoEnvelope/DecodeProtoPayload and convert.go
+// for SessionInfo/DeviceKind <-> proto conversions.
 
 package control
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"sync"
 	"time"
 
+	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
 	"nhooyr.io/websocket"
 )
 
 const (
-	pingInterval        = 30 * time.Second
-	pongDeadline        = 10 * time.Second
-	maxMissedPongs      = 2
-	serverDeviceID      = "server"
+	pingInterval   = 30 * time.Second
+	pongDeadline   = 10 * time.Second
+	maxMissedPongs = 2
+	serverDeviceID = "server"
 )
 
 // Client represents a single connected WebSocket device.
 type Client struct {
-	DeviceID string
-	Conn     *websocket.Conn
-	Session  SessionInfo
+	DeviceID    string
+	Conn        *websocket.Conn
+	Session     SessionInfo
 	missedPongs int
-	mu       sync.Mutex
+	mu          sync.Mutex
 }
 
-// send writes an Envelope to the client connection.
-func (c *Client) Send(ctx context.Context, env Envelope) error {
-	data, err := json.Marshal(env)
+// Send writes an Envelope to the client connection.
+func (c *Client) Send(ctx context.Context, env *streamv1.Envelope) error {
+	data, err := envelopeMarshaler.Marshal(env)
 	if err != nil {
 		return err
 	}
@@ -49,7 +53,7 @@ type Hub struct {
 	clients    map[string]*Client // device_id → Client
 	register   chan *Client
 	unregister chan *Client
-	route      chan Envelope
+	route      chan *streamv1.Envelope
 }
 
 // NewHub constructs a ready Hub.
@@ -58,7 +62,7 @@ func NewHub() *Hub {
 		clients:    make(map[string]*Client),
 		register:   make(chan *Client, 16),
 		unregister: make(chan *Client, 16),
-		route:      make(chan Envelope, 256),
+		route:      make(chan *streamv1.Envelope, 256),
 	}
 }
 
@@ -69,7 +73,7 @@ func (h *Hub) Register(c *Client) { h.register <- c }
 func (h *Hub) Unregister(c *Client) { h.unregister <- c }
 
 // Dispatch queues an envelope for routing.
-func (h *Hub) Dispatch(env Envelope) { h.route <- env }
+func (h *Hub) Dispatch(env *streamv1.Envelope) { h.route <- env }
 
 // Sessions returns a snapshot of current session list.
 func (h *Hub) Sessions() []SessionInfo {
@@ -120,27 +124,27 @@ func (h *Hub) Run(ctx context.Context) {
 }
 
 // handleEnvelope routes or processes an inbound envelope.
-func (h *Hub) handleEnvelope(ctx context.Context, env Envelope) {
+func (h *Hub) handleEnvelope(ctx context.Context, env *streamv1.Envelope) {
 	switch env.Type {
-	case MsgStateUpdate:
+	case streamv1.MessageType_MESSAGE_TYPE_STATE_UPDATE:
 		h.applyStateUpdate(env)
 		h.broadcastSessionList(ctx)
 		// state_update is hub-internal — no forwarding needed
-	case MsgPullBack:
+	case streamv1.MessageType_MESSAGE_TYPE_PULL_BACK:
 		h.handlePullBack(ctx, env)
-	case MsgPong:
+	case streamv1.MessageType_MESSAGE_TYPE_PONG:
 		h.handlePong(env)
-	case MsgPing:
+	case streamv1.MessageType_MESSAGE_TYPE_PING:
 		// clients should not send ping — ignore
-	case MsgVolumeSet:
-		h.forwardEnvelope(ctx, env) // unicast to target,
+	case streamv1.MessageType_MESSAGE_TYPE_VOLUME_SET:
+		h.forwardEnvelope(ctx, env) // unicast to target
 	default:
 		h.forwardEnvelope(ctx, env)
 	}
 }
 
 // forwardEnvelope delivers an envelope to its target(s).
-func (h *Hub) forwardEnvelope(ctx context.Context, env Envelope) {
+func (h *Hub) forwardEnvelope(ctx context.Context, env *streamv1.Envelope) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -167,28 +171,28 @@ func (h *Hub) forwardEnvelope(ctx context.Context, env Envelope) {
 }
 
 // applyStateUpdate refreshes the session registry from a target's report.
-func (h *Hub) applyStateUpdate(env Envelope) {
-	payload, err := DecodePayload[StateUpdatePayload](env)
-	if err != nil {
+func (h *Hub) applyStateUpdate(env *streamv1.Envelope) {
+	var payload streamv1.StateUpdatePayload
+	if err := DecodeProtoPayload(env, &payload); err != nil {
 		slog.Warn("lmc: bad state_update payload", "err", err)
 		return
 	}
 	h.mu.Lock()
 	if c, ok := h.clients[env.From]; ok {
-		c.Session.ChannelID   = payload.ChannelID
+		c.Session.ChannelID = payload.ChannelId
 		c.Session.ChannelName = payload.ChannelName
-		c.Session.StreamURL   = payload.StreamURL
-		c.Session.Playing     = payload.Playing
-		c.Session.Volume      = payload.Volume
+		c.Session.StreamURL = payload.StreamUrl
+		c.Session.Playing = payload.Playing
+		c.Session.Volume = payload.Volume
 	}
 	h.mu.Unlock()
 }
 
 // handlePullBack reads the target's session and sends pull_back_ack to requester.
 // Then sends stop to the target so both devices don't play simultaneously.
-func (h *Hub) handlePullBack(ctx context.Context, env Envelope) {
-	payload, err := DecodePayload[PullBackPayload](env)
-	if err != nil {
+func (h *Hub) handlePullBack(ctx context.Context, env *streamv1.Envelope) {
+	var payload streamv1.PullBackPayload
+	if err := DecodeProtoPayload(env, &payload); err != nil {
 		slog.Warn("lmc: bad pull_back payload", "err", err)
 		return
 	}
@@ -203,10 +207,10 @@ func (h *Hub) handlePullBack(ctx context.Context, env Envelope) {
 	}
 
 	// Build ack with target's current stream state
-	ack, err := NewEnvelope(MsgPullBackAck, serverDeviceID, env.From, PullBackAckPayload{
-		ChannelID:   target.Session.ChannelID,
+	ack, err := NewProtoEnvelope(streamv1.MessageType_MESSAGE_TYPE_PULL_BACK_ACK, serverDeviceID, env.From, &streamv1.PullBackAckPayload{
+		ChannelId:   target.Session.ChannelID,
 		ChannelName: target.Session.ChannelName,
-		StreamURL:   target.Session.StreamURL,
+		StreamUrl:   target.Session.StreamURL,
 	})
 	if err != nil {
 		slog.Warn("lmc: pull_back_ack build failed", "err", err)
@@ -227,8 +231,8 @@ func (h *Hub) handlePullBack(ctx context.Context, env Envelope) {
 		return
 	}
 
-	// Stop the target
-	stop, _ := NewEnvelope(MsgStop, serverDeviceID, payload.FromDevice, struct{}{})
+	// Stop the target — no payload needed
+	stop, _ := NewProtoEnvelope(streamv1.MessageType_MESSAGE_TYPE_STOP, serverDeviceID, payload.FromDevice, nil)
 	if err := target.Send(ctx, stop); err != nil {
 		slog.Warn("lmc: stop after pull_back failed", "err", err)
 	}
@@ -241,7 +245,7 @@ func (h *Hub) handlePullBack(ctx context.Context, env Envelope) {
 }
 
 // handlePong resets the missed pong counter for the sending device.
-func (h *Hub) handlePong(env Envelope) {
+func (h *Hub) handlePong(env *streamv1.Envelope) {
 	h.mu.Lock()
 	if c, ok := h.clients[env.From]; ok {
 		c.missedPongs = 0
@@ -252,9 +256,9 @@ func (h *Hub) handlePong(env Envelope) {
 // broadcastSessionList sends the current session list to all connected clients.
 func (h *Hub) broadcastSessionList(ctx context.Context) {
 	h.mu.RLock()
-	sessions := make([]SessionInfo, 0, len(h.clients))
+	sessions := make([]*streamv1.SessionInfo, 0, len(h.clients))
 	for _, c := range h.clients {
-		sessions = append(sessions, c.Session)
+		sessions = append(sessions, toProtoSessionInfo(c.Session))
 	}
 	clients := make([]*Client, 0, len(h.clients))
 	for _, c := range h.clients {
@@ -262,7 +266,7 @@ func (h *Hub) broadcastSessionList(ctx context.Context) {
 	}
 	h.mu.RUnlock()
 
-	env, err := NewEnvelope(MsgSessionList, serverDeviceID, "broadcast", SessionListPayload{
+	env, err := NewProtoEnvelope(streamv1.MessageType_MESSAGE_TYPE_SESSION_LIST, serverDeviceID, "broadcast", &streamv1.SessionListPayload{
 		Sessions: sessions,
 	})
 	if err != nil {
@@ -297,7 +301,8 @@ func (h *Hub) pingAll(ctx context.Context) {
 	}
 	h.mu.Unlock()
 
-	ping, _ := NewEnvelope(MsgPing, serverDeviceID, "broadcast", struct{}{})
+	// Ping carries no payload
+	ping, _ := NewProtoEnvelope(streamv1.MessageType_MESSAGE_TYPE_PING, serverDeviceID, "broadcast", nil)
 	for _, c := range clients {
 		if err := c.Send(ctx, ping); err != nil {
 			slog.Warn("lmc: ping failed", "device_id", c.DeviceID, "err", err)

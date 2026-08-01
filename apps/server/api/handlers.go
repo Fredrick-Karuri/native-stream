@@ -21,6 +21,7 @@ import (
 	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
 	"github.com/fredrick-karuri/nativestream/server/httpx"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"nhooyr.io/websocket"
 	"github.com/google/uuid"
@@ -311,19 +312,20 @@ func (h *Handler) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var env control.Envelope
-	if err := json.Unmarshal(data, &env); err != nil || env.Type != control.MsgRegister {
+	var env streamv1.Envelope
+	if err := protojson.Unmarshal(data, &env); err != nil || env.Type != streamv1.MessageType_MESSAGE_TYPE_REGISTER {
 		slog.Warn("lmc: first message was not register")
 		conn.CloseNow()
 		return
 	}
 
-	payload, err := control.DecodePayload[control.RegisterPayload](env)
-	if err != nil {
+	var payload streamv1.RegisterPayload
+	if err := protojson.Unmarshal([]byte(env.PayloadJson), &payload); err != nil {
 		slog.Warn("lmc: bad register payload", "err", err)
 		conn.CloseNow()
 		return
 	}
+
 
 	// Use client-supplied device_id from From field, or generate one
 	deviceID := env.From
@@ -337,7 +339,7 @@ func (h *Handler) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Session: control.SessionInfo{
 			DeviceID:    deviceID,
 			Name:        payload.Name,
-			Kind:        payload.Kind,
+			Kind:        control.ProtoKindToControlKind(payload.Kind),
 			ConnectedAt: time.Now(),
 		},
 	}
@@ -346,11 +348,15 @@ func (h *Handler) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	// Send current session list immediately after registration
 	sessions := h.hub.Sessions()
-	sessionEnv, _ := control.NewEnvelope(
-		control.MsgSessionList,
+	pbSessions := make([]*streamv1.SessionInfo, len(sessions))
+	for i, s := range sessions {
+		pbSessions[i] = toProtoSessionInfo(s)
+	}
+	sessionEnv, _ := control.NewProtoEnvelope(
+		streamv1.MessageType_MESSAGE_TYPE_SESSION_LIST,
 		"server",
 		deviceID,
-		control.SessionListPayload{Sessions: sessions},
+		&streamv1.SessionListPayload{Sessions: pbSessions},
 	)
 	client.Send(r.Context(), sessionEnv)
 
