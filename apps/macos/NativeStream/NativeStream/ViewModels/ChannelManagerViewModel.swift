@@ -11,8 +11,8 @@ import SdkGenSwift
 final class ChannelManagerViewModel {
 
     var channels: [Stream_V1_ChannelResponse] = []
-    var discoveryStatus: DiscoveryStatusResponse? = nil
-    var unmatched: [UnmatchedLink] = []
+    var discoveryStatus: Stream_V1_DiscoveryStatusResponse? = nil
+    var unmatched: [Stream_V1_UnmatchedLink] = []
     var isLoading = false
     var error: String? = nil
 

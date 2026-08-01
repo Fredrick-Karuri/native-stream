@@ -159,16 +159,34 @@ actor APIClient {
     
     // MARK: - Discovery
 
-    func discoveryStatus() async throws -> DiscoveryStatusResponse {
-        try await get("api/discovery/status")
+    func discoveryStatus() async throws -> Stream_V1_DiscoveryStatusResponse {
+        let data = try await rawGet("api/discovery/status")
+        do {
+            return try Stream_V1_DiscoveryStatusResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
 
     func triggerDiscovery() async throws {
-        let _: StatusResponse = try await post("api/discovery/run", body: EmptyBody())
+        let url = try resolve("api/discovery/run")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        let data = try await execute(req)
+        do {
+            _ = try Stream_V1_StatusResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
 
-    func unmatchedLinks(limit: Int = 50) async throws -> UnmatchedResponse {
-        try await get("api/discovery/unmatched?limit=\(limit)")
+    func unmatchedLinks(limit: Int = 50) async throws -> Stream_V1_UnmatchedResponse {
+        let data = try await rawGet("api/discovery/unmatched?limit=\(limit)")
+        do {
+            return try Stream_V1_UnmatchedResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
 
     func assignUnmatchedLink(channelID: String, url: String) async throws {
