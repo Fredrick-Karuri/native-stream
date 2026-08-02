@@ -280,11 +280,11 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching {
                 val detail = apiClient.getChannel(channelId)
-                _activeChannelFailureReason.value = detail.activeLink?.failureReason
+                _activeChannelFailureReason.value =
+                    if (detail.hasActiveLink()) detail.activeLink.failureReason else null
             }
         }
     }
-
     // ── Controls visibility ───────────────────────────────────────────────────
 
     fun onPlayerTapped() {
@@ -345,8 +345,9 @@ class PlayerViewModel @Inject constructor(
             _activeChannel.value?.let { channel ->
                 try {
                     val detail = apiClient.getChannel(channel.tvgId.ifEmpty { channel.id })
-                    _activeChannelFailureReason.value = detail.activeLink?.failureReason
-                    val activeUrl = detail.activeLink?.url ?: channel.streamUrl
+                    _activeChannelFailureReason.value =
+                        if (detail.hasActiveLink()) detail.activeLink.failureReason else null
+                    val activeUrl = if (detail.hasActiveLink()) detail.activeLink.url else channel.streamUrl
                     loadStream(channel.copy(streamUrl = activeUrl))
                 } catch (e: Exception) {
                     loadStream(channel)

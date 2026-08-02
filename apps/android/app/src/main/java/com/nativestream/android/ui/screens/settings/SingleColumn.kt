@@ -148,7 +148,7 @@ fun SettingsSingleColumn(
 
         item {
             SettingsSection(label = "Channels") {
-                var managedChannels by remember { mutableStateOf<List<com.nativestream.android.data.remote.ChannelResponse>>(emptyList()) }
+                var managedChannels by remember { mutableStateOf<List<com.stream.v1.ChannelResponse>>(emptyList()) }
                 var channelSearch by remember { mutableStateOf("") }
                 LaunchedEffect(Unit) { managedChannels = settingsViewModel.listManagedChannels() }
                 val filteredChannels = remember(managedChannels, channelSearch) {

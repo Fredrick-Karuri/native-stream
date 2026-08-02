@@ -45,16 +45,15 @@ class ChannelManagerViewModel @Inject constructor(
             _isLoading.value = true
             _error.value     = null
             try {
-                apiClient.createChannel(
-                    CreateChannelRequest(
-                        name       = name,
-                        groupTitle = groupTitle.ifEmpty { DEFAULT_GROUP },
-                        tvgId      = tvgId,
-                        logoUrl    = logoUrl,
-                        streamUrl  = streamUrl,
-                        keywords   = keywords,
-                    )
-                )
+                val request = com.stream.v1.CreateChannelRequest.newBuilder()
+                    .setName(name)
+                    .setGroupTitle(groupTitle.ifEmpty { DEFAULT_GROUP })
+                    .setTvgId(tvgId)
+                    .setLogoUrl(logoUrl)
+                    .setStreamUrl(streamUrl)
+                    .addAllKeywords(keywords)
+                    .build()
+                apiClient.createChannel(request)
                 onSuccess()
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to add channel"
@@ -63,6 +62,5 @@ class ChannelManagerViewModel @Inject constructor(
             }
         }
     }
-
     fun clearError() { _error.value = null }
 }

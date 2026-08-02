@@ -11,7 +11,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import com.nativestream.android.data.remote.ApiClient
-import com.nativestream.android.data.remote.ChannelDetailResponse
+import com.stream.v1.ChannelDetailResponse
 import com.nativestream.android.data.remote.LinkScoreResponse
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.repository.ChannelRepository
@@ -87,7 +87,7 @@ class PlayerViewModelTest {
     // ── AND-T015: Playback state ───────────────────────────────────────────────
 
     @Test
-    fun `T015 - play emits activeChannel and sets isPlayerVisible true`() = runTest {
+    fun ` play emits activeChannel and sets isPlayerVisible true`() = runTest {
         viewModel.play(testChannel)
         advanceUntilIdle()
         assertEquals(testChannel, viewModel.activeChannel.value)
@@ -95,7 +95,7 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `T015 - togglePlayback flips isPlaying`() = runTest {
+    fun ` togglePlayback flips isPlaying`() = runTest {
         viewModel.play(testChannel)
         advanceUntilIdle()
         fakePlayer.simulatePlaying(true)
@@ -105,7 +105,7 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `T015 - toggleMute flips isMuted`() = runTest {
+    fun ` toggleMute flips isMuted`() = runTest {
         assertFalse(viewModel.isMuted.value)
         viewModel.toggleMute()
         assertTrue(viewModel.isMuted.value)
@@ -114,7 +114,7 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `T015 - stop sets activeChannel null, isPlayerVisible false, isPlaying false`() = runTest {
+    fun ` stop sets activeChannel null, isPlayerVisible false, isPlaying false`() = runTest {
         viewModel.play(testChannel)
         advanceUntilIdle()
         viewModel.stop()
@@ -125,7 +125,7 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `T015 - playUrl creates temporary channel with correct streamUrl and headers`() = runTest {
+    fun ` playUrl creates temporary channel with correct streamUrl and headers`() = runTest {
         val url     = "http://direct.example.com/stream.m3u8"
         val headers = mapOf("X-Token" to "abc123")
         viewModel.playUrl(url, headers)
@@ -137,7 +137,7 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `T015 - controls auto-hide after 3 seconds`() = runTest {
+    fun ` controls auto-hide after 3 seconds`() = runTest {
         viewModel.play(testChannel)
         assertTrue(viewModel.controlsVisible.value)
         advanceTimeBy(3_001L)
@@ -147,7 +147,7 @@ class PlayerViewModelTest {
     // ── AND-T014: Channel ID uniqueness ──────────────────────────────────────
 
     @Test
-    fun `T014 - channels from different sources with same streamUrl have unique ids`() {
+    fun ` channels from different sources with same streamUrl have unique ids`() {
         val url = "http://stream.example.com/bbc1.m3u8"
         val c1 = Channel.create(tvgId = "", name = "BBC One", streamUrl = url, sourceId = "source-1")
         val c2 = Channel.create(tvgId = "", name = "BBC One", streamUrl = url, sourceId = "source-2")
@@ -155,7 +155,7 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `T014 - channels from same source with same streamUrl are deduplicated`() {
+    fun ` channels from same source with same streamUrl are deduplicated`() {
         val url = "http://stream.example.com/bbc1.m3u8"
         val channels = listOf(
             Channel.create(tvgId = "", name = "BBC One", streamUrl = url, sourceId = "source-1"),
@@ -168,7 +168,7 @@ class PlayerViewModelTest {
     // ── AND-T016: Retry logic ─────────────────────────────────────────────────
 
     @Test
-    fun `T016 - first failure retries after 2s delay`() = runTest {
+    fun ` first failure retries after 2s delay`() = runTest {
         viewModel.play(testChannel)
         advanceUntilIdle()
         fakePlayer.triggerPlaybackError()
@@ -178,7 +178,7 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `T016 - three consecutive failures emit playerError and no further retries`() = runTest {
+    fun ` three consecutive failures emit playerError and no further retries`() = runTest {
         coEvery { apiClient.getChannel(any()) } throws RuntimeException("unreachable")
         viewModel.play(testChannel)
         advanceUntilIdle()
@@ -194,18 +194,27 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `T016 - retry re-fetches active link from ApiClient getChannel`() = runTest {
+    fun `retry re-fetches active link from ApiClient getChannel`() = runTest {
         val freshUrl = "http://fresh.example.com/bbc1.m3u8"
-        coEvery { apiClient.getChannel(any()) } returns ChannelDetailResponse(
-            id         = "bbc.one",
-            name       = "BBC One",
-            groupTitle = "News",
-            tvgId      = "bbc.one",
-            logoUrl    = "",
-            keywords   = emptyList(),
-            activeLink = LinkScoreResponse(freshUrl, 0.9, 50, "healthy", 0),
-            candidates = emptyList(),
-        )
+
+        val activeLink = com.stream.v1.LinkScoreResponse.newBuilder()
+            .setUrl(freshUrl)
+            .setScore(0.9)
+            .setLatencyMs(50)
+            .setState("healthy")
+            .setFailCount(0)
+            .build()
+
+        val detail = ChannelDetailResponse.newBuilder()
+            .setId("bbc.one")
+            .setName("BBC One")
+            .setGroupTitle("News")
+            .setTvgId("bbc.one")
+            .setLogoUrl("")
+            .setActiveLink(activeLink)
+            .build()
+
+        coEvery { apiClient.getChannel(any()) } returns detail
 
         viewModel.play(testChannel)
         advanceUntilIdle()
@@ -216,7 +225,7 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `T016 - server unreachable during retry falls back to cached streamUrl`() = runTest {
+    fun ` server unreachable during retry falls back to cached streamUrl`() = runTest {
         coEvery { apiClient.getChannel(any()) } throws RuntimeException("unreachable")
         viewModel.play(testChannel)
         advanceUntilIdle()
@@ -227,7 +236,7 @@ class PlayerViewModelTest {
     }
 
     @Test
-    fun `T016 - retryManually resets retryCount and re-attempts`() = runTest {
+    fun ` retryManually resets retryCount and re-attempts`() = runTest {
         coEvery { apiClient.getChannel(any()) } throws RuntimeException("unreachable")
         viewModel.play(testChannel)
         advanceUntilIdle()

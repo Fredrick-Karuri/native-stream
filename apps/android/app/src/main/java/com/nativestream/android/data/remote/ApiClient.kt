@@ -111,19 +111,43 @@ class ApiClient  @Inject constructor(
 
     // ── Channels ──────────────────────────────────────────────────────────────
 
-    suspend fun listChannels(): List<ChannelResponse> {
-        val response: ChannelListResponse = get("api/channels")
-        return response.channels
+    suspend fun listChannels(): List<com.stream.v1.ChannelResponse> {
+        val bytes = rawGet("api/channels")
+        val builder = com.stream.v1.ChannelListResponse.newBuilder()
+        return try {
+            JsonFormat.parser().ignoringUnknownFields().merge(bytes.decodeToString(), builder)
+            builder.build().channelsList
+        } catch (cause: Exception) {
+            throw ApiError.DecodingFailed(cause)
+        }
     }
 
-    suspend fun getChannel(id: String): ChannelDetailResponse =
-        get("api/channels/$id")
+    suspend fun getChannel(id: String): com.stream.v1.ChannelDetailResponse {
+        val bytes = rawGet("api/channels/$id")
+        val builder = com.stream.v1.ChannelDetailResponse.newBuilder()
+        return try {
+            JsonFormat.parser().ignoringUnknownFields().merge(bytes.decodeToString(), builder)
+            builder.build()
+        } catch (cause: Exception) {
+            throw ApiError.DecodingFailed(cause)
+        }
+    }
 
-    suspend fun createChannel(request: CreateChannelRequest): ChannelDetailResponse =
-        post("api/channels", request)
+    suspend fun createChannel(request: com.stream.v1.CreateChannelRequest): com.stream.v1.ChannelDetailResponse {
+        val json = JsonFormat.printer().preservingProtoFieldNames().print(request)
+        val bytes = rawPostJson("api/channels", json)
+        val builder = com.stream.v1.ChannelDetailResponse.newBuilder()
+        return try {
+            JsonFormat.parser().ignoringUnknownFields().merge(bytes.decodeToString(), builder)
+            builder.build()
+        } catch (cause: Exception) {
+            throw ApiError.DecodingFailed(cause)
+        }
+    }
 
-    suspend fun updateChannel(id: String, request: UpdateChannelRequest) {
-        put<StatusResponse>("api/channels/$id", request)
+    suspend fun updateChannel(id: String, request: com.stream.v1.UpdateChannelRequest) {
+        val json = JsonFormat.printer().preservingProtoFieldNames().print(request)
+        rawPut("api/channels/$id", json)
     }
 
     suspend fun deleteChannel(id: String) {
@@ -187,7 +211,10 @@ class ApiClient  @Inject constructor(
     }
 
     suspend fun assignUnmatchedLink(channelId: String, streamUrl: String) {
-        updateChannel(channelId, UpdateChannelRequest(streamUrl = streamUrl))
+        val request = com.stream.v1.UpdateChannelRequest.newBuilder()
+            .setStreamUrl(streamUrl)
+            .build()
+        updateChannel(channelId, request)
     }
 
     // ── HTTP primitives ───────────────────────────────────────────────────────
@@ -264,6 +291,16 @@ class ApiClient  @Inject constructor(
             guardSuccess(response)
         }
     }
+
+    private suspend fun rawPostJson(path: String, jsonBody: String): ByteArray =
+        wrapNetworkErrors(path) {
+            val response = httpClient.post(resolve(path)) {
+                contentType(ContentType.Application.Json)
+                setBody(jsonBody)
+            }
+            guardSuccess(response)
+            response.body()
+        }
 
     private fun resolve(path: String): String = "$baseUrl/$path"
 
