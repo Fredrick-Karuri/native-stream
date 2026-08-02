@@ -137,15 +137,22 @@ class ApiClient  @Inject constructor(
     }
 
     suspend fun getProxyEnabled(): Boolean {
-        @kotlinx.serialization.Serializable
-        data class ProxyConfig(val enabled: Boolean)
-        return get<ProxyConfig>("api/proxy/config").enabled
+        val bytes = rawGet("api/proxy/config")
+        val builder = com.stream.v1.ProxyConfigResponse.newBuilder()
+        return try {
+            JsonFormat.parser().ignoringUnknownFields().merge(bytes.decodeToString(), builder)
+            builder.build().enabled
+        } catch (cause: Exception) {
+            throw ApiError.DecodingFailed(cause)
+        }
     }
 
     suspend fun putProxyEnabled(enabled: Boolean) {
-        @kotlinx.serialization.Serializable
-        data class Body(val enabled: Boolean)
-        put<StatusResponse>("api/proxy/config", Body(enabled))
+        val request = com.stream.v1.UpdateProxyConfigRequest.newBuilder()
+            .setEnabled(enabled)
+            .build()
+        val json = JsonFormat.printer().preservingProtoFieldNames().print(request)
+        rawPut("api/proxy/config", json)
     }
 
     // ── Discovery ─────────────────────────────────────────────────────────────
@@ -227,6 +234,15 @@ class ApiClient  @Inject constructor(
         if (!response.status.isSuccess()) {
             val body = runCatching { response.bodyAsText() }.getOrNull()
             throw ApiError.HttpError(response.status.value, body)
+        }
+    }
+    private suspend fun rawPut(path: String, jsonBody: String) {
+        wrapNetworkErrors(path) {
+            val response = httpClient.put(resolve(path)) {
+                contentType(ContentType.Application.Json)
+                setBody(jsonBody)
+            }
+            guardSuccess(response)
         }
     }
 

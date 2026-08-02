@@ -154,7 +154,7 @@ class ApiClientEndpointTest {
         assertTrue(hits.any { it.first == HttpMethod.Delete && it.second == "/api/channels/bbc.one" })
     }
 }
-
+@RunWith(RobolectricTestRunner::class)
 class ApiClientErrorTest {
     @Test
     fun `connection refused throws ServerUnreachable`() = runTest {
@@ -172,11 +172,12 @@ class ApiClientErrorTest {
         }
         assertNotNull("Expected ServerUnreachable", caught)
     }
+
     @Test
     fun `malformed JSON throws DecodingFailed`() = runTest {
         val engine = MockEngine {
             respond(
-                content = "NOT VALID RAW BYTES FOR PARSER",
+                content = "NOT VALID JSON FOR PARSER",
                 status = HttpStatusCode.OK,
                 headers = JSON_HEADERS
             )
@@ -188,14 +189,12 @@ class ApiClientErrorTest {
         val apiClient = ApiClient(application = mockApplication, engine = engine)
         var caught: ApiError? = null
         try {
-            // Triggers a raw data read which hits the decoding validation rules cleanly
-            apiClient.playlistData()
+            apiClient.health()
         } catch (e: ApiError) {
             caught = e
         }
 
-        // Assert that the exception matches the spec criteria rules
-        assertNotNull("Expected an error conversion mapping", caught)
+        assertTrue("Expected DecodingFailed", caught is ApiError.DecodingFailed)
     }
 
 
