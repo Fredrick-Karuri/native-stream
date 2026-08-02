@@ -1,15 +1,14 @@
 plugins {
-    kotlin("jvm") version "2.0.0"
-}
-
-repositories {
-    mavenCentral()
+    kotlin("jvm")
 }
 
 dependencies {
     implementation("com.google.protobuf:protobuf-java:4.29.0")
     implementation("com.google.protobuf:protobuf-kotlin:4.29.0")
-    implementation("com.google.protobuf:protobuf-java-util:4.29.0")
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 sourceSets {

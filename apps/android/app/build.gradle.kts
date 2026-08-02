@@ -94,6 +94,10 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.foundation)
 
+    // Generated proto SDK
+    implementation(project(":sdk-gen-kotlin"))
+    implementation("com.google.protobuf:protobuf-java-util:4.29.0")
+
     // Compose BOM — version-managed block
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)

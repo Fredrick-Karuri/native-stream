@@ -31,6 +31,7 @@ import kotlinx.serialization.json.Json
 import android.util.Log
 import javax.inject.Singleton
 import android.app.Application
+import com.google.protobuf.util.JsonFormat
 import javax.inject.Inject
 import io.ktor.client.plugins.cache.HttpCache
 import io.ktor.client.plugins.cache.storage.FileStorage
@@ -91,10 +92,16 @@ class ApiClient  @Inject constructor(
 
     // ── Health ────────────────────────────────────────────────────────────────
 
-    suspend fun health(): HealthResponse =
-        get("api/health")
-
-    // ── Playlist & EPG (raw bytes — consumed by parsers in AND-005 / AND-006) ─
+    suspend fun health(): com.stream.v1.HealthResponse {
+        val bytes = rawGet("api/health")
+        val builder = com.stream.v1.HealthResponse.newBuilder()
+        return try {
+            JsonFormat.parser().ignoringUnknownFields().merge(bytes.decodeToString(), builder)
+            builder.build()
+        } catch (cause: Exception) {
+            throw ApiError.DecodingFailed(cause)
+        }
+    }
 
     suspend fun playlistData(): ByteArray =
         rawGet("playlist.m3u")
@@ -212,7 +219,7 @@ class ApiClient  @Inject constructor(
             block()
         } catch (apiError: ApiError) {
             throw apiError
-        } catch (cause: Exception) {
+        } catch (cause: java.io.IOException) {
             throw ApiError.ServerUnreachable(resolve(path))
         }
 

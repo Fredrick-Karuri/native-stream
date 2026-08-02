@@ -23,3 +23,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "NativeStream"
 include(":app")
+include(":sdk-gen-kotlin")
+project(":sdk-gen-kotlin").projectDir = File(rootDir, "../../packages/sdk-gen/kotlin")

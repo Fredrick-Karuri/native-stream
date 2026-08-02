@@ -1,8 +1,5 @@
 // app/src/test/java/com/nativestream/android/data/remote/ApiClientTest.kt
 //
-// AND-T010 — ApiClient: endpoint mapping
-// AND-T011 — ApiClient: error mapping
-//
 // Strategy: ApiClient constructs its own HttpClient internally, so we test
 // endpoint mapping by subclassing ApiClient with an overridden httpClient
 // backed by a MockEngine — no interface extraction required.
@@ -13,10 +10,8 @@ package com.nativestream.android.data.remote
 import android.app.Application
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.HttpRequestData
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -40,6 +35,8 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.io.File
 import java.io.IOException
 
@@ -49,32 +46,6 @@ import java.io.IOException
  * Testable subclass that accepts an injected HttpClient built around MockEngine,
  * bypassing the production Ktor Android engine and disk cache.
  */
-
-
-// Simpler approach: wrap ApiClient in a helper that records requests via MockEngine
-// and exposes a factory for building the client.
-
-private fun buildMockClient(
-    handler: MockRequestHandleScope.(HttpRequestData) -> Unit
-): Pair<MockEngine, HttpClient> {
-    val engine = MockEngine { request ->
-        handler(request)
-        // Default: return empty 200 JSON if handler doesn't respond
-        respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
-    }
-    val client = HttpClient(engine) {
-        install(ContentNegotiation) {
-            json(Json { ignoreUnknownKeys = true; isLenient = true })
-        }
-    }
-    return engine to client
-}
-
-// ── Actual tests ──────────────────────────────────────────────────────────────
-// ApiClient takes Application in constructor; mock it and inject a reflective
-// httpClient replacement, OR refactor to accept HttpClient.
-//
-// Pragmatic approach for this codebase: extract a minimal testable wrapper.
 
 private val JSON_HEADERS = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
 
@@ -98,6 +69,7 @@ private val CHANNEL_DETAIL_JSON = """
  * Thin functional wrapper around MockEngine for endpoint-mapping assertions.
  * Avoids the need to refactor ApiClient's constructor while keeping tests deterministic.
  */
+@RunWith(RobolectricTestRunner::class)
 class ApiClientEndpointTest {
 
     private lateinit var engine: MockEngine
@@ -126,17 +98,31 @@ class ApiClientEndpointTest {
         }
     }
 
-    // AND-T010 ─────────────────────────────────────────────────────────────────
-
     @Test
-    fun `T010 - health hits GET api-health`() = runTest {
+    fun `health hits GET api-health`() = runTest {
         val client = buildKtorClient(engine)
         client.get<HealthResponse>("http://localhost/api/health")
         assertTrue(hits.any { it.first == HttpMethod.Get && it.second == "/api/health" })
     }
 
     @Test
-    fun `T010 - listChannels hits GET api-channels and returns channel list`() = runTest {
+    fun `health decodes real ApiClient path via protojson`() = runTest {
+        val engine = MockEngine { request ->
+            respond(HEALTH_JSON, HttpStatusCode.OK, JSON_HEADERS)
+        }
+        val mockApplication = mockk<Application>(relaxed = true)
+        every { mockApplication.cacheDir } returns File("build/tmp/test_ktor_cache")
+
+        val apiClient = ApiClient(application = mockApplication, engine = engine)
+        val health = apiClient.health()
+
+        assertEquals("ok", health.status)
+        assertEquals(5, health.channels)
+        assertEquals(5, health.healthy)
+    }
+
+    @Test
+    fun `listChannels hits GET api-channels and returns channel list`() = runTest {
         val client = buildKtorClient(engine)
         val response = client.get<ChannelListResponse>("http://localhost/api/channels")
         assertTrue(hits.any { it.first == HttpMethod.Get && it.second == "/api/channels" })
@@ -145,7 +131,7 @@ class ApiClientEndpointTest {
     }
 
     @Test
-    fun `T010 - createChannel hits POST api-channels`() = runTest {
+    fun `createChannel hits POST api-channels`() = runTest {
         val client = buildKtorClient(engine)
         client.post<ChannelDetailResponse>(
             "http://localhost/api/channels",
@@ -155,30 +141,23 @@ class ApiClientEndpointTest {
     }
 
     @Test
-    fun `T010 - triggerProbe hits POST api-probe`() = runTest {
+    fun `triggerProbe hits POST api-probe`() = runTest {
         val client = buildKtorClient(engine)
         client.post<StatusResponse>("http://localhost/api/probe", EmptyBody())
         assertTrue(hits.any { it.first == HttpMethod.Post && it.second == "/api/probe" })
     }
 
     @Test
-    fun `T010 - deleteChannel hits DELETE api-channels-id`() = runTest {
+    fun `deleteChannel hits DELETE api-channels-id`() = runTest {
         val client = buildKtorClient(engine)
         client.delete("http://localhost/api/channels/bbc.one")
         assertTrue(hits.any { it.first == HttpMethod.Delete && it.second == "/api/channels/bbc.one" })
     }
 }
 
-// ── AND-T011 — Error mapping ──────────────────────────────────────────────────
-
 class ApiClientErrorTest {
-
-    // AND-T011 tests use a real ApiClient with a mock server URL — the actual
-    // error-wrapping logic lives in wrapNetworkErrors / guardSuccess.
-    // We verify the thrown type by probing a client pointed at an unreachable host.
-
     @Test
-    fun `T011 - connection refused throws ServerUnreachable`() = runTest {
+    fun `connection refused throws ServerUnreachable`() = runTest {
         val engine = MockEngine { throw IOException("Connection refused") }
 
         val mockApplication = mockk<Application>(relaxed = true)
@@ -194,7 +173,7 @@ class ApiClientErrorTest {
         assertNotNull("Expected ServerUnreachable", caught)
     }
     @Test
-    fun `T011 - malformed JSON throws DecodingFailed`() = runTest {
+    fun `malformed JSON throws DecodingFailed`() = runTest {
         val engine = MockEngine {
             respond(
                 content = "NOT VALID RAW BYTES FOR PARSER",
@@ -221,7 +200,7 @@ class ApiClientErrorTest {
 
 
     @Test
-    fun `T011 - setBaseUrl updates subsequent request URLs`() = runTest {
+    fun `setBaseUrl updates subsequent request URLs`() = runTest {
         val hits = mutableListOf<String>()
         val engine = MockEngine { request ->
             hits.add(request.url.host)
