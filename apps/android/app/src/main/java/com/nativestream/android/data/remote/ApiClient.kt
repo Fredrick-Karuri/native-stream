@@ -157,15 +157,34 @@ class ApiClient  @Inject constructor(
 
     // ── Discovery ─────────────────────────────────────────────────────────────
 
-    suspend fun discoveryStatus(): DiscoveryStatusResponse =
-        get("api/discovery/status")
-
-    suspend fun triggerDiscovery() {
-        post<StatusResponse>("api/discovery/run", EmptyBody())
+    suspend fun discoveryStatus(): com.stream.v1.DiscoveryStatusResponse {
+        val bytes = rawGet("api/discovery/status")
+        val builder = com.stream.v1.DiscoveryStatusResponse.newBuilder()
+        return try {
+            JsonFormat.parser().ignoringUnknownFields().merge(bytes.decodeToString(), builder)
+            builder.build()
+        } catch (cause: Exception) {
+            throw ApiError.DecodingFailed(cause)
+        }
     }
 
-    suspend fun unmatchedLinks(limit: Int = UNMATCHED_DEFAULT_LIMIT): UnmatchedResponse =
-        get("api/discovery/unmatched?limit=$limit")
+    suspend fun triggerDiscovery() {
+        wrapNetworkErrors("api/discovery/run") {
+            val response = httpClient.post(resolve("api/discovery/run"))
+            guardSuccess(response)
+        }
+    }
+
+    suspend fun unmatchedLinks(limit: Int = UNMATCHED_DEFAULT_LIMIT): com.stream.v1.UnmatchedResponse {
+        val bytes = rawGet("api/discovery/unmatched?limit=$limit")
+        val builder = com.stream.v1.UnmatchedResponse.newBuilder()
+        return try {
+            JsonFormat.parser().ignoringUnknownFields().merge(bytes.decodeToString(), builder)
+            builder.build()
+        } catch (cause: Exception) {
+            throw ApiError.DecodingFailed(cause)
+        }
+    }
 
     suspend fun assignUnmatchedLink(channelId: String, streamUrl: String) {
         updateChannel(channelId, UpdateChannelRequest(streamUrl = streamUrl))
