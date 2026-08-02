@@ -34,7 +34,7 @@ import com.adamglin.phosphoricons.regular.MonitorPlay
 import com.adamglin.phosphoricons.regular.CircleNotch
 import com.adamglin.phosphoricons.regular.WifiHigh
 import com.nativestream.android.domain.model.Channel
-import com.nativestream.android.domain.model.control.SessionInfo
+import com.stream.v1.SessionInfo
 import com.nativestream.android.ui.components.SheetActionButton
 import com.nativestream.android.ui.screens.settings.NSHealthDot
 import com.nativestream.android.ui.theme.NSColors

@@ -62,9 +62,9 @@ fun RemoteScreen(
     val isPullingBack by controlViewModel.isPullingBack.collectAsState()
     val session       = sessions.firstOrNull { it.playing } ?: return
 
-    var volume by remember(session.deviceId) { mutableFloatStateOf(session.volume) }
+    var volume by remember(session.deviceId) { mutableFloatStateOf(session.volume.toFloat()) }
 
-    LaunchedEffect(session.volume) { volume = session.volume }
+    LaunchedEffect(session.volume) { volume = session.volume.toFloat() }
 
     LaunchedEffect(Unit) {
         controlViewModel.pullBackReady.collect { ready ->

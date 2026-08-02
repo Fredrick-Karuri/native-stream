@@ -8,12 +8,13 @@
 package com.nativestream.android.data.remote
 
 import android.util.Log
+import com.google.protobuf.util.JsonFormat
 import com.nativestream.android.data.local.SettingsDataStore
-import com.nativestream.android.domain.model.control.DeviceKind
-import com.nativestream.android.domain.model.control.Envelope
-import com.nativestream.android.domain.model.control.MessageType
-import com.nativestream.android.domain.model.control.RegisterPayload
 import com.nativestream.android.domain.model.control.buildEnvelope
+import com.stream.v1.DeviceKind
+import com.stream.v1.Envelope
+import com.stream.v1.MessageType
+import com.stream.v1.RegisterPayload
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -23,7 +24,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -59,7 +59,7 @@ class ControlSession @Inject constructor(
         .pingInterval(PING_INTERVAL_SECONDS, TimeUnit.SECONDS)
         .build()
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val jsonPrinter = JsonFormat.printer().preservingProtoFieldNames()
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -80,19 +80,24 @@ class ControlSession @Inject constructor(
                 reconnectDelayMs  = RECONNECT_BASE_DELAY_MS
                 Log.d(TAG, "WebSocket connected")
 
-                // Register as controller immediately on open
+                val registerPayload = RegisterPayload.newBuilder()
+                    .setName(deviceName)
+                    .setKind(DeviceKind.DEVICE_KIND_CONTROLLER)
+                    .build()
                 val envelope = buildEnvelope(
-                    type    = MessageType.REGISTER,
+                    type    = MessageType.MESSAGE_TYPE_REGISTER,
                     from    = deviceId,
                     to      = "server",
-                    payload = RegisterPayload(name = deviceName, kind = DeviceKind.CONTROLLER),
+                    payload = registerPayload,
                 )
-                ws.send(json.encodeToString(envelope))
+                ws.send(jsonPrinter.print(envelope))
             }
 
             override fun onMessage(ws: WebSocket, text: String) {
                 runCatching {
-                    val envelope = json.decodeFromString<Envelope>(text)
+                    val builder = Envelope.newBuilder()
+                    JsonFormat.parser().ignoringUnknownFields().merge(text, builder)
+                    val envelope = builder.build()
                     scope.launch { _messages.emit(envelope) }
                 }.onFailure {
                     Log.w(TAG, "Failed to parse envelope: $text", it)
@@ -118,7 +123,7 @@ class ControlSession @Inject constructor(
     }
 
     fun send(envelope: Envelope) {
-        val text = runCatching { json.encodeToString(envelope) }.getOrNull() ?: return
+        val text = runCatching { jsonPrinter.print(envelope) }.getOrNull() ?: return
         webSocket?.send(text)
     }
 
