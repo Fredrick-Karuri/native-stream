@@ -12,7 +12,6 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import com.nativestream.android.data.remote.ApiClient
 import com.stream.v1.ChannelDetailResponse
-import com.nativestream.android.data.remote.LinkScoreResponse
 import com.nativestream.android.domain.model.Channel
 import com.nativestream.android.domain.repository.ChannelRepository
 import io.mockk.coEvery

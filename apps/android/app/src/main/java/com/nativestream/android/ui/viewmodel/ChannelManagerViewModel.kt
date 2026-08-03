@@ -7,7 +7,6 @@ package com.nativestream.android.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nativestream.android.data.remote.ApiClient
-import com.nativestream.android.data.remote.CreateChannelRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

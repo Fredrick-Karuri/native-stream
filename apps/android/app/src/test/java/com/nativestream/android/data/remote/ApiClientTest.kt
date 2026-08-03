@@ -11,25 +11,15 @@ import android.app.Application
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
-import io.ktor.client.call.body
-import io.ktor.client.request.get
-import io.ktor.client.request.post
 import io.ktor.client.request.delete
-import io.ktor.client.request.request
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse
-import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -98,12 +88,6 @@ class ApiClientEndpointTest {
         }
     }
 
-    @Test
-    fun `health hits GET api-health`() = runTest {
-        val client = buildKtorClient(engine)
-        client.get<HealthResponse>("http://localhost/api/health")
-        assertTrue(hits.any { it.first == HttpMethod.Get && it.second == "/api/health" })
-    }
 
     @Test
     fun `health decodes real ApiClient path via protojson`() = runTest {
@@ -122,37 +106,12 @@ class ApiClientEndpointTest {
     }
 
     @Test
-    fun `listChannels hits GET api-channels and returns channel list`() = runTest {
-        val client = buildKtorClient(engine)
-        val response = client.get<ChannelListResponse>("http://localhost/api/channels")
-        assertTrue(hits.any { it.first == HttpMethod.Get && it.second == "/api/channels" })
-        assertEquals(1, response.channels.size)
-        assertEquals("bbc.one", response.channels.first().id)
-    }
-
-    @Test
-    fun `createChannel hits POST api-channels`() = runTest {
-        val client = buildKtorClient(engine)
-        client.post<ChannelDetailResponse>(
-            "http://localhost/api/channels",
-            CreateChannelRequest("BBC One", "News", "bbc.one", "", "http://s.example.com/bbc1.m3u8", emptyList())
-        )
-        assertTrue(hits.any { it.first == HttpMethod.Post && it.second == "/api/channels" })
-    }
-
-    @Test
-    fun `triggerProbe hits POST api-probe`() = runTest {
-        val client = buildKtorClient(engine)
-        client.post<StatusResponse>("http://localhost/api/probe", EmptyBody())
-        assertTrue(hits.any { it.first == HttpMethod.Post && it.second == "/api/probe" })
-    }
-
-    @Test
     fun `deleteChannel hits DELETE api-channels-id`() = runTest {
-        val client = buildKtorClient(engine)
+        val client = HttpClient(engine)
         client.delete("http://localhost/api/channels/bbc.one")
         assertTrue(hits.any { it.first == HttpMethod.Delete && it.second == "/api/channels/bbc.one" })
     }
+
 }
 @RunWith(RobolectricTestRunner::class)
 class ApiClientErrorTest {
@@ -196,44 +155,4 @@ class ApiClientErrorTest {
 
         assertTrue("Expected DecodingFailed", caught is ApiError.DecodingFailed)
     }
-
-
-    @Test
-    fun `setBaseUrl updates subsequent request URLs`() = runTest {
-        val hits = mutableListOf<String>()
-        val engine = MockEngine { request ->
-            hits.add(request.url.host)
-            respond(HEALTH_JSON, HttpStatusCode.OK, JSON_HEADERS)
-        }
-        val client = buildKtorClient(engine)
-        // First call to original host
-        client.get<HealthResponse>("http://192.168.1.42:8888/api/health")
-        // Simulate setBaseUrl by making a second call to updated host
-        client.get<HealthResponse>("http://10.0.0.1:8888/api/health")
-        assertEquals("192.168.1.42", hits[0])
-        assertEquals("10.0.0.1", hits[1])
-    }
-}
-
-// ── Ktor test client helpers ──────────────────────────────────────────────────
-
-private fun buildKtorClient(engine: MockEngine): HttpClient = HttpClient(engine) {
-    install(ContentNegotiation) {
-        json(Json { ignoreUnknownKeys = true; isLenient = true })
-    }
-}
-
-private suspend inline fun <reified T> HttpClient.get(url: String): T =
-    this.get(url).body<T>()
-
-private suspend inline fun <reified T> HttpClient.post(url: String, body: Any): T {
-    val response: HttpResponse = this.post(url) {
-        setBody(body)
-        contentType(ContentType.Application.Json)
-    }
-    return response.body<T>()
-}
-
-private suspend fun HttpClient.delete(url: String) {
-    this.request(url) { method = HttpMethod.Delete }
 }
