@@ -198,7 +198,15 @@ actor APIClient {
     // MARK: - Probe
 
     func triggerProbe() async throws {
-        let _: StatusResponse = try await post("api/probe", body: EmptyBody())
+        let url = try resolve("api/probe")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        let data = try await execute(req)
+        do {
+            _ = try Stream_V1_StatusResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
     }
     
     // MARK: - Proxy config

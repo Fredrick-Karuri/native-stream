@@ -157,7 +157,10 @@ class ApiClient  @Inject constructor(
     // ── Probe ─────────────────────────────────────────────────────────────────
 
     suspend fun triggerProbe() {
-        post<StatusResponse>("api/probe", EmptyBody())
+        wrapNetworkErrors("api/probe") {
+            val response = httpClient.post(resolve("api/probe"))
+            guardSuccess(response)
+        }
     }
 
     suspend fun getProxyEnabled(): Boolean {
