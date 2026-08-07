@@ -4,12 +4,12 @@ on:
   push:
     branches: [main, "develop", "feat/*"]
     paths:
-      - "app/macos/**"
+      - "apps/macos/**"
       - ".github/workflows/ci-macos.yml"
   pull_request:
     branches: [main]
     paths:
-      - "app/macos/**"
+      - "apps/macos/**"
 
 jobs:
   build:
@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build (Release)
-        working-directory: app/macos/NativeStream
+        working-directory: apps/macos/NativeStream
         run: |
           set -o pipefail
           xcodebuild \
@@ -34,7 +34,7 @@ jobs:
             | xcpretty
 
       - name: Run tests
-        working-directory: app/macos/NativeStream
+        working-directory: apps/macos/NativeStream
         run: |
           set -o pipefail
           xcodebuild \

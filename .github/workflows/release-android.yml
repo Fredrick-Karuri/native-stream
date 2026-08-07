@@ -36,15 +36,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Grant Execute Permission to Gradle Wrapper
-        working-directory: app/android
+        working-directory: apps/android
         run: chmod +x gradlew
 
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/android/app/keystore.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > apps/android/app/keystore.jks
 
       - name: Build & Sign Release APK
-        working-directory: app/android
+        working-directory: apps/android
         env:
           KEYSTORE_PATH: keystore.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -55,7 +55,7 @@ jobs:
       - name: Prepare Release Assets
         run: |
           mkdir -p dist
-          cp app/android/app/build/outputs/apk/release/app-release.apk \
+          cp apps/android/app/build/outputs/apk/release/app-release.apk \
              dist/NativeStream-Android-v${{ steps.parse_tag.outputs.version }}.apk        
 
       - name: Generate Scoped Changelog
@@ -63,7 +63,7 @@ jobs:
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 --match "android/v*" "${{ github.ref_name }}^" 2>/dev/null || echo "")
           RANGE=${PREV_TAG:+$PREV_TAG..}HEAD
-          CHANGELOG=$(git log ${RANGE:-HEAD} --pretty=format:"- %s (%h)" --no-merges -- app/android/ | head -50)
+          CHANGELOG=$(git log ${RANGE:-HEAD} --pretty=format:"- %s (%h)" --no-merges -- apps/android/ | head -50)
           
           echo "changelog<<EOF" >> "$GITHUB_OUTPUT"
           echo "$CHANGELOG" >> "$GITHUB_OUTPUT"
