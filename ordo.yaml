@@ -17,6 +17,9 @@ groups:
       vet:
         description: Run go vet
         run: "cd apps/server && go vet ./..."
+      lint:
+        description: Run golangci-lint
+        run: "cd apps/server && golangci-lint run --timeout 5m --config ../../tooling/lint/golangci.yml"
       restart:
         description: Rebuild and restart server in background
         run: |
@@ -64,7 +67,7 @@ groups:
           open apps/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
       lint:
         description: Lint the macOS client with SwiftLint
-        run: "swiftlint lint --path apps/macos/NativeStream"
+        run: "swiftlint lint --config tooling/lint/swiftlint.yml"
       test-unit:
         description: Run macOS unit tests
         run: |

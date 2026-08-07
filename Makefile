@@ -30,7 +30,7 @@ vet-server:
 	cd $(SERVER_DIR) && go vet ./...
 
 lint-server:
-	cd apps/server && golangci-lint run --timeout 5m
+	cd apps/server && golangci-lint run --timeout 5m --config ../../tooling/lint/golangci.yml
 
 restart-server: build-server
 	@echo "→ Stopping server..."
@@ -69,7 +69,7 @@ run-app:
 	open $(DERIVED)/Build/Products/Debug/NativeStream.app
 
 lint-client:
-	swiftlint lint --path apps/macos/NativeStream
+	swiftlint lint --config tooling/lint/swiftlint.yml
 
 test-mac-unit:
 	@echo "→ Running macOS unit tests..."

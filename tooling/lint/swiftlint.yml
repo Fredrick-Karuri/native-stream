@@ -1,9 +1,13 @@
+# SwiftLint 0.65 resolves included/excluded paths relative to this
+# config file's own directory (tooling/lint/), not the invocation's
+# working directory — so these must be expressed as ../../<path>,
+# not as repo-root-relative paths.
 included:
-  - app/macos/NativeStreamMac
+  - ../../apps/macos/NativeStream
 
 excluded:
-  - app/macos/DerivedData
-  - app/macos/NativeStreamMac.xcodeproj
+  - ../../apps/macos/NativeStream/DerivedData
+  - ../../apps/macos/NativeStream/NativeStream.xcodeproj
 
 opt_in_rules:
   - array_init

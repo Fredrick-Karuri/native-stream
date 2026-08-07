@@ -76,7 +76,7 @@ android {
         unitTests.isIncludeAndroidResources = true
     }
     lint {
-        baseline = file("lint-baseline.xml")
+        baseline = file("../../../tooling/lint/android/lint-baseline.xml")
         abortOnError = true
     }
 }
