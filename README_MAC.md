@@ -36,7 +36,7 @@ git clone https://github.com/yourname/nativestream.git
 cd nativestream
 ordo mac:run   # or: make run-app
 # or manually:
-open app/macos/NativeStream/NativeStream.xcodeproj
+open apps/macos/NativeStream/NativeStream.xcodeproj
 ```
 
 Press `⌘R` in Xcode to build and run, or use the command above, which also strips the extended attribute Gatekeeper otherwise adds to locally-built apps.
@@ -45,16 +45,16 @@ For view model structure and how playback works internally, see [docs/mac-archit
 
 ## Requirements
 
-| Requirement | Version/Detail |
-|---|---|
-| macOS | 14 (Sonoma) or later, for both running the app and building from source |
-| Xcode | 15+ (build from source only) |
-| Distribution | Notarized DMG, outside the Mac App Store |
+| Requirement  | Version/Detail                                                          |
+| ------------ | ----------------------------------------------------------------------- |
+| macOS        | 14 (Sonoma) or later, for both running the app and building from source |
+| Xcode        | 15+ (build from source only)                                            |
+| Distribution | Notarized DMG, outside the Mac App Store                                |
 
 ## Keyboard Shortcuts
 
-| Action | Shortcut |
-|---|---|
-| Open Settings | ⌘, |
-| Play / Pause | Space |
-| Picture-in-Picture | P |
+| Action             | Shortcut |
+| ------------------ | -------- |
+| Open Settings      | ⌘,       |
+| Play / Pause       | Space    |
+| Picture-in-Picture | P        |

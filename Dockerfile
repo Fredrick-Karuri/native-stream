@@ -4,11 +4,11 @@ FROM golang:1.25-alpine AS builder
 WORKDIR /build
 
 # Dependencies first (layer cache)
-COPY app/server/go.mod ./
+COPY apps/server/go.mod ./
 RUN go mod download
 
 # Source
-COPY app/server/ ./
+COPY apps/server/ ./
 
 # Build static binary
 RUN CGO_ENABLED=0 GOOS=linux go build \

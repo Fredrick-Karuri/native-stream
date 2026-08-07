@@ -6,11 +6,11 @@ How a release actually ships, end to end: version bump → git tag → CI build 
 
 Server, macOS, and Android each version and release independently — a server release doesn't imply a client release, and vice versa. Each component's version lives in a different place, because each is a different toolchain's native format:
 
-| Component | Source of truth | Format |
-|---|---|---|
-| Server | `app/server/VERSION` | Flat semver string, e.g. `1.2.0` |
-| Android | `app/android/app/build.gradle.kts` — `versionName` + `versionCode` | Semver string + monotonic integer |
-| macOS | `app/macos/NativeStream/NativeStream.xcodeproj/project.pbxproj` — `MARKETING_VERSION` + `CURRENT_PROJECT_VERSION` | Semver string + monotonic integer |
+| Component | Source of truth                                                                                                    | Format                            |
+| --------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| Server    | `apps/server/VERSION`                                                                                              | Flat semver string, e.g. `1.2.0`  |
+| Android   | `app/android/app/build.gradle.kts` — `versionName` + `versionCode`                                                 | Semver string + monotonic integer |
+| macOS     | `apps/macos/NativeStream/NativeStream.xcodeproj/project.pbxproj` — `MARKETING_VERSION` + `CURRENT_PROJECT_VERSION` | Semver string + monotonic integer |
 
 ## Cutting a release: `release.sh`
 
@@ -34,11 +34,11 @@ The bump math itself pads a bare `X.Y` version (which Xcode sometimes reports) t
 
 Releases are tag-triggered and strictly scoped per component — pushing a `server/v*` tag only runs the server release pipeline, never the client ones.
 
-| Component | Tag pattern | Workflow | Publishes |
-|---|---|---|---|
-| Server | `server/v*` | `release-server.yml` | 4 tarballs (darwin/linux × amd64/arm64) + SHA256 checksums |
-| macOS | `macos/v*` | `release-macos.yml` | `NativeStream-macOS-arm64.zip` |
-| Android | `android/v*` | `release-android.yml` | `NativeStream-Android-v{version}.apk` (unsigned) |
+| Component | Tag pattern  | Workflow              | Publishes                                                  |
+| --------- | ------------ | --------------------- | ---------------------------------------------------------- |
+| Server    | `server/v*`  | `release-server.yml`  | 4 tarballs (darwin/linux × amd64/arm64) + SHA256 checksums |
+| macOS     | `macos/v*`   | `release-macos.yml`   | `NativeStream-macOS-arm64.zip`                             |
+| Android   | `android/v*` | `release-android.yml` | `NativeStream-Android-v{version}.apk` (unsigned)           |
 
 These map directly to the release badges in the root [README.md](../README.md).
 
@@ -58,11 +58,11 @@ This looks like it exists so a maintainer can produce release artifacts locally 
 
 Separate from the release pipelines above, three CI workflows run on every push/PR touching their respective directory:
 
-| Workflow | Triggers on changes to | Runs |
-|---|---|---|
-| `ci-server.yml` | `app/server/**` | `go vet`, `go test -race` with coverage, non-production compile check |
-| `ci-macos.yml` | `app/macos/**` | Xcode build (Release config) + XCTest suite, on a macOS runner |
-| `ci-android.yml` | `app/android/**` | JDK 17 setup, Gradle dependency caching, lint, unit tests, debug APK build |
+| Workflow         | Triggers on changes to | Runs                                                                       |
+| ---------------- | ---------------------- | -------------------------------------------------------------------------- |
+| `ci-server.yml`  | `apps/server/**`       | `go vet`, `go test -race` with coverage, non-production compile check      |
+| `ci-macos.yml`   | `apps/macos/**`        | Xcode build (Release config) + XCTest suite, on a macOS runner             |
+| `ci-android.yml` | `app/android/**`       | JDK 17 setup, Gradle dependency caching, lint, unit tests, debug APK build |
 
 Client build logs are piped through `xcpretty` to keep output readable. Android and Server workflows cache dependencies keyed on `go.sum` / `build.gradle.kts` / `libs.versions.toml` respectively, to avoid re-downloading unchanged dependencies on every run.
 

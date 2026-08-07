@@ -239,17 +239,17 @@ Graceful shutdown: `SIGTERM/SIGINT` → cancel context → all goroutines stop �
 
 ## Technology Stack
 
-| Layer | Technology |
-|---|---|
-| Language | Go 1.22+ — the Dockerfile builds with `golang:1.25-alpine`; unclear if the non-Docker minimum has moved too or the Dockerfile is just ahead |
-| HTTP | `net/http` stdlib |
-| Logging | `log/slog` (Go 1.21+ stdlib) |
-| Config | Custom flat-file parser (no yaml lib — avoids external dependency) |
-| Concurrency | goroutines, sync.RWMutex, buffered channels, context cancellation |
-| Persistence | `encoding/json` + atomic file writes |
-| XML generation | `encoding/xml` stdlib |
-| Process management | launchd (macOS) |
-| Distribution | Homebrew tap + notarised binary |
+| Layer              | Technology                                                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language           | Go 1.22+ — the Dockerfile builds with `golang:1.25-alpine`; unclear if the non-Docker minimum has moved too or the Dockerfile is just ahead |
+| HTTP               | `net/http` stdlib                                                                                                                           |
+| Logging            | `log/slog` (Go 1.21+ stdlib)                                                                                                                |
+| Config             | Custom flat-file parser (no yaml lib — avoids external dependency)                                                                          |
+| Concurrency        | goroutines, sync.RWMutex, buffered channels, context cancellation                                                                           |
+| Persistence        | `encoding/json` + atomic file writes                                                                                                        |
+| XML generation     | `encoding/xml` stdlib                                                                                                                       |
+| Process management | launchd (macOS)                                                                                                                             |
+| Distribution       | Homebrew tap + notarised binary                                                                                                             |
 
 **Zero runtime dependencies** beyond the Go standard library.
 
@@ -257,20 +257,20 @@ Graceful shutdown: `SIGTERM/SIGINT` → cancel context → all goroutines stop �
 
 ## Package Responsibility
 
-Deliberately a responsibility table, not a file tree — a tree needs an edit every time a file is added; this only needs one when a responsibility moves. For the literal current layout, run `tree app/server` or browse the repo.
+Deliberately a responsibility table, not a file tree — a tree needs an edit every time a file is added; this only needs one when a responsibility moves. For the literal current layout, run `tree apps/server` or browse the repo.
 
-| Package | Owns |
-|---|---|
-| `cmd/` | Entry point and dependency wiring (`main.go`) |
-| `api/` | HTTP handlers and middleware (logging, panic recovery) |
-| `control/` | Local Media Connect: WebSocket hub (`hub.go`), envelope/message types (`protocol.go`), connection handling (`websocket.go`) |
+| Package      | Owns                                                                                                                                                                   |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cmd/`       | Entry point and dependency wiring (`main.go`)                                                                                                                          |
+| `api/`       | HTTP handlers and middleware (logging, panic recovery)                                                                                                                 |
+| `control/`   | Local Media Connect: WebSocket hub (`hub.go`), envelope/message types (`protocol.go`), connection handling (`websocket.go`)                                            |
 | `discovery/` | Discovery engine orchestration, link extraction, channel matching, circuit breaker, and the `crawlers/` sub-package (Gist, Reddit, Telegram, Direct M3U, Local Script) |
-| `epg/` | EPG fetch, XMLTV generation, caching, and pre-match priority calculation |
-| `logging/` | `slog` setup |
-| `playlist/` | M3U output generation |
-| `proxy/` | HLS transparent proxy — client, header injection, and URL rewriting split across `client.go` / `headers.go` / `proxy.go` / `rewriter.go` |
-| `service/` | launchd plist install/uninstall |
-| `shutdown/` | `SIGTERM`/`SIGINT` graceful handler |
-| `store/` | Channel store and snapshotting |
-| `validator/` | Probe pool, scoring, self-healing state machine |
-| `VERSION` | Current release version, read at build/release time |
+| `epg/`       | EPG fetch, XMLTV generation, caching, and pre-match priority calculation                                                                                               |
+| `logging/`   | `slog` setup                                                                                                                                                           |
+| `playlist/`  | M3U output generation                                                                                                                                                  |
+| `proxy/`     | HLS transparent proxy — client, header injection, and URL rewriting split across `client.go` / `headers.go` / `proxy.go` / `rewriter.go`                               |
+| `service/`   | launchd plist install/uninstall                                                                                                                                        |
+| `shutdown/`  | `SIGTERM`/`SIGINT` graceful handler                                                                                                                                    |
+| `store/`     | Channel store and snapshotting                                                                                                                                         |
+| `validator/` | Probe pool, scoring, self-healing state machine                                                                                                                        |
+| `VERSION`    | Current release version, read at build/release time                                                                                                                    |
