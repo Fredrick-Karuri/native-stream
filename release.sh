@@ -63,7 +63,7 @@ handle_existing_tag() {
 
 case $COMPONENT in
     server)
-        VERSION_FILE="app/server/VERSION"
+        VERSION_FILE="apps/server/VERSION"
         CURRENT_VERSION=$(cat "$VERSION_FILE" | tr -d '[:space:]')
         NEW_VERSION=$CURRENT_VERSION
         if [ "$BUMP_TYPE" != "current" ]; then
@@ -76,7 +76,7 @@ case $COMPONENT in
         ;;
 
     android)
-        GRADLE_FILE="app/android/app/build.gradle.kts"
+        GRADLE_FILE="apps/android/app/build.gradle.kts"
         CURRENT_VERSION=$(grep "versionName =" "$GRADLE_FILE" | head -n 1 | awk -F '"' '{print $2}')
         CURRENT_CODE=$(grep "versionCode =" "$GRADLE_FILE" | head -n 1 | tr -dc '0-9')
         NEW_VERSION=$CURRENT_VERSION
@@ -96,7 +96,7 @@ case $COMPONENT in
         ;;
 
     macos)
-        PBXPROJ="app/macos/NativeStream/NativeStream.xcodeproj/project.pbxproj"
+        PBXPROJ="apps/macos/NativeStream/NativeStream.xcodeproj/project.pbxproj"
         CURRENT_VERSION=$(grep "MARKETING_VERSION =" "$PBXPROJ" | head -n 1 | awk -F '= ' '{print $2}' | tr -d ';[:space:]')
         CURRENT_CODE=$(grep "CURRENT_PROJECT_VERSION =" "$PBXPROJ" | head -n 1 | awk -F '= ' '{print $2}' | tr -d ';[:space:]')
         NEW_VERSION=$CURRENT_VERSION

@@ -1,10 +1,8 @@
-.PHONY: build-server run-server clean build-app run-app dev test-server test-android-unit test-android-ui test-android-all \
+.PHONY: build build-server run-server clean build-mac run-mac lint-mac dev  \
+		test-server test-android-unit test-android-ui test-android-all \
         release-server-patch release-server-minor release-server-major release-server-current \
         release-android-patch release-android-minor release-android-major release-android-current \
-        release-macos-patch release-macos-minor release-macos-major release-macos-current server-dev test-mac-unit test-mac-ui
-
-
-VERSION := $(shell cat VERSION)
+        release-macos-patch release-macos-minor release-macos-major release-macos-current test-mac-unit test-mac-ui
 
 # ── Go Server ─────────────────────────────────────────────────────────────────
 SERVER_DIR := apps/server
@@ -15,12 +13,9 @@ build-server:
 	cd $(SERVER_DIR) && go build -o nativestream-server ./cmd/
 	@echo "✓ Binary: $(SERVER_BIN)"
 
-server-dev:
-	cd apps/server && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml go run ./cmd
-
 run-server: build-server
-	@echo "→ Starting server on http://127.0.0.1:8888"
-	$(SERVER_BIN)
+	@echo "→ Starting server on http://127.0.0.1:8889"
+	NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml $(SERVER_BIN)
 
 test-server:
 	@echo "→ Running Go tests..."
@@ -34,9 +29,9 @@ lint-server:
 
 restart-server: build-server
 	@echo "→ Stopping server..."
-	@lsof -ti :8888 | xargs kill -9 2>/dev/null; sleep 1
+	@lsof -ti :8889 | xargs kill -9 2>/dev/null; sleep 1
 	@echo "→ Starting server..."
-	@$(SERVER_BIN) >> /tmp/nativestream.log 2>> /tmp/nativestream-error.log &
+	@NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml $(SERVER_BIN) >> /tmp/nativestream.log 2>> /tmp/nativestream-error.log &
 	@sleep 1 && echo "✓ Restarted"
 	tail -f /tmp/nativestream.log /tmp/nativestream-error.log
 logs:
@@ -47,28 +42,22 @@ APP_DIR     := apps/macos/NativeStream
 SCHEME      := NativeStream
 DERIVED     := $(APP_DIR)/DerivedData
 
-build-app:
-	@echo "→ Building Mac app (Release)..."
-	xcodebuild -project $(APP_DIR)/NativeStream.xcodeproj \
-	           -scheme $(SCHEME) \
-	           -configuration Release \
-	           -derivedDataPath $(DERIVED) \
-	           build
-	@echo "→ Stripping extended attributes..."
-	xattr -cr $(DERIVED)/Build/Products/Release/NativeStream.app
-	@echo "✓ App built"
-
-run-app:
+build-mac:
 	@echo "→ Building Mac app (Debug)..."
 	xcodebuild -project $(APP_DIR)/NativeStream.xcodeproj \
 	           -scheme $(SCHEME) \
 	           -configuration Debug \
 	           -derivedDataPath $(DERIVED) \
-	           build
+	           build | xcbeautify
+	@echo "→ Stripping extended attributes..."
+	xattr -cr $(DERIVED)/Build/Products/Debug/NativeStream.app
+	@echo "✓ App built"
+
+run-mac: build-mac
 	@echo "→ Launching NativeStream..."
 	open $(DERIVED)/Build/Products/Debug/NativeStream.app
 
-lint-client:
+lint-mac:
 	swiftlint lint --config tooling/lint/swiftlint.yml
 
 test-mac-unit:
@@ -93,6 +82,9 @@ test-mac: test-mac-unit test-mac-ui
 # ── Android App ───────────────────────────────────────────────────────────────
 ANDROID_DIR := apps/android
 
+build-android:
+	cd $(ANDROID_DIR) && ./gradlew assembleDebug
+
 test-android-unit:
 	@echo "→ Running Android local unit and integration tests..."
 	cd $(ANDROID_DIR) && ./gradlew testDebugUnitTest
@@ -106,16 +98,19 @@ test-android-all: test-android-unit test-android-ui
 lint-android:
 	cd $(ANDROID_DIR) && ./gradlew lint
 
+# ── Build all ─────────────────────────────────────────────────────────────────
+build: build-server build-android build-mac
 
-# ── Dev (server + app together) ───────────────────────────────────────────────
-dev:
+# ── Dev (server + mac together; Android is run from Android Studio) ───────────
+dev: build-server
 	@echo "→ Starting server in background..."
-	$(MAKE) build-server
-	$(SERVER_BIN) &
-	@echo "→ Launching app..."
-	$(MAKE) run-app
+	NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml $(SERVER_BIN) &
+	@echo "→ Launching Mac app..."
+	$(MAKE) run-mac
 
 # ── Docker ────────────────────────────────────────────────────────────────────
+VERSION := $(shell cat apps/server/VERSION)
+
 docker-build:
 	docker build -t nativestream-server:$(VERSION) -t nativestream-server:latest .
  

@@ -10,7 +10,7 @@ groups:
         run: "cd apps/server && go build -o nativestream-server ./cmd/"
       run:
         description: Build and run the server
-        run: "cd apps/server && go build -o nativestream-server ./cmd/ && ./nativestream-server"
+        run: "cd apps/server && go build -o nativestream-server ./cmd/ && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml ./nativestream-server"
       test:
         description: Run Go tests
         run: "cd apps/server && go test -race -v ./..."
@@ -24,8 +24,8 @@ groups:
         description: Rebuild and restart server in background
         run: |
           cd apps/server && go build -o nativestream-server ./cmd/
-          lsof -ti :8888 | xargs kill -9 2>/dev/null; sleep 1
-          ./nativestream-server >> /tmp/nativestream.log 2>> /tmp/nativestream-error.log &
+          lsof -ti :8889 | xargs kill -9 2>/dev/null; sleep 1
+          NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml ./nativestream-server >> /tmp/nativestream.log 2>> /tmp/nativestream-error.log &
           sleep 1 && echo "✓ Restarted"
           tail -f /tmp/nativestream.log /tmp/nativestream-error.log
       logs:
@@ -48,23 +48,13 @@ groups:
     description: macOS client
     commands:
       build:
-        description: Build Mac app (Release)
-        run: |
-          xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
-                     -scheme NativeStream \
-                     -configuration Release \
-                     -derivedDataPath apps/macos/NativeStream/DerivedData \
-                     build
-          xattr -cr apps/macos/NativeStream/DerivedData/Build/Products/Release/NativeStream.app
-      run:
         description: Build and launch Mac app (Debug)
         run: |
           xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
                      -scheme NativeStream \
                      -configuration Debug \
                      -derivedDataPath apps/macos/NativeStream/DerivedData \
-                     build
-          open apps/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
+                     build | xcbeautify
       lint:
         description: Lint the macOS client with SwiftLint
         run: "swiftlint lint --config tooling/lint/swiftlint.yml"
@@ -115,6 +105,9 @@ groups:
   android:
     description: Android client
     commands:
+      build:
+        description: Build Android debug APK
+        run: "cd apps/android && ./gradlew assembleDebug"
       test-unit:
         description: Run Android local unit and integration tests
         run: "cd apps/android && ./gradlew testDebugUnitTest"
@@ -142,19 +135,33 @@ groups:
         description: Re-release current Android version, no bump
         run: "./release.sh android current"
 
+  build:
+    description: Build all platforms
+    commands:
+      all:
+        description: Build server, Android, and Mac
+        run: |
+          (cd apps/server && go build -o nativestream-server ./cmd/)
+          (cd apps/android && ./gradlew assembleDebug)
+          (cd apps/macos/NativeStream && xcodebuild -project NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -configuration Debug \
+                     -derivedDataPath DerivedData \
+                     build | xcbeautify)
+
   dev:
     description: Full dev environment
     commands:
       start:
-        description: Start server in background and launch app
-        run: |
-          cd apps/server && go build -o nativestream-server ./cmd/ && ./nativestream-server &
-          xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
-                     -scheme NativeStream \
-                     -configuration Debug \
-                     -derivedDataPath apps/macos/NativeStream/DerivedData \
-                     build
-          open apps/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
+          description: Start server in background and launch app
+          run: |
+            cd apps/server && go build -o nativestream-server ./cmd/ && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml ./nativestream-server &
+            xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
+                      -scheme NativeStream \
+                      -configuration Debug \
+                      -derivedDataPath apps/macos/NativeStream/DerivedData \
+                      build | xcbeautify
+            open apps/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
 
   service:
     description: launchd service management
