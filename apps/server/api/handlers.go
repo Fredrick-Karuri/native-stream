@@ -5,36 +5,36 @@ package api
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"time"
-	"os"
-	"log/slog"
 
+	"github.com/coder/websocket"
+	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
+	"github.com/fredrick-karuri/nativestream/server/control"
 	"github.com/fredrick-karuri/nativestream/server/epg"
+	"github.com/fredrick-karuri/nativestream/server/httpx"
 	"github.com/fredrick-karuri/nativestream/server/playlist"
 	"github.com/fredrick-karuri/nativestream/server/proxy"
 	"github.com/fredrick-karuri/nativestream/server/store"
 	"github.com/fredrick-karuri/nativestream/server/validator"
-	"github.com/fredrick-karuri/nativestream/server/control"
-	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
-	"github.com/fredrick-karuri/nativestream/server/httpx"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/timestamppb"
-	"github.com/coder/websocket"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Handler struct {
-	store     *store.Store
-	epg       *epg.Engine
-	proxy     *proxy.Proxy
-	validator *validator.Validator
-	startTime time.Time
-	proxyCfg  proxy.Config
-	serverAddr  string
-	serverName  string
+	store      *store.Store
+	epg        *epg.Engine
+	proxy      *proxy.Proxy
+	validator  *validator.Validator
+	startTime  time.Time
+	proxyCfg   proxy.Config
+	serverAddr string
+	serverName string
 	hub        *control.Hub
 	version    string
 }
@@ -282,7 +282,7 @@ func slugify(s string) string {
 }
 
 func (h *Handler) handleDeleteAllChannels(w http.ResponseWriter, r *http.Request) {
-    h.store.DeleteAll()
+	h.store.DeleteAll()
 	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.StatusResponse{Status: "deleted"})
 }
 
@@ -318,7 +318,6 @@ func (h *Handler) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		conn.CloseNow()
 		return
 	}
-
 
 	// Use client-supplied device_id from From field, or generate one
 	deviceID := env.From

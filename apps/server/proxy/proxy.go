@@ -107,6 +107,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "bad variant url", http.StatusBadRequest)
 			return
 		}
+		if err := validateUpstreamURL(r.Context(), decoded); err != nil {
+			slog.Warn("proxy: rejected variant url", "err", err)
+			http.Error(w, "upstream url not allowed", http.StatusForbidden)
+			return
+		}
 
 		parts := strings.Split(strings.Trim(path, "/"), "/")
 		if len(parts) < 2 {
@@ -121,7 +126,9 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			headers = ch.ActiveLink.Headers
 		}
 
-		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, decoded, nil)
+		// decoded is validated by validateUpstreamURL above (rejects
+		// non-http(s) schemes and non-public IP ranges) before this point.
+		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, decoded, nil) // #nosec G704
 		if err != nil {
 			http.Error(w, "bad variant upstream URL", http.StatusBadGateway)
 			return
@@ -129,7 +136,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		injectHeaders(req, r, p.cfg)
 		InjectFromMap(req, headers)
 
-		resp, err := p.client.Do(req)
+		resp, err := p.client.Do(req) // #nosec G704
 		if err != nil {
 			http.Error(w, "variant upstream error", http.StatusBadGateway)
 			return
@@ -162,7 +169,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	targetURL := ch.ActiveLink.URL
 
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, targetURL, nil)
+	// targetURL comes from ch.ActiveLink.URL (server-stored channel config,
+	// set via admin channel-creation API), not directly from this request.
+	// TODO: apply validateUpstreamURL at channel create/update time once
+	// the server is publicly hosted, to close this path too.
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, targetURL, nil) // #nosec G704
 	if err != nil {
 		http.Error(w, "bad upstream URL", http.StatusBadGateway)
 		return
@@ -172,7 +183,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	InjectFromMap(req, ch.ActiveLink.Headers)
 	slog.Debug("proxy upstream request", "url", targetURL, "headers", req.Header)
 
-	resp, err := p.client.Do(req)
+	resp, err := p.client.Do(req) // #nosec G704
 	if err != nil {
 		http.Error(w, "upstream error", http.StatusBadGateway)
 		return

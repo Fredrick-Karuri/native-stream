@@ -16,8 +16,8 @@ import (
 	"sync"
 	"time"
 
-	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
 	"github.com/coder/websocket"
+	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
 )
 
 const (

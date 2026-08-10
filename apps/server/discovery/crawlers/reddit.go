@@ -80,7 +80,7 @@ type redditListing struct {
 	Data struct {
 		Children []struct {
 			Data struct {
-				Name     string  `json:"name"`      // fullname e.g. t3_abc123
+				Name     string  `json:"name"` // fullname e.g. t3_abc123
 				Selftext string  `json:"selftext"`
 				Title    string  `json:"title"`
 				URL      string  `json:"url"`

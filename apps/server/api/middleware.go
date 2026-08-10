@@ -4,12 +4,12 @@
 package api
 
 import (
-	"log/slog"
-	"net/http"
-	"time"
-	"net"
 	"bufio"
 	"fmt"
+	"log/slog"
+	"net"
+	"net/http"
+	"time"
 )
 
 // LoggingMiddleware logs every request with method, path, status, and duration.

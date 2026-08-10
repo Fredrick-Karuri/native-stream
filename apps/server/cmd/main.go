@@ -18,12 +18,12 @@ import (
 	"github.com/fredrick-karuri/nativestream/server/discovery/crawlers"
 	"github.com/fredrick-karuri/nativestream/server/epg"
 	"github.com/fredrick-karuri/nativestream/server/logging"
+	"github.com/fredrick-karuri/nativestream/server/netutil"
 	"github.com/fredrick-karuri/nativestream/server/proxy"
 	"github.com/fredrick-karuri/nativestream/server/service"
 	"github.com/fredrick-karuri/nativestream/server/shutdown"
 	"github.com/fredrick-karuri/nativestream/server/store"
 	"github.com/fredrick-karuri/nativestream/server/validator"
-	"github.com/fredrick-karuri/nativestream/server/netutil"
 	"github.com/grandcat/zeroconf"
 )
 
@@ -68,7 +68,7 @@ func main() {
 	defer cancel()
 
 	// ── Store ──────────────────────────────────────────────────────────────────
-	s := store.New(cfg.Store.SnapshotPath,cfg.Store.MinScoreHealthy)
+	s := store.New(cfg.Store.SnapshotPath, cfg.Store.MinScoreHealthy)
 	if err := s.Load(); err != nil {
 		slog.Warn("store load failed, starting fresh", "err", err)
 	}
@@ -82,7 +82,7 @@ func main() {
 		Concurrency:     cfg.Probe.Concurrency,
 		MinScoreActive:  cfg.Probe.MinScoreActive,
 		MinScorePromote: cfg.Probe.MinScorePromote,
-	}, s,cfg.Proxy.Referer,cfg.Proxy.UserAgent,cfg.Proxy.Origin)
+	}, s, cfg.Proxy.Referer, cfg.Proxy.UserAgent, cfg.Proxy.Origin)
 
 	// ── EPG ────────────────────────────────────────────────────────────────────
 	e := epg.New(epg.Config{
@@ -142,7 +142,7 @@ func main() {
 		PriorityInterval: cfg.Discovery.PriorityInterval,
 	}, crawlerList, matcher, v)
 
-	discEngine.WithDirectFetchers(directFetchers) 
+	discEngine.WithDirectFetchers(directFetchers)
 
 	// ── Control hub ───────────────────────────────────────────────────────────
 	hub := control.NewHub()
@@ -150,7 +150,7 @@ func main() {
 
 	// ── API ────────────────────────────────────────────────────────────────────
 	serverAddr := fmt.Sprintf("http://%s:%d", netutil.GetLANIP(), cfg.Server.Port)
-	h := api.New(s, e, px, v, proxyCfg, serverAddr,hub,server.Version)
+	h := api.New(s, e, px, v, proxyCfg, serverAddr, hub, server.Version)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -191,7 +191,7 @@ func main() {
 		"_nativestream._tcp",
 		"local.",
 		cfg.Server.Port,
-		[]string{fmt.Sprintf("version=%s",server.Version)},
+		[]string{fmt.Sprintf("version=%s", server.Version)},
 		nil,
 	)
 	if err != nil {

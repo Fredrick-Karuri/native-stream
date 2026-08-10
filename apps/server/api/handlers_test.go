@@ -23,7 +23,7 @@ func newTestHandler() *Handler {
 	v := validator.New(validator.DefaultConfig(), s, "", "", "")
 	hub := control.NewHub()
 
-	return New(s, e, px, v, proxy.Config{}, "http://localhost:8889", hub,server.Version)
+	return New(s, e, px, v, proxy.Config{}, "http://localhost:8889", hub, server.Version)
 }
 
 func TestHandleHealth(t *testing.T) {

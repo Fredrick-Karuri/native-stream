@@ -69,9 +69,9 @@ func (cb *CircuitBreaker) Status() map[string]interface{} {
 	for k, until := range cb.suspendedUntil {
 		if time.Now().Before(until) {
 			out[k] = map[string]interface{}{
-				"suspended":    true,
-				"resumes_at":   until,
-				"fail_count":   cb.failures[k],
+				"suspended":  true,
+				"resumes_at": until,
+				"fail_count": cb.failures[k],
 			}
 		}
 	}

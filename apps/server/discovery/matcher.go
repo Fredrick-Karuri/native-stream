@@ -4,8 +4,8 @@
 package discovery
 
 import (
-	"strings"
 	"github.com/fredrick-karuri/nativestream/server/store"
+	"strings"
 )
 
 type ChannelMatcher struct {

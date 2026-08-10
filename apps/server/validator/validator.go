@@ -41,29 +41,29 @@ type Candidate struct {
 	URL       string
 	ChannelID string
 	SourceURL string
-	Headers   map[string]string 
+	Headers   map[string]string
 }
 
 // ── Validator ─────────────────────────────────────────────────────────────────
 
 type Validator struct {
-	cfg    Config
-	store  *store.Store
-	queue  chan Candidate
-	client *http.Client
-	mu     sync.Mutex
+	cfg       Config
+	store     *store.Store
+	queue     chan Candidate
+	client    *http.Client
+	mu        sync.Mutex
 	lastProbe time.Time
-    referer   string
-    userAgent string
+	referer   string
+	userAgent string
 	origin    string
-	runCtx    context.Context 
+	runCtx    context.Context
 }
 
 func New(cfg Config, s *store.Store, referer, userAgent string, origin string) *Validator {
 	return &Validator{
-		cfg:   cfg,
-		store: s,
-		queue: make(chan Candidate, 500),
+		cfg:       cfg,
+		store:     s,
+		queue:     make(chan Candidate, 500),
 		referer:   referer,
 		userAgent: userAgent,
 		origin:    origin,
@@ -103,7 +103,7 @@ func (v *Validator) RunProber(ctx context.Context) {
 			for {
 				select {
 				case c := <-v.queue:
-					v.probeCandidate(ctx,c)
+					v.probeCandidate(ctx, c)
 				case <-ctx.Done():
 					return
 				}
@@ -174,7 +174,7 @@ func (v *Validator) probeCandidate(ctx context.Context, c Candidate) {
 		URL:          c.URL,
 		ChannelID:    c.ChannelID,
 		SourceURL:    c.SourceURL,
-		Headers:      c.Headers, 
+		Headers:      c.Headers,
 		DiscoveredAt: time.Now(),
 	}
 	probeCtx, cancel := context.WithTimeout(ctx, v.cfg.Timeout)
@@ -186,7 +186,7 @@ func (v *Validator) probeAndUpdate(ctx context.Context, link *store.LinkScore) {
 	scored := v.measure(ctx, link.URL, link.Headers)
 	scored.ChannelID = link.ChannelID
 	scored.SourceURL = link.SourceURL
-	scored.Headers = link.Headers 
+	scored.Headers = link.Headers
 	scored.DiscoveredAt = link.DiscoveredAt
 	scored.URL = link.URL
 
@@ -200,8 +200,8 @@ func (v *Validator) probeAndUpdate(ctx context.Context, link *store.LinkScore) {
 
 // measure performs the actual HTTP probe and returns a scored LinkScore.
 func (v *Validator) measure(
-	ctx context.Context, 
-	url string, 
+	ctx context.Context,
+	url string,
 	headers map[string]string) *store.LinkScore {
 	link := &store.LinkScore{
 		URL:         url,
@@ -212,7 +212,7 @@ func (v *Validator) measure(
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		link.Score         = 0
+		link.Score = 0
 		link.FailureReason = store.FailureReasonBadContent
 		return link
 	}
@@ -294,9 +294,9 @@ func (v *Validator) estimateBitrate(ctx context.Context, url string, headers map
 	if v.origin != "" {
 		req.Header.Set("Origin", v.origin)
 	}
-    for k, val := range headers {
-        req.Header.Set(k, val)
-    }
+	for k, val := range headers {
+		req.Header.Set(k, val)
+	}
 
 	start := time.Now()
 	resp, err := v.client.Do(req)

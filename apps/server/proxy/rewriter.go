@@ -2,7 +2,7 @@
 package proxy
 
 import (
-	"crypto/md5"
+	"crypto/md5" // #nosec G501 -- used only as a fast, non-cryptographic cache key, not for security
 	"encoding/hex"
 	"fmt"
 	"net/url"
@@ -99,7 +99,7 @@ func (p *Proxy) wrapURLInProxy(targetURL, channelID, baseURL string, headers map
 
 	var lookupKey string
 	{
-		hash := md5.Sum([]byte(targetURL))
+		hash := md5.Sum([]byte(targetURL)) // #nosec G401 -- cache key, not a security boundary
 		lookupKey = hex.EncodeToString(hash[:])
 	}
 

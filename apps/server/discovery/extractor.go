@@ -17,7 +17,7 @@ import (
 
 var (
 	m3u8Re = regexp.MustCompile(`https?://[^\s"'<>]+\.m3u8(?:\?[^\s"'<>]*)?`)
-	m3uRe = regexp.MustCompile(`https?://\S+\.m3u(?:[^8\w]|$)`)
+	m3uRe  = regexp.MustCompile(`https?://\S+\.m3u(?:[^8\w]|$)`)
 )
 
 type LinkExtractor struct {

@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	tgMsgRe  = regexp.MustCompile(`(?s)<div class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>`)
+	tgMsgRe   = regexp.MustCompile(`(?s)<div class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>`)
 	htmlTagRe = regexp.MustCompile(`<[^>]+>`)
 )
 

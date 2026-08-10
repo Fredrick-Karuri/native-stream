@@ -4,11 +4,13 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"text/template"
+	"time"
 )
 
 const plistLabel = "com.nativestream.server"
@@ -56,11 +58,13 @@ func Install(binaryPath string) error {
 	}{plistLabel, binaryPath}
 
 	path := plistPath()
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return fmt.Errorf("create LaunchAgents dir: %w", err)
 	}
 
-	f, err := os.Create(path)
+	// path is built from os.UserHomeDir() + a hardcoded label in plistPath(),
+	// never from external/user input.
+	f, err := os.Create(path) // #nosec G304
 	if err != nil {
 		return fmt.Errorf("create plist: %w", err)
 	}
@@ -70,7 +74,11 @@ func Install(binaryPath string) error {
 		return fmt.Errorf("write plist: %w", err)
 	}
 
-	if err := exec.Command("launchctl", "load", path).Run(); err != nil {
+	// path is built from os.UserHomeDir() + a hardcoded label in plistPath(),
+	// never from external/user input.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := exec.CommandContext(ctx, "launchctl", "load", path).Run(); err != nil { // #nosec G204
 		return fmt.Errorf("launchctl load: %w", err)
 	}
 
@@ -83,8 +91,11 @@ func Install(binaryPath string) error {
 func Uninstall() error {
 	path := plistPath()
 
-	_ = exec.Command("launchctl", "unload", path).Run()
-
+	// path is built from os.UserHomeDir() + a hardcoded label in plistPath(),
+	// never from external/user input.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_ = exec.CommandContext(ctx, "launchctl", "unload", path).Run() // #nosec G204
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("remove plist: %w", err)
 	}

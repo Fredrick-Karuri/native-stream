@@ -8,9 +8,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
-	"strings"
 
 	"github.com/fredrick-karuri/nativestream/server/validator"
 )
@@ -29,12 +29,12 @@ type Config struct {
 
 // Engine orchestrates all crawlers and feeds candidates to the validator.
 type Engine struct {
-	cfg       Config
-	crawlers  []Crawler
+	cfg            Config
+	crawlers       []Crawler
 	directFetchers []DirectFetcher
-	extractor *LinkExtractor
-	matcher   *ChannelMatcher
-	validator *validator.Validator
+	extractor      *LinkExtractor
+	matcher        *ChannelMatcher
+	validator      *validator.Validator
 
 	mu            sync.Mutex
 	sourceStates  map[string]*SourceState
@@ -169,7 +169,6 @@ func (e *Engine) runCycle(ctx context.Context) {
 	candidates := e.extractor.Extract(ctx, items)
 	fmt.Fprintf(os.Stderr, "[debug] items=%d candidates=%d\n", len(items), len(candidates))
 
-
 	// 3. Deduplicate
 	candidates = deduplicate(candidates)
 
@@ -177,7 +176,7 @@ func (e *Engine) runCycle(ctx context.Context) {
 	e.foundToday += len(candidates)
 	e.mu.Unlock()
 
-		// 4. Match to channels and submit to validator
+	// 4. Match to channels and submit to validator
 	for i := range candidates {
 		var channelID string
 
@@ -206,7 +205,7 @@ func (e *Engine) runCycle(ctx context.Context) {
 		}
 
 		candidates[i].ChannelID = channelID
-		
+
 		// Submit to the active Validator probers with your custom headers attached!
 		e.validator.Submit(validator.Candidate{
 			URL:       candidates[i].URL,
@@ -215,7 +214,6 @@ func (e *Engine) runCycle(ctx context.Context) {
 			Headers:   candidates[i].Headers, // FIX: Pass headers forward into validation engine context
 		})
 	}
-
 
 	// Direct fetchers — pre-resolved candidates, skip extractor
 	for _, df := range e.directFetchers {
@@ -279,12 +277,11 @@ func (e *Engine) runCycle(ctx context.Context) {
 
 }
 
-
 func (e *Engine) fetchAll(ctx context.Context) []RawItem {
 	var (
-		mu    sync.Mutex
-		all   []RawItem
-		wg    sync.WaitGroup
+		mu  sync.Mutex
+		all []RawItem
+		wg  sync.WaitGroup
 	)
 
 	for _, crawler := range e.crawlers {
@@ -313,7 +310,7 @@ func (e *Engine) fetchAll(ctx context.Context) []RawItem {
 				mu.Unlock()
 			}
 		}(crawler)
-		
+
 	}
 
 	wg.Wait()

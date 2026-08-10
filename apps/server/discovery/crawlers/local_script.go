@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
-	"time"
 	"path/filepath"
+	"time"
 
 	"github.com/fredrick-karuri/nativestream/server/discovery"
 )
