@@ -1,4 +1,4 @@
-.PHONY: build build-server run-server clean build-mac run-mac lint-mac dev  \
+.PHONY: build test lint build-server run-server clean build-mac run-mac lint-mac dev  \
 		test-server test-android-unit test-android-ui test-android-all \
         release-server-patch release-server-minor release-server-major release-server-current \
         release-android-patch release-android-minor release-android-major release-android-current \
@@ -98,8 +98,6 @@ test-android-all: test-android-unit test-android-ui
 lint-android:
 	cd $(ANDROID_DIR) && ./gradlew lint
 
-# ── Build all ─────────────────────────────────────────────────────────────────
-build: build-server build-android build-mac
 
 # ── Dev (server + mac together; Android is run from Android Studio) ───────────
 dev: build-server
@@ -150,32 +148,34 @@ release-binaries:
 
 # One target per component per bump type, wired to release.sh.
 # e.g. `make release-macos-patch` → ./release.sh macos patch
+SCRIPTS_DIR := tooling/scripts
+
 release-server-patch:
-	./release.sh server patch
+	cd $(SCRIPTS_DIR) && ./release.sh server patch
 release-server-minor:
-	./release.sh server minor
+	cd $(SCRIPTS_DIR) && ./release.sh server minor
 release-server-major:
-	./release.sh server major
+	cd $(SCRIPTS_DIR) && ./release.sh server major
 release-server-current:
-	./release.sh server current
+	cd $(SCRIPTS_DIR) && ./release.sh server current
 
 release-android-patch:
-	./release.sh android patch
+	cd $(SCRIPTS_DIR) && ./release.sh android patch
 release-android-minor:
-	./release.sh android minor
+	cd $(SCRIPTS_DIR) && ./release.sh android minor
 release-android-major:
-	./release.sh android major
+	cd $(SCRIPTS_DIR) && ./release.sh android major
 release-android-current:
-	./release.sh android current
+	cd $(SCRIPTS_DIR) && ./release.sh android current
 
 release-macos-patch:
-	./release.sh macos patch
+	cd $(SCRIPTS_DIR) && ./release.sh macos patch
 release-macos-minor:
-	./release.sh macos minor
+	cd $(SCRIPTS_DIR) && ./release.sh macos minor
 release-macos-major:
-	./release.sh macos major
+	cd $(SCRIPTS_DIR) && ./release.sh macos major
 release-macos-current:
-	./release.sh macos current
+	cd $(SCRIPTS_DIR) && ./release.sh macos current
 
 # ── Service (macOS) ───────────────────────────────────────────────────
 install-service: build-server
@@ -195,3 +195,8 @@ clean:
 	rm -f $(SERVER_BIN)
 	rm -rf $(DERIVED)
 	@echo "✓ Clean"
+
+# ── all ─────────────────────────────────────────────────────────────────
+build: build-server build-android build-mac
+lint : lint-mac lint-server lint-android
+test: test-android-unit test-mac-unit test-server

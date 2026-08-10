@@ -33,16 +33,16 @@ groups:
         run: "tail -f /tmp/nativestream.log /tmp/nativestream-error.log"
       release-patch:
         description: Bump patch version and release the server
-        run: "./release.sh server patch"
+        run: "cd tooling/scripts && ./release.sh server patch"
       release-minor:
         description: Bump minor version and release the server
-        run: "./release.sh server minor"
+        run: "cd tooling/scripts && ./release.sh server minor"
       release-major:
         description: Bump major version and release the server
-        run: "./release.sh server major"
+        run: "cd tooling/scripts && ./release.sh server major"
       release-current:
         description: Re-release current server version, no bump
-        run: "./release.sh server current"
+        run: "cd tooling/scripts && ./release.sh server current"
 
   mac:
     description: macOS client
@@ -91,16 +91,16 @@ groups:
                      test | xcbeautify
       release-patch:
         description: Bump patch version and release the macOS app
-        run: "./release.sh macos patch"
+        run: "cd tooling/scripts && ./release.sh macos patch"
       release-minor:
         description: Bump minor version and release the macOS app
-        run: "./release.sh macos minor"
+        run: "cd tooling/scripts && ./release.sh macos minor"
       release-major:
         description: Bump major version and release the macOS app
-        run: "./release.sh macos major"
+        run: "cd tooling/scripts && ./release.sh macos major"
       release-current:
         description: Re-release current macOS version, no bump
-        run: "./release.sh macos current"
+        run: "cd tooling/scripts && ./release.sh macos current"
 
   android:
     description: Android client
@@ -124,16 +124,16 @@ groups:
         run: "cd apps/android && ./gradlew lint"
       release-patch:
         description: Bump patch version and release the Android app
-        run: "./release.sh android patch"
+        run: "cd tooling/scripts && ./release.sh android patch"
       release-minor:
         description: Bump minor version and release the Android app
-        run: "./release.sh android minor"
+        run: "cd tooling/scripts && ./release.sh android minor"
       release-major:
         description: Bump major version and release the Android app
-        run: "./release.sh android major"
+        run: "cd tooling/scripts && ./release.sh android major"
       release-current:
         description: Re-release current Android version, no bump
-        run: "./release.sh android current"
+        run: "cd tooling/scripts && ./release.sh android current"
 
   build:
     description: Build all platforms
