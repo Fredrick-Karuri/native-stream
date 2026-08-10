@@ -19,19 +19,19 @@ struct NativeStreamApp: App {
     @State private var settings: SettingsStore
 
     init() {
-        let s = SettingsStore()
+        let settingsStore = SettingsStore()
         let dataStore = SettingsDataStore()
         let source = SourceViewModel(dataStore: dataStore)
         let loading = ChannelLoadingViewModel(
             sourceViewModel: source,
-            settings: s,
+            settings: settingsStore,
             repository: ChannelRepositoryImpl(),
             dataStore: dataStore
         )
         source.onAutoRefreshTriggered = { [weak loading] in
             await loading?.loadAll()
         }
-        _settings = State(initialValue: s)
+        _settings = State(initialValue: settingsStore)
         _sourceVM = State(initialValue: source)
         _channelLoadingVM = State(initialValue: loading)
     }

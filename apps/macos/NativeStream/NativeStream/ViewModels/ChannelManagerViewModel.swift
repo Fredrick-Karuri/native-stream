@@ -115,8 +115,8 @@ final class ChannelManagerViewModel {
 
     func loadUnmatched() async {
         do {
-            let r = try await APIClient.shared.unmatchedLinks()
-            unmatched = r.unmatched
+            let response = try await APIClient.shared.unmatchedLinks()
+            unmatched = response.unmatched
         } catch {
             self.error = error.localizedDescription
         }

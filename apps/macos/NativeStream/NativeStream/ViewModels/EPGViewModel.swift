@@ -79,7 +79,7 @@ final class EPGViewModel {
 
     // MARK: - Fetch + parse
 
-    private nonisolated static func fetchAndParse(url: URL, parser: EPGParser) async throws -> EPGStore {
+    nonisolated private static func fetchAndParse(url: URL, parser: EPGParser) async throws -> EPGStore {
         let normalized = normalizeEPGURL(url)
         let (data, response) = try await EPGViewModel.session.data(from: normalized)
 

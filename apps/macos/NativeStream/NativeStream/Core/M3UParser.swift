@@ -11,6 +11,12 @@ struct M3UParseWarning: Sendable {
     let reason: String
 }
 
+struct M3UParseResult: Sendable {
+    let channels: [Channel]
+    let epgURL: URL?
+    let warnings: [M3UParseWarning]
+}
+
 // MARK: - Parser
 
 actor M3UParser {
@@ -18,16 +24,17 @@ actor M3UParser {
     // MARK: - Public API
 
     /// Parse from raw Data (used in unit tests without network).
-    func parse(data: Data) throws -> (channels: [Channel], epgURL: URL?, warnings: [M3UParseWarning]) {
+    func parse(data: Data) throws -> M3UParseResult {
         guard let text = String(data: data, encoding: .utf8) ??
                          String(data: data, encoding: .isoLatin1) else {
-            throw AppError.playlistParseError(line: 0, reason: "File is not valid UTF-8 or Latin-1 text")
+            throw AppError.playlistParseError(
+                line: 0, reason: "File is not valid UTF-8 or Latin-1 text")
         }
         return parseText(text)
     }
 
     /// Parse from a local file:// or remote https:// URL.
-    func parse(url: URL) async throws -> (channels: [Channel], epgURL: URL?, warnings: [M3UParseWarning]) {
+    func parse(url: URL) async throws -> M3UParseResult {
         let data: Data
         do {
             if url.isFileURL {
@@ -53,7 +60,7 @@ actor M3UParser {
 
     // MARK: - Internal parsing
 
-    private func parseText(_ text: String) -> (channels: [Channel], epgURL: URL?, warnings: [M3UParseWarning]) {
+    private func parseText(_ text: String) -> M3UParseResult {
         var channels: [Channel] = []
         var warnings: [M3UParseWarning] = []
         let lines = text.components(separatedBy: .newlines)
@@ -102,8 +109,10 @@ actor M3UParser {
             ))
             pendingMeta = nil
         }
-
-        return (channels, epgURL, warnings)
+        return M3UParseResult(
+            channels: channels,
+            epgURL: epgURL,
+            warnings: warnings)
     }
 
     // MARK: - EXTINF parsing

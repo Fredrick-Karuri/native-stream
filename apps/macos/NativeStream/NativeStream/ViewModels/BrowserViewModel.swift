@@ -79,12 +79,14 @@ final class BrowserViewModel {
 
             let result = Self.compute(
                 channels: channels,
-                search: search,
-                group: group,
-                subGroup: subGroup,
-                source: source,
-                favsOnly: favsOnly,
-                favouriteIDs: favouriteIDs
+                criteria: ComputeCriteria(
+                    search: search,
+                    group: group,
+                    subGroup: subGroup,
+                    source: source,
+                    favsOnly: favsOnly,
+                    favouriteIDs: favouriteIDs
+                )
             )
 
             await MainActor.run {
@@ -97,16 +99,26 @@ final class BrowserViewModel {
     }
 
     // MARK: - Pure computation (nonisolated)
+    
+    struct ComputeCriteria {
+        let search: String
+        let group: String?
+        let subGroup: String?
+        let source: PlaylistSource?
+        let favsOnly: Bool
+        let favouriteIDs: Set<String>
+    }
 
     nonisolated static func compute(
         channels: [Channel],
-        search: String,
-        group: String?,
-        subGroup: String?,
-        source: PlaylistSource?,
-        favsOnly: Bool,
-        favouriteIDs: Set<String>
+        criteria: ComputeCriteria
     ) -> ComputeResult {
+        let search       = criteria.search
+        let group        = criteria.group
+        let subGroup     = criteria.subGroup
+        let source       = criteria.source
+        let favsOnly     = criteria.favsOnly
+        let favouriteIDs = criteria.favouriteIDs
 
         var filtered = channels
 

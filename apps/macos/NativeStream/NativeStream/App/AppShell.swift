@@ -168,7 +168,8 @@ struct AppShell: View {
             Group {
                 switch destination {
                 case .now:          NowScreen(onSelectChannel: selectChannel)
-                case .sport(let s): MatchDayScreen(sport: s, onSelectChannel: selectChannel)
+                case .sport(let sport): MatchDayScreen(
+                    sport: sport, onSelectChannel: selectChannel)
                 case .favourites:   FavouritesScreen(onSelectChannel: selectChannel)
                 case .schedule:     ScheduleScreen(onSelectChannel: selectChannel)
                 case .allChannels:  BrowserScreen(onSelectChannel: selectChannel)

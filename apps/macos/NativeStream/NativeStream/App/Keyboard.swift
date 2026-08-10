@@ -3,7 +3,6 @@
 import SwiftUI
 import AppKit
 
-
 final class GlobalKeyMonitor {
     private var monitor: Any?
 

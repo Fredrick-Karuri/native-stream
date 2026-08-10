@@ -72,15 +72,20 @@ struct PlaylistSource: Identifiable, Codable, Sendable, Equatable {
     }
 
     init(from decoder: Decoder) throws {
-        let c            = try decoder.container(keyedBy: CodingKeys.self)
-        id               = try c.decode(UUID.self, forKey: .id)
-        label            = try c.decode(String.self, forKey: .label)
-        url              = try c.decode(URL.self, forKey: .url)
-        colorHex         = try c.decodeIfPresent(String.self, forKey: .colorHex) ?? PlaylistSource.colorBlue
-        channelCount     = try c.decodeIfPresent(Int.self, forKey: .channelCount) ?? 0
-        refreshInterval  = try c.decode(RefreshInterval.self, forKey: .refreshInterval)
-        lastFetched      = try c.decodeIfPresent(Date.self, forKey: .lastFetched)
-        epgURLString     = try c.decodeIfPresent(String.self, forKey: .epgURLString) ?? ""
+        let container    = try decoder.container(keyedBy: CodingKeys.self)
+        id               = try container.decode(UUID.self, forKey: .id)
+        label            = try container.decode(String.self, forKey: .label)
+        url              = try container.decode(URL.self, forKey: .url)
+        colorHex         = try container.decodeIfPresent(
+            String.self, forKey: .colorHex) ?? PlaylistSource.colorBlue
+        channelCount     = try container.decodeIfPresent(
+            Int.self, forKey: .channelCount) ?? 0
+        refreshInterval  = try container.decode(
+            RefreshInterval.self, forKey: .refreshInterval)
+        lastFetched      = try container.decodeIfPresent(
+            Date.self, forKey: .lastFetched)
+        epgURLString     = try container.decodeIfPresent(
+            String.self, forKey: .epgURLString) ?? ""
     }
     static func == (lhs: PlaylistSource, rhs: PlaylistSource) -> Bool {
         lhs.id == rhs.id
