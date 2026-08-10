@@ -17,7 +17,7 @@ import (
 	"time"
 
 	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
-	"nhooyr.io/websocket"
+	"github.com/coder/websocket"
 )
 
 const (

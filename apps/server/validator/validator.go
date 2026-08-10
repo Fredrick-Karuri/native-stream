@@ -55,7 +55,8 @@ type Validator struct {
 	lastProbe time.Time
     referer   string
     userAgent string
-	origin    string 
+	origin    string
+	runCtx    context.Context 
 }
 
 func New(cfg Config, s *store.Store, referer, userAgent string, origin string) *Validator {
@@ -89,6 +90,10 @@ func (v *Validator) Submit(c Candidate) {
 
 // RunProber runs the validator worker pool and periodic probe loop.
 func (v *Validator) RunProber(ctx context.Context) {
+	v.mu.Lock()
+	v.runCtx = ctx
+	v.mu.Unlock()
+
 	// Worker pool — drains the queue
 	var wg sync.WaitGroup
 	for i := 0; i < v.cfg.Concurrency; i++ {
@@ -98,7 +103,7 @@ func (v *Validator) RunProber(ctx context.Context) {
 			for {
 				select {
 				case c := <-v.queue:
-					v.probeCandidate(c)
+					v.probeCandidate(ctx,c)
 				case <-ctx.Done():
 					return
 				}
@@ -112,7 +117,7 @@ func (v *Validator) RunProber(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			v.probeAll()
+			v.probeAll(ctx)
 		case <-ctx.Done():
 			wg.Wait()
 			return
@@ -121,8 +126,16 @@ func (v *Validator) RunProber(ctx context.Context) {
 }
 
 // TriggerProbeAll triggers an immediate out-of-schedule probe of all links.
-func (v *Validator) TriggerProbeAll() {
-	go v.probeAll()
+// Uses the validator's long-lived run context (from RunProber), not the
+// caller's context, so the probe outlives a single HTTP request.
+func (v *Validator) TriggerProbeAll(ctx context.Context) {
+	v.mu.Lock()
+	runCtx := v.runCtx
+	v.mu.Unlock()
+	if runCtx == nil {
+		runCtx = ctx // fallback if RunProber hasn't started yet
+	}
+	go v.probeAll(runCtx)
 }
 
 func (v *Validator) LastProbeTime() time.Time {
@@ -133,14 +146,22 @@ func (v *Validator) LastProbeTime() time.Time {
 
 // ── Probing ───────────────────────────────────────────────────────────────────
 
-func (v *Validator) probeAll() {
+func (v *Validator) probeAll(ctx context.Context) {
 	channels := v.store.All()
 	for _, ch := range channels {
 		if ch.ActiveLink != nil {
-			go v.probeAndUpdate(ch.ActiveLink)
+			probeCtx, cancel := context.WithTimeout(ctx, v.cfg.Timeout)
+			go func(link *store.LinkScore) {
+				defer cancel()
+				v.probeAndUpdate(probeCtx, link)
+			}(ch.ActiveLink)
 		}
 		for _, c := range ch.Candidates {
-			go v.probeAndUpdate(c)
+			probeCtx, cancel := context.WithTimeout(ctx, v.cfg.Timeout)
+			go func(link *store.LinkScore) {
+				defer cancel()
+				v.probeAndUpdate(probeCtx, link)
+			}(c)
 		}
 	}
 	v.mu.Lock()
@@ -148,7 +169,7 @@ func (v *Validator) probeAll() {
 	v.mu.Unlock()
 }
 
-func (v *Validator) probeCandidate(c Candidate) {
+func (v *Validator) probeCandidate(ctx context.Context, c Candidate) {
 	link := &store.LinkScore{
 		URL:          c.URL,
 		ChannelID:    c.ChannelID,
@@ -156,11 +177,13 @@ func (v *Validator) probeCandidate(c Candidate) {
 		Headers:      c.Headers, 
 		DiscoveredAt: time.Now(),
 	}
-	v.probeAndUpdate(link)
+	probeCtx, cancel := context.WithTimeout(ctx, v.cfg.Timeout)
+	defer cancel()
+	v.probeAndUpdate(probeCtx, link)
 }
 
-func (v *Validator) probeAndUpdate(link *store.LinkScore) {
-	scored := v.measure(link.URL, link.Headers)
+func (v *Validator) probeAndUpdate(ctx context.Context, link *store.LinkScore) {
+	scored := v.measure(ctx, link.URL, link.Headers)
 	scored.ChannelID = link.ChannelID
 	scored.SourceURL = link.SourceURL
 	scored.Headers = link.Headers 
@@ -176,7 +199,10 @@ func (v *Validator) probeAndUpdate(link *store.LinkScore) {
 }
 
 // measure performs the actual HTTP probe and returns a scored LinkScore.
-func (v *Validator) measure(url string, headers map[string]string) *store.LinkScore {
+func (v *Validator) measure(
+	ctx context.Context, 
+	url string, 
+	headers map[string]string) *store.LinkScore {
 	link := &store.LinkScore{
 		URL:         url,
 		LastChecked: time.Now(),
@@ -184,7 +210,7 @@ func (v *Validator) measure(url string, headers map[string]string) *store.LinkSc
 
 	start := time.Now()
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		link.Score         = 0
 		link.FailureReason = store.FailureReasonBadContent
@@ -227,7 +253,7 @@ func (v *Validator) measure(url string, headers map[string]string) *store.LinkSc
 
 	bitrate := 0
 	if reachability > 0 {
-		bitrate = v.estimateBitrate(url, headers)
+		bitrate = v.estimateBitrate(ctx, url, headers)
 	}
 
 	link.EstBitrateKbps = bitrate
@@ -253,8 +279,8 @@ func classifyHTTPFailure(statusCode int) store.FailureReason {
 	}
 }
 
-func (v *Validator) estimateBitrate(url string,headers map[string]string) int {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+func (v *Validator) estimateBitrate(ctx context.Context, url string, headers map[string]string) int {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return 0
 	}
@@ -283,11 +309,6 @@ func (v *Validator) estimateBitrate(url string,headers map[string]string) int {
 	elapsed := time.Since(start)
 	if err != nil || elapsed == 0 {
 		return 0
-	}
-
-	// Check it looks like an HLS playlist
-	if !strings.Contains(string(body[:min(len(body), 50)]), "#EXTM3U") {
-		// Could be a TS segment — still valid
 	}
 
 	// Estimate kbps: bytes / seconds * 8 / 1000
@@ -339,11 +360,4 @@ func bitrateScore(kbps int) float64 {
 	default:
 		return 0.2
 	}
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

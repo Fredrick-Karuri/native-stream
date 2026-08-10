@@ -22,7 +22,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"nhooyr.io/websocket"
+	"github.com/coder/websocket"
 	"github.com/google/uuid"
 )
 
@@ -262,7 +262,7 @@ func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleProbe(w http.ResponseWriter, r *http.Request) {
-	h.validator.TriggerProbeAll()
+	h.validator.TriggerProbeAll(r.Context())
 	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.StatusResponse{Status: "triggered"})
 }
 

@@ -45,14 +45,14 @@ func Generate(channels []*store.Channel, cfg Config) string {
 			logoAttr = fmt.Sprintf(` tvg-logo="%s"`, ch.LogoURL)
 		}
 
-		sb.WriteString(fmt.Sprintf(
+		fmt.Fprintf(&sb,
 			"#EXTINF:-1 tvg-id=%q%s group-title=%q,%s\n%s\n",
 			ch.TvgID,
 			logoAttr,
 			ch.GroupTitle,
 			ch.Name,
 			streamURL,
-		))
+		)
 	}
 
 	return sb.String()
