@@ -8,7 +8,7 @@ import SwiftUI
 
         let channel: Channel
         let onTap: () -> Void
-        var showSourceBadge: Bool            = false
+        var showSourceBadge: Bool = false
         var sources: [PlaylistSource] = []
 
         @State private var isHovered = false
@@ -19,7 +19,7 @@ import SwiftUI
 
         private var borderColour: Color {
             isPlaying ? NS.accentBorder :
-            isLive    ? Color(hex: "ef4444").opacity(0.157) :
+            isLive ? Color(hex: "ef4444").opacity(0.157) :
             NS.border
         }
 

@@ -1,10 +1,10 @@
 import Foundation
 
 enum RefreshInterval: String, Codable, CaseIterable, Sendable {
-    case manual    = "manual"
-    case oneHour   = "oneHour"
-    case sixHours  = "sixHours"
-    case daily     = "daily"
+    case manual
+    case oneHour
+    case sixHours
+    case daily
 
     var seconds: TimeInterval {
         switch self {

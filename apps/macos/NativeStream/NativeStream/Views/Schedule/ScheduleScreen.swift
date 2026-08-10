@@ -41,10 +41,10 @@ struct ScheduleScreen: View {
 
     private var dates: [DateItem] {
         (0..<7).compactMap { offset in
-            guard let d = Calendar.current.date(
+            guard let date = Calendar.current.date(
                 byAdding: .day, value: offset, to: DateItem.today.date
             ) else { return nil }
-            return DateItem(id: offset, date: d)
+            return DateItem(id: offset, date: date)
         }
     }
 
@@ -54,6 +54,13 @@ struct ScheduleScreen: View {
         let id = UUID()
         let channel: Channel
         let programme: Programme
+    }
+    
+    private struct EventGroup: Identifiable {
+        var id: String { label }
+        let label: String
+        let isLive: Bool
+        let items: [EventItem]
     }
 
     private var events: [EventItem] {
@@ -73,7 +80,7 @@ struct ScheduleScreen: View {
         .sorted { $0.programme.start < $1.programme.start }
     }
 
-    private var groupedEvents: [(label: String, isLive: Bool, items: [EventItem])] {
+    private var groupedEvents: [EventGroup] {
         var morning: [EventItem] = []
         var afternoon: [EventItem] = []
         var tonight: [EventItem] = []
@@ -83,10 +90,10 @@ struct ScheduleScreen: View {
             if hour >= 18 { tonight.append(ev) } else if hour >= 12 { afternoon.append(ev) } else { morning.append(ev) }
         }
 
-        var result: [(label: String, isLive: Bool, items: [EventItem])] = []
-        if !morning.isEmpty { result.append(("Morning", false, morning)) }
-        if !afternoon.isEmpty { result.append(("This afternoon", false, afternoon)) }
-        if !tonight.isEmpty { result.append(("Tonight", false, tonight)) }
+        var result: [EventGroup] = []
+        if !morning.isEmpty { result.append(EventGroup(label: "Morning", isLive: false, items: morning)) }
+        if !afternoon.isEmpty { result.append(EventGroup(label: "This afternoon", isLive: false, items: afternoon)) }
+        if !tonight.isEmpty { result.append(EventGroup(label: "Tonight", isLive: false, items: tonight)) }
         return result
     }
 
@@ -210,7 +217,7 @@ struct ScheduleScreen: View {
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: NS.Spacing.xl) {
-                    ForEach(groupedEvents, id: \.label) { group in
+                    ForEach(groupedEvents) { group in
                         VStack(alignment: .leading, spacing: NS.Spacing.sm) {
                             HStack(spacing: NS.Spacing.sm) {
                                 if group.isLive { NSPulseDot() }

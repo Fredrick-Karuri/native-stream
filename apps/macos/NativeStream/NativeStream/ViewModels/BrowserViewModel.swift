@@ -10,12 +10,12 @@ final class BrowserViewModel {
 
     // MARK: - State
 
-    var searchText: String         = ""
+    var searchText: String = ""
     var selectedGroup: String?
     var selectedSubGroup: String?
     var selectedSource: PlaylistSource?
-    var showFavouritesOnly: Bool           = false
-    var showAddChannel: Bool           = false
+    var showFavouritesOnly: Bool = false
+    var showAddChannel: Bool = false
     var selectedSport: SportCategory?
 
     // Derived — recomputed via recomputeSections()

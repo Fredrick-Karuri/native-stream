@@ -31,8 +31,8 @@ struct NativeStreamApp: App {
         source.onAutoRefreshTriggered = { [weak loading] in
             await loading?.loadAll()
         }
-        _settings        = State(initialValue: s)
-        _sourceVM         = State(initialValue: source)
+        _settings = State(initialValue: s)
+        _sourceVM = State(initialValue: source)
         _channelLoadingVM = State(initialValue: loading)
     }
 

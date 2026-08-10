@@ -80,11 +80,11 @@ struct MiniPlayerWidget: View {
     }
 
     private func extractScore(_ title: String) -> String? {
-        let p = #"(\d+)\s*[–\-]\s*(\d+)"#
-        guard let r = try? NSRegularExpression(pattern: p),
-              let m = r.firstMatch(in: title, range: NSRange(title.startIndex..., in: title)),
-              let r1 = Range(m.range(at: 1), in: title),
-              let r2 = Range(m.range(at: 2), in: title) else { return nil }
+        let pattern = #"(\d+)\s*[–\-]\s*(\d+)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+            let match = regex.firstMatch(in: title, range: NSRange(title.startIndex..., in: title)),
+            let r1 = Range(match.range(at: 1), in: title),
+            let r2 = Range(match.range(at: 2), in: title) else { return nil }
         return "\(title[r1]) – \(title[r2])"
     }
 

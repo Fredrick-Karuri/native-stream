@@ -3,9 +3,9 @@ import Foundation
 // MARK: - Buffer preset
 
 enum BufferPreset: String, Codable, CaseIterable, Sendable {
-    case low      = "low"        // 2s  — lowest latency, sports-optimised
-    case balanced = "balanced"   // 8s  — default
-    case reliable = "reliable"   // 30s — poor connections
+    case low      // 2s  — lowest latency, sports-optimised
+    case balanced // 8s  — default
+    case reliable // 30s — poor connections
 
     var seconds: TimeInterval {
         switch self {

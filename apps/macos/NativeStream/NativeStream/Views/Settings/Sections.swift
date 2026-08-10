@@ -70,22 +70,22 @@ struct SourceRow: View {
                 Button(action: {
                     epgInput = source.epgURLString
                     withAnimation(.easeInOut(duration: 0.2)) { showEPG.toggle() }
-                }) {
+                }, label: {
                     Image(systemName: "link")
                         .font(.system(size: 11))
                         .foregroundStyle(hasEPG ? NS.accent : NS.text3)
-                }
+                })
                 .buttonStyle(.plain)
                 .help(hasEPG ? "EPG configured" : "Add EPG source")
                 Button(action: {
                     copyToClipboard(source.url.absoluteString)
                     copied = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
-                }) {
+                }, label: {
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
                         .font(.system(size: 11))
                         .foregroundStyle(copied ? NS.amber : NS.text3)
-                }
+                })
                 .buttonStyle(.plain)
                 .animation(.easeInOut(duration: 0.2), value: copied)
                 Button(action: onDelete) {
@@ -186,11 +186,11 @@ struct EPGSourceRow: View {
                     copyToClipboard(settings.epgURLString)
                     copied = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
-                }) {
+                }, label: {
                     Image(systemName: copied ? "checkmark" : "doc.on.doc")
                         .font(.system(size: 11))
                         .foregroundStyle(copied ? NS.amber : NS.text3)
-                }
+                })
                 .buttonStyle(.plain)
                 .animation(.easeInOut(duration: 0.2), value: copied)
             }
@@ -254,7 +254,8 @@ struct ProxySection: View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
             SectionTitle("Fix Protected Streams")
             SettingsRow(title: "Fix protected streams",
-                        subtitle: "Some streams block playback unless specific access headers are sent. Enable this if channels show a blank screen or fail to load.") {
+                        subtitle: "Some streams block playback unless specific access headers are sent. " +
+                         "Enable this if channels show a blank screen or fail to load.") {
                 NSToggle(isOn: Binding(
                     get: { settings.proxyEnabled },
                     set: { enabled in
@@ -280,7 +281,8 @@ struct ProxySection: View {
                 .font(NS.Font.caption)
             Text(settings.proxyEnabled
                 ? "Proxy active — streams are routing through your server with custom headers."
-                : "Most streams work without this. Enable it only if you're seeing blank screens or playback failures on specific channels.")
+                : "Most streams work without this. Enable it only if you're seeing blank screens " + 
+                "or playback failures on specific channels.")
                 .font(NS.Font.caption)
         }
         .foregroundStyle(settings.proxyEnabled ? NS.accent : NS.text3)
@@ -306,7 +308,8 @@ struct DiscoverySection: View {
                     NSCodeBlock(code: "discovery_enabled: true")
                 }
             } else {
-                Text("When enabled, StreamServer automatically discovers and validates stream links. Dead links are replaced without manual intervention.")
+                Text("When enabled, StreamServer automatically discovers and validates stream links. " +
+                 "Dead links are replaced without manual intervention.")
                     .font(NS.Font.caption).foregroundStyle(NS.text3)
                     .fixedSize(horizontal: false, vertical: true)
             }

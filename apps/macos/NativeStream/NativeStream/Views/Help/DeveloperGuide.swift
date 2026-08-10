@@ -68,7 +68,6 @@ let developerSections: [HelpSection] = [
                 "AppShell\n" +
                 "├── SportNavRail (persistent)\n" +
                 "├── NowScreen           (.now)\n" +
-                "├── MatchDayScreen      (.sport(SportCategory))\n" +
                 "├── FavouritesScreen    (.favourites)\n" +
                 "├── ScheduleScreen      (.schedule)\n" +
                 "├── BrowserScreen       (.allChannels)\n" +

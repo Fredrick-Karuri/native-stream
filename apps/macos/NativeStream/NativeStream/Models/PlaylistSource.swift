@@ -40,14 +40,14 @@ struct PlaylistSource: Identifiable, Codable, Sendable, Equatable {
     }
 
     init(
-        id: UUID           = UUID(),
+        id: UUID = UUID(),
         label: String,
         url: URL,
-        colorHex: String         = PlaylistSource.colorBlue,
-        channelCount: Int            = 0,
+        colorHex: String = PlaylistSource.colorBlue,
+        channelCount: Int = 0,
         refreshInterval: RefreshInterval = .sixHours,
-        lastFetched: Date?          = nil,
-        epgURLString: String         = ""
+        lastFetched: Date? = nil,
+        epgURLString: String = ""
     ) {
         self.id              = id
         self.label           = label
@@ -76,7 +76,7 @@ struct PlaylistSource: Identifiable, Codable, Sendable, Equatable {
         id               = try c.decode(UUID.self, forKey: .id)
         label            = try c.decode(String.self, forKey: .label)
         url              = try c.decode(URL.self, forKey: .url)
-        colorHex         = try c.decodeIfPresent(String.self, forKey: .colorHex)    ?? PlaylistSource.colorBlue
+        colorHex         = try c.decodeIfPresent(String.self, forKey: .colorHex) ?? PlaylistSource.colorBlue
         channelCount     = try c.decodeIfPresent(Int.self, forKey: .channelCount) ?? 0
         refreshInterval  = try c.decode(RefreshInterval.self, forKey: .refreshInterval)
         lastFetched      = try c.decodeIfPresent(Date.self, forKey: .lastFetched)

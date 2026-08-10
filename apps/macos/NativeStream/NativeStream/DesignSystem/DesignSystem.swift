@@ -65,23 +65,28 @@ enum NS {
     // ── Gradients ─────────────────────────────────────────────────────────────
     static let liveCardGradient = LinearGradient(
         colors: [Color(hex: "ef4444").opacity(0.024), surface2],
-        startPoint: .topLeading, endPoint: .bottomTrailing
+        startPoint: .topLeading, 
+        endPoint: .bottomTrailing
     )
     static let activeCardGradient = LinearGradient(
         colors: [accentGlow, surface2],
-        startPoint: .topLeading, endPoint: .bottomTrailing
+        startPoint: .topLeading, 
+        endPoint: .bottomTrailing
     )
     static let uclCardGradient = LinearGradient(
         colors: [Color(hex: "1e3a5f"), Color(hex: "162d4a")],
-        startPoint: .topLeading, endPoint: .bottomTrailing
+        startPoint: .topLeading, 
+        endPoint: .bottomTrailing
     )
     static let playerTopGradient = LinearGradient(
         colors: [Color.black.opacity(0.69), Color.clear],
-        startPoint: .top, endPoint: .bottom
+        startPoint: .top, 
+        endPoint: .bottom
     )
     static let playerBottomGradient = LinearGradient(
         colors: [Color.black.opacity(0.82), Color.clear],
-        startPoint: .bottom, endPoint: .top
+        startPoint: .bottom, 
+        endPoint: .top
     )
 
     // ── Typography ────────────────────────────────────────────────────────────
@@ -110,8 +115,8 @@ enum NS {
     // ── Spacing ───────────────────────────────────────────────────────────────
     enum Spacing {
         static var xxs: CGFloat { 2 * NS.scale }
-        static var xs: CGFloat { 4  * NS.scale }
-        static var sm: CGFloat { 8  * NS.scale }
+        static var xs: CGFloat { 4 * NS.scale }
+        static var sm: CGFloat { 8 * NS.scale }
         static var md: CGFloat { 12 * NS.scale }
         static var lg: CGFloat { 16 * NS.scale }
         static var xl: CGFloat { 20 * NS.scale }
@@ -121,8 +126,8 @@ enum NS {
 
     // ── Radius ────────────────────────────────────────────────────────────────
     enum Radius {
-        static var sm: CGFloat { 6  * NS.scale }
-        static var md: CGFloat { 8  * NS.scale }
+        static var sm: CGFloat { 6 * NS.scale }
+        static var md: CGFloat { 8 * NS.scale }
         static var lg: CGFloat { 10 * NS.scale }
         static var xl: CGFloat { 12 * NS.scale }
         static var pill: CGFloat { 20 * NS.scale }
@@ -140,17 +145,17 @@ enum NS {
         static var width: CGFloat { 52 * NS.scale }
         static var iconSize: CGFloat { 38 * NS.scale }
         static var iconFontSize: CGFloat { 15 * NS.scale }
-        static var itemSpacing: CGFloat { 2  * NS.scale }
+        static var itemSpacing: CGFloat { 2 * NS.scale }
         static var dividerWidth: CGFloat { 24 * NS.scale }
         static var dividerHeight: CGFloat { 0.5 }
-        static var labelSpacing: CGFloat { 3  * NS.scale }
+        static var labelSpacing: CGFloat { 3 * NS.scale }
     }
 
     // ── Settings sizing ───────────────────────────────────────────────────────
     enum Settings {
         static var sidebarWidth: CGFloat { 200 * NS.scale }
-        static var navItemHeight: CGFloat { 34  * NS.scale }
-        static var navIconSize: CGFloat { 16  * NS.scale }
+        static var navItemHeight: CGFloat { 34 * NS.scale }
+        static var navIconSize: CGFloat { 16 * NS.scale }
     }
 
     enum Helpers {
@@ -160,16 +165,16 @@ enum NS {
     enum Help {
         static var sidebarWidth: CGFloat { 180 * NS.scale }
         static var searchWidth: CGFloat { 180 * NS.scale }
-        static var searchHeight: CGFloat { 28  * NS.scale }
-        static var tabHeight: CGFloat { 26  * NS.scale }
-        static var emptyIconSize: CGFloat { 28  * NS.scale }
+        static var searchHeight: CGFloat { 28 * NS.scale }
+        static var tabHeight: CGFloat { 26 * NS.scale }
+        static var emptyIconSize: CGFloat { 28 * NS.scale }
         static var emptyTopPadding: CGFloat { 80 * NS.scale }
-        static var inlineIconSize: CGFloat { 12  * NS.scale }
+        static var inlineIconSize: CGFloat { 12 * NS.scale }
     }
 
     enum Browser {
         static var searchWidth: CGFloat { 200 * NS.scale }
-        static var emptyEmojiSize: CGFloat { 40  * NS.scale }
+        static var emptyEmojiSize: CGFloat { 40 * NS.scale }
         static var loadingScale: CGFloat { 0.8 }
     }
 
@@ -179,10 +184,10 @@ enum NS {
 
     enum Schedule {
         static var chipScrollMaxWidth: CGFloat { 480 * NS.scale }
-        static var emptyEmojiSize: CGFloat { 32  * NS.scale }
-        static var timeColumnWidth: CGFloat { 44  * NS.scale }
-        static var teamBadgeSize: CGFloat { 22  * NS.scale }
-        static var microLabelSize: CGFloat { 7   * NS.scale }
+        static var emptyEmojiSize: CGFloat { 32 * NS.scale }
+        static var timeColumnWidth: CGFloat { 44 * NS.scale }
+        static var teamBadgeSize: CGFloat { 22 * NS.scale }
+        static var microLabelSize: CGFloat { 7 * NS.scale }
     }
 
     enum Chip {
@@ -192,7 +197,7 @@ enum NS {
 
     enum Badge {
         static var height: CGFloat { 24 * NS.scale }
-        static var dotSize: CGFloat { 5  * NS.scale }
+        static var dotSize: CGFloat { 5 * NS.scale }
         static var healthDotSize: CGFloat { 6 * NS.scale }
     }
 
@@ -209,16 +214,16 @@ enum NS {
 
     enum Player {
         static var sidebarWidth: CGFloat { 230 * NS.scale }
-        static var teamBadgeSize: CGFloat { 52  * NS.scale }
-        static var teamBadgeRadius: CGFloat { 12  * NS.scale }
-        static var teamEmojiSize: CGFloat { 22  * NS.scale }
+        static var teamBadgeSize: CGFloat { 52 * NS.scale }
+        static var teamBadgeRadius: CGFloat { 12 * NS.scale }
+        static var teamEmojiSize: CGFloat { 22 * NS.scale }
         static var teamNameMaxWidth: CGFloat { 120 * NS.scale }
-        static var ctrlPrimary: CGFloat { 44  * NS.scale }
-        static var ctrlSecondary: CGFloat { 36  * NS.scale }
-        static var ctrlRadiusPrimary: CGFloat { 11  * NS.scale }
-        static var ctrlRadiusSecondary: CGFloat { 9  * NS.scale }
-        static var errorIconSize: CGFloat { 36  * NS.scale }
-        static var errorPadding: CGFloat { 32  * NS.scale }
+        static var ctrlPrimary: CGFloat { 44 * NS.scale }
+        static var ctrlSecondary: CGFloat { 36 * NS.scale }
+        static var ctrlRadiusPrimary: CGFloat { 11 * NS.scale }
+        static var ctrlRadiusSecondary: CGFloat { 9 * NS.scale }
+        static var errorIconSize: CGFloat { 36 * NS.scale }
+        static var errorPadding: CGFloat { 32 * NS.scale }
         static var menuHeight: CGFloat { 32 * NS.scale }
         static var ctrlIconSm: CGFloat { 14 * NS.scale }
         static var ctrlIconLg: CGFloat { 16 * NS.scale }
@@ -226,9 +231,9 @@ enum NS {
 
     enum Match {
         static var heroArtHeight: CGFloat { 120 * NS.scale }
-        static var smallArtHeight: CGFloat { 72  * NS.scale }
-        static var heroBadgeSize: CGFloat { 40  * NS.scale }
-        static var smallBadgeSize: CGFloat { 28  * NS.scale }
+        static var smallArtHeight: CGFloat { 72 * NS.scale }
+        static var heroBadgeSize: CGFloat { 40 * NS.scale }
+        static var smallBadgeSize: CGFloat { 28 * NS.scale }
     }
 
     enum Channel {
@@ -237,8 +242,8 @@ enum NS {
         static var progressHeight: CGFloat { 2 }            // intentionally not scaled
     }
     enum Sidebar {
-        static var rowPaddingV: CGFloat { 8  * NS.scale }
-        static var playIconSize: CGFloat { 9  * NS.scale }
+        static var rowPaddingV: CGFloat { 8 * NS.scale }
+        static var playIconSize: CGFloat { 9 * NS.scale }
     }
 
     enum Upcoming {

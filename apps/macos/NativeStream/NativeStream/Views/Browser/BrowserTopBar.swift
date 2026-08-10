@@ -93,11 +93,11 @@ extension BrowserScreen {
                     }
 
                 if !searchText.isEmpty {
-                    Button(action: { searchText = "" }) {
+                    Button(action: { searchText = "" }, label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 13))
                             .foregroundStyle(NS.text3)
-                    }
+                    })
                     .buttonStyle(.plain)
                 }
             }

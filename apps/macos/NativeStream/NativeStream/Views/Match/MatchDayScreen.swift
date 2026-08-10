@@ -1,4 +1,4 @@
-// MatchDayScreen.swift — UX-014
+// MatchDayScreen.swift
 // Sport filter screen. Receives a SportCategory from the rail and shows
 // EPG-matched channels grouped into live and upcoming sections.
 
@@ -135,8 +135,14 @@ struct MatchDayScreen: View {
 
         var variant: MatchCardVariant = prog.isNow ? .live : .plain
         if !prog.isNow {
-            let c = competition.lowercased()
-            if c.contains("champions") || c.contains("ucl") { variant = .ucl } else if c.contains("premier") || c.contains("liga") || c.contains("bundesliga") { variant = .featured }
+            let competitionLower = competition.lowercased()
+            if competitionLower.contains("champions") || competitionLower.contains("ucl") {
+                variant = .ucl
+            } else if competitionLower.contains("premier") ||
+                        competitionLower.contains("liga") ||
+                        competitionLower.contains("bundesliga") {
+                variant = .featured
+            }
         }
 
         return MatchItem(
@@ -303,9 +309,9 @@ struct MatchCard: View {
     private var cardBorder: some View {
         RoundedRectangle(cornerRadius: NS.Radius.lg)
             .stroke(
-                match.variant == .live     ? Color(hex: "ef4444").opacity(0.19) :
+                match.variant == .live ? Color(hex: "ef4444").opacity(0.19) :
                 match.variant == .featured ? NS.accentBorder :
-                match.variant == .ucl      ? Color(hex: "3b82f6").opacity(0.25) :
+                match.variant == .ucl ? Color(hex: "3b82f6").opacity(0.25) :
                 isHovered ? NS.border3 : NS.border,
                 lineWidth: 0.5
             )

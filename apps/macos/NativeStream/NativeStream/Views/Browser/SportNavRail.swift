@@ -22,12 +22,12 @@ enum AppDestination: Hashable {
 // MARK: - Sport Category
 
 enum SportCategory: String, CaseIterable, Hashable {
-    case football   = "football"
-    case rugby      = "rugby"
-    case tennis     = "tennis"
-    case basketball = "basketball"
-    case cricket    = "cricket"
-    case golf       = "golf"
+    case football
+    case rugby
+    case tennis
+    case basketball
+    case cricket
+    case golf
 
     var icon: String {
         switch self {
@@ -44,12 +44,15 @@ enum SportCategory: String, CaseIterable, Hashable {
 
     var epgKeywords: [String] {
         switch self {
-        case .football:   return ["football", "soccer", "premier league", "bundesliga", "ligue 1", "champions league", "europa league", "nwsl", "mls"]
+        case .football:   return [
+            "football", "soccer", "premier league", "bundesliga", "ligue 1",
+            "champions league", "europa league", "nwsl", "mls"]
         case .rugby:      return ["rugby", "six nations", "pro14"]
         case .tennis:     return ["tennis", "atp tour", "wta tour", "wimbledon"]
         case .basketball: return ["nba", "wnba", "euroleague"]
         case .cricket:    return ["cricket", "ipl cricket", "test match", "odi"]
-        case .golf:       return ["golf", "pga tour live", "lpga", "ryder cup", "open championship"]
+        case .golf:       return [
+            "golf", "pga tour live", "lpga", "ryder cup", "open championship"]
         }
     }
 }

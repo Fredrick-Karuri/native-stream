@@ -155,8 +155,8 @@ struct ServerStep: View {
                 }
             }()
 
-            ForEach(suggestions, id: \.self) { s in
-                Text("→ \(s)")
+            ForEach(suggestions, id: \.self) { suggestion in
+                Text("→ \(suggestion)")
                     .font(NS.Font.caption)
                     .foregroundStyle(NS.text3)
             }

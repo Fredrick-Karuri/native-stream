@@ -1,6 +1,4 @@
 // NSSourceComponents.swift
-// MAC-BROWSE-003: NSSourcePill
-// MAC-BROWSE-004: NSSourcePickerView
 
 import SwiftUI
 
@@ -114,7 +112,7 @@ struct NSSourcePickerView: View {
             Divider().overlay(NS.border)
 
             // Add playlist footer
-            Button(action: { onDismiss(); onAddPlaylist() }) {
+            Button(action: { onDismiss(); onAddPlaylist() }, label: {
                 HStack(spacing: NS.Spacing.sm) {
                     ZStack {
                         Circle()
@@ -132,7 +130,7 @@ struct NSSourcePickerView: View {
                 .padding(.horizontal, NS.Spacing.lg)
                 .padding(.vertical, NS.Spacing.md)
                 .contentShape(Rectangle())
-            }
+            })
             .buttonStyle(.plain)
         }
         .frame(width: 280)
