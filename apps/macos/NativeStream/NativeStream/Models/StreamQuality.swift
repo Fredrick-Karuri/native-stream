@@ -9,7 +9,7 @@ enum StreamQuality: Equatable, Sendable {
     var displayName: String {
         switch self {
         case .auto:              return "Auto"
-        case .locked(let h):    return "\(h)p"
+        case .locked(let height): return "\(height)p"
         }
     }
 

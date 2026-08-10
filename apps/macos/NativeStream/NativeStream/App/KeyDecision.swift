@@ -1,6 +1,6 @@
 // File: KeyDecision.swift
 //
-// Pure decision logic extracted from AppShell.GlobalKeyMonitor. Given a key event's
+// Pure decision logic extracted from GlobalKeyMonitor. Given a key event's
 // raw inputs and the current Configuration, returns what action (if any) should fire,
 // with no dependency on NSEvent, NSApp, or any live AppKit event loop. This is what
 // makes the routing testable: GlobalKeyMonitor.start() now just asks this function
@@ -8,7 +8,7 @@
 
 import Foundation
 
-extension AppShell.GlobalKeyMonitor {
+extension GlobalKeyMonitor {
 
     /// Keycode for the Escape key on macOS, as delivered by NSEvent.keyCode.
     static let escapeKeyCode: UInt16 = 53

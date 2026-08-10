@@ -222,7 +222,7 @@ final class PlayerViewModel: NSObject {
     }
 
     // MARK: - Quality
-    
+
     func setQuality(_ newQuality: StreamQuality) {
         quality = newQuality
         player?.currentItem?.preferredPeakBitRate = PlaybackBitrate.preferredPeakBitRate(for: newQuality)

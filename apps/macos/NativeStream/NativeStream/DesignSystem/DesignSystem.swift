@@ -65,27 +65,27 @@ enum NS {
     // ── Gradients ─────────────────────────────────────────────────────────────
     static let liveCardGradient = LinearGradient(
         colors: [Color(hex: "ef4444").opacity(0.024), surface2],
-        startPoint: .topLeading, 
+        startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
     static let activeCardGradient = LinearGradient(
         colors: [accentGlow, surface2],
-        startPoint: .topLeading, 
+        startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
     static let uclCardGradient = LinearGradient(
         colors: [Color(hex: "1e3a5f"), Color(hex: "162d4a")],
-        startPoint: .topLeading, 
+        startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
     static let playerTopGradient = LinearGradient(
         colors: [Color.black.opacity(0.69), Color.clear],
-        startPoint: .top, 
+        startPoint: .top,
         endPoint: .bottom
     )
     static let playerBottomGradient = LinearGradient(
         colors: [Color.black.opacity(0.82), Color.clear],
-        startPoint: .bottom, 
+        startPoint: .bottom,
         endPoint: .top
     )
 

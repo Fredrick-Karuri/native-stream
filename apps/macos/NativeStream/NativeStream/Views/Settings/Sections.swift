@@ -281,7 +281,7 @@ struct ProxySection: View {
                 .font(NS.Font.caption)
             Text(settings.proxyEnabled
                 ? "Proxy active — streams are routing through your server with custom headers."
-                : "Most streams work without this. Enable it only if you're seeing blank screens " + 
+                : "Most streams work without this. Enable it only if you're seeing blank screens " +
                 "or playback failures on specific channels.")
                 .font(NS.Font.caption)
         }

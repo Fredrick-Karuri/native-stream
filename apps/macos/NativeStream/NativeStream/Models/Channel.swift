@@ -46,16 +46,17 @@ struct Channel: Identifiable, Codable, Sendable, Hashable {
     }
 
     init(from decoder: Decoder) throws {
-        let c          = try decoder.container(keyedBy: CodingKeys.self)
-        id             = try c.decode(String.self, forKey: .id)
-        tvgId          = try c.decode(String.self, forKey: .tvgId)
-        name           = try c.decode(String.self, forKey: .name)
-        groupTitle     = try c.decode(String.self, forKey: .groupTitle)
-        subGroupTitle  = try c.decodeIfPresent(String.self, forKey: .subGroupTitle) ?? ""
-        sourceId       = try c.decodeIfPresent(String.self, forKey: .sourceId) ?? ""
-        logoURL        = try c.decodeIfPresent(URL.self, forKey: .logoURL)
-        streamURL      = try c.decode(URL.self, forKey: .streamURL)
-        streamHeaders  = try c.decodeIfPresent([String: String].self, forKey: .streamHeaders) ?? [:]
+        let container  = try decoder.container(keyedBy: CodingKeys.self)
+        id             = try container.decode(String.self, forKey: .id)
+        tvgId          = try container.decode(String.self, forKey: .tvgId)
+        name           = try container.decode(String.self, forKey: .name)
+        groupTitle     = try container.decode(String.self, forKey: .groupTitle)
+        subGroupTitle  = try container.decodeIfPresent(
+            String.self, forKey: .subGroupTitle) ?? ""
+        sourceId       = try container.decodeIfPresent(String.self, forKey: .sourceId) ?? ""
+        logoURL        = try container.decodeIfPresent(URL.self, forKey: .logoURL)
+        streamURL      = try container.decode(URL.self, forKey: .streamURL)
+        streamHeaders  = try container.decodeIfPresent([String: String].self, forKey: .streamHeaders) ?? [:]
     }
 
     // ── Hashable ──────────────────────────────────────────────────────────────

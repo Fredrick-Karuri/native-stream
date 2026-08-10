@@ -21,8 +21,8 @@ enum APIError: Error, LocalizedError {
             return "Server returned \(code)\(msg.map { ": \($0)" } ?? "")"
         case .decodingFailed(let err):
             return "Response decode failed: \(err.localizedDescription)"
-        case .invalidURL(let s):
-            return "Invalid URL: \(s)"
+        case .invalidURL(let urlString):
+            return "Invalid URL: \(urlString)"
         case .noActiveLink:
             return "Channel has no active stream link"
         }

@@ -80,7 +80,7 @@ struct NSCard<Content: View>: View {
             .offset(y: isHovered ? -1 : 0)
             .shadow(
                 color: .black.opacity(isHovered ? 0.31 : 0),
-                radius: isHovered ? 12 : 0, 
+                radius: isHovered ? 12 : 0,
                 y: isHovered ? 8 : 0)
             .animation(.easeOut(duration: 0.12), value: isHovered)
             .onHover { isHovered = $0 }

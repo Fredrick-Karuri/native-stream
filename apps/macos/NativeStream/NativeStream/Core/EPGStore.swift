@@ -28,8 +28,7 @@ struct EPGStore: Sendable {
         let now = Date()
         return resolve(channelId)?
             .filter { $0.start > now }
-            .sorted { $0.start < $1.start }
-            .first
+            .min { $0.start < $1.start }
     }
 
     func schedule(for channelId: String) -> [Programme] {

@@ -103,8 +103,8 @@ final class EPGViewModel {
                         outPtr.bindMemory(to: UInt8.self).baseAddress!,
                         bufferSize,
                         inPtr.bindMemory(to: UInt8.self).baseAddress!,
-                        payload.count, 
-                        nil, 
+                        payload.count,
+                        nil,
                         COMPRESSION_ZLIB
                     )
                 }

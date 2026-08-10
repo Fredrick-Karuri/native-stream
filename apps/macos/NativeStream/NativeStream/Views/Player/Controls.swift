@@ -24,7 +24,7 @@ struct PlayerControls: View {
                 }
                 CtrlButton(
                     icon: playerVM.isPlaying ? "pause.fill" : "play.fill",
-                    size: NS.Player.ctrlIconLg, 
+                    size: NS.Player.ctrlIconLg,
                     isPrimary: true
                 ) { playerVM.togglePlayback() }
                 CtrlButton(icon: "forward.end.fill", size: NS.Player.ctrlIconSm) {

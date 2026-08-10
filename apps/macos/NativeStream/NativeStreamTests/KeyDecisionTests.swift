@@ -1,5 +1,5 @@
 // KeyDecisionTests
-// Unit tests for AppShell.GlobalKeyMonitor.decideAction — the pure routing logic
+// Unit tests for GlobalKeyMonitor.decideAction — the pure routing logic
 // extracted from the NSEvent key monitor. No NSApp/NSEvent involved.
 // Run with: swift test (from package root, or via Xcode Test Navigator)
 
@@ -13,7 +13,7 @@ final class KeyDecisionTests: XCTestCase {
         destination: AppDestination = .now,
         hasSheetOpen: Bool = false,
         isPlayerSidebarOpen: Bool = false
-    ) -> AppShell.GlobalKeyMonitor.Configuration {
+    ) -> GlobalKeyMonitor.Configuration {
         .init(
             showPlayer: showPlayer,
             destination: destination,
@@ -34,7 +34,7 @@ final class KeyDecisionTests: XCTestCase {
         commandKeyPressed: Bool = false,
         isInteractionLayerActive: Bool = false,
         isNativeFullScreenActive: Bool = false
-    ) -> AppShell.GlobalKeyMonitor.KeyInput {
+    ) -> GlobalKeyMonitor.KeyInput {
         .init(
             keyCode: keyCode,
             charactersIgnoringModifiers: chars,
@@ -47,47 +47,47 @@ final class KeyDecisionTests: XCTestCase {
     // MARK: Command modifier and interaction layer short-circuits
 
     func testCommandModifiedKeyAlwaysPassesThrough() {
-        let input = makeInput(keyCode: AppShell.GlobalKeyMonitor.escapeKeyCode, commandKeyPressed: true)
+        let input = makeInput(keyCode: GlobalKeyMonitor.escapeKeyCode, commandKeyPressed: true)
         let config = makeConfig(showPlayer: true)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
     }
 
     func testActiveInteractionLayerPassesThroughEvenForEscape() {
-        let input = makeInput(keyCode: AppShell.GlobalKeyMonitor.escapeKeyCode, isInteractionLayerActive: true)
+        let input = makeInput(keyCode: GlobalKeyMonitor.escapeKeyCode, isInteractionLayerActive: true)
         let config = makeConfig(showPlayer: true)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
     }
 
     func testActiveInteractionLayerPassesThroughEvenForFKey() {
         let input = makeInput(chars: "f", isInteractionLayerActive: true)
         let config = makeConfig(showPlayer: false)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
     }
 
     // MARK: Escape
 
     func testEscapeClosesPlayerWhenPlayerIsShowing() {
-        let input = makeInput(keyCode: AppShell.GlobalKeyMonitor.escapeKeyCode)
+        let input = makeInput(keyCode: GlobalKeyMonitor.escapeKeyCode)
         let config = makeConfig(showPlayer: true, destination: .allChannels)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .closePlayer)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .closePlayer)
     }
 
     func testEscapeGoesHomeWhenPlayerHiddenAndNotAlreadyHome() {
-        let input = makeInput(keyCode: AppShell.GlobalKeyMonitor.escapeKeyCode)
+        let input = makeInput(keyCode: GlobalKeyMonitor.escapeKeyCode)
         let config = makeConfig(showPlayer: false, destination: .allChannels)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .goHome)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .goHome)
     }
 
     func testEscapePassesThroughWhenPlayerHiddenAndAlreadyHome() {
-        let input = makeInput(keyCode: AppShell.GlobalKeyMonitor.escapeKeyCode)
+        let input = makeInput(keyCode: GlobalKeyMonitor.escapeKeyCode)
         let config = makeConfig(showPlayer: false, destination: .now)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
     }
 
     // MARK: 'F' hierarchy
@@ -96,35 +96,35 @@ final class KeyDecisionTests: XCTestCase {
         let input = makeInput(chars: "f")
         let config = makeConfig(showPlayer: true, isPlayerSidebarOpen: true)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .toggleSidebar)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .toggleSidebar)
     }
 
     func testUppercaseFTogglesSidebarWhenPlayerShowingAndSidebarOpen() {
         let input = makeInput(chars: "F")
         let config = makeConfig(showPlayer: true, isPlayerSidebarOpen: true)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .toggleSidebar)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .toggleSidebar)
     }
 
     func testFTogglesNativeFullScreenWhenPlayerShowingAndSidebarClosedAndNotFullScreen() {
         let input = makeInput(chars: "f", isNativeFullScreenActive: false)
         let config = makeConfig(showPlayer: true, isPlayerSidebarOpen: false)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .toggleNativeFullScreen)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .toggleNativeFullScreen)
     }
 
     func testFTogglesNativeFullScreenWhenPlayerShowingAndSidebarClosedAndAlreadyFullScreen() {
         let input = makeInput(chars: "f", isNativeFullScreenActive: true)
         let config = makeConfig(showPlayer: true, isPlayerSidebarOpen: false)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .toggleNativeFullScreen)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .toggleNativeFullScreen)
     }
 
     func testFTogglesNativeFullScreenWhenPlayerNotShowing() {
         let input = makeInput(chars: "f")
         let config = makeConfig(showPlayer: false)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .toggleNativeFullScreen)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .toggleNativeFullScreen)
     }
 
     // MARK: Player-only shortcuts
@@ -133,56 +133,56 @@ final class KeyDecisionTests: XCTestCase {
         let input = makeInput(chars: " ")
         let config = makeConfig(showPlayer: true)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .togglePlayback)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .togglePlayback)
     }
 
     func testSpacePassesThroughWhenPlayerHidden() {
         let input = makeInput(chars: " ")
         let config = makeConfig(showPlayer: false)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
     }
 
     func testLowercaseMTogglesMuteWhenPlayerShowing() {
         let input = makeInput(chars: "m")
         let config = makeConfig(showPlayer: true)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .toggleMute)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .toggleMute)
     }
 
     func testUppercaseMTogglesMuteWhenPlayerShowing() {
         let input = makeInput(chars: "M")
         let config = makeConfig(showPlayer: true)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .toggleMute)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .toggleMute)
     }
 
     func testLowercasePTogglesPiPWhenPlayerShowing() {
         let input = makeInput(chars: "p")
         let config = makeConfig(showPlayer: true)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .togglePiP)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .togglePiP)
     }
 
     func testUppercasePTogglesPiPWhenPlayerShowing() {
         let input = makeInput(chars: "P")
         let config = makeConfig(showPlayer: true)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .togglePiP)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .togglePiP)
     }
 
     func testUnhandledCharacterPassesThroughWhenPlayerShowing() {
         let input = makeInput(chars: "z")
         let config = makeConfig(showPlayer: true)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: input, config: config), .passThrough)
     }
 
     func testPlayerOnlyShortcutsPassThroughWhenPlayerHidden() {
         let config = makeConfig(showPlayer: false)
 
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: makeInput(chars: "m"), config: config), .passThrough)
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: makeInput(chars: "p"), config: config), .passThrough)
-        XCTAssertEqual(AppShell.GlobalKeyMonitor.decideAction(for: makeInput(chars: " "), config: config), .passThrough)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: makeInput(chars: "m"), config: config), .passThrough)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: makeInput(chars: "p"), config: config), .passThrough)
+        XCTAssertEqual(GlobalKeyMonitor.decideAction(for: makeInput(chars: " "), config: config), .passThrough)
     }
 }

@@ -55,7 +55,7 @@ struct ScheduleScreen: View {
         let channel: Channel
         let programme: Programme
     }
-    
+
     private struct EventGroup: Identifiable {
         var id: String { label }
         let label: String

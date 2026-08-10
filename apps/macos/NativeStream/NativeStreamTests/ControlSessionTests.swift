@@ -129,7 +129,7 @@ private func withTimeout<T>(
             try await Task.sleep(for: .seconds(seconds))
             return nil
         }
-        let result = try await group.next()
+        let result = (try await group.next()).flatMap { $0 }
         group.cancelAll()
         return result
     }
