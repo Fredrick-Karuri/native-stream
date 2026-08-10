@@ -32,10 +32,10 @@ struct NSIconButton: View {
 // MARK: - NSChip
 
 struct NSChip: View {
-    let label:    String
+    let label: String
     let isActive: Bool
-    var icon:     String? = nil
-    let action:   () -> Void
+    var icon: String?
+    let action: () -> Void
 
     var body: some View {
         Button(action: action) {
@@ -65,7 +65,6 @@ struct NSChip: View {
     }
 }
 
-
 // MARK: - NSCard
 
 struct NSCard<Content: View>: View {
@@ -79,8 +78,10 @@ struct NSCard<Content: View>: View {
             .overlay(RoundedRectangle(cornerRadius: NS.Radius.lg)
                 .stroke(isHovered ? NS.border3 : NS.border))
             .offset(y: isHovered ? -1 : 0)
-            .shadow(color: .black.opacity(isHovered ? 0.31 : 0),
-                    radius: isHovered ? 12 : 0, y: isHovered ? 8 : 0)
+            .shadow(
+                color: .black.opacity(isHovered ? 0.31 : 0),
+                radius: isHovered ? 12 : 0, 
+                y: isHovered ? 8 : 0)
             .animation(.easeOut(duration: 0.12), value: isHovered)
             .onHover { isHovered = $0 }
     }
@@ -188,7 +189,7 @@ struct NSPulseDot: View {
 
 struct NSGroupHeader: View {
     let title: String
-    var count: Int? = nil
+    var count: Int?
 
     var body: some View {
         HStack(spacing: NS.Spacing.sm) {

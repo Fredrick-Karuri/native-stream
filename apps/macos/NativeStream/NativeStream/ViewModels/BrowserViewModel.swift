@@ -10,19 +10,18 @@ final class BrowserViewModel {
 
     // MARK: - State
 
-    var searchText:         String         = ""
-    var selectedGroup:      String?        = nil
-    var selectedSubGroup:   String?        = nil
-    var selectedSource:     PlaylistSource? = nil
+    var searchText: String         = ""
+    var selectedGroup: String?
+    var selectedSubGroup: String?
+    var selectedSource: PlaylistSource?
     var showFavouritesOnly: Bool           = false
-    var showAddChannel:     Bool           = false
-    var selectedSport: SportCategory? = nil
-
+    var showAddChannel: Bool           = false
+    var selectedSport: SportCategory?
 
     // Derived — recomputed via recomputeSections()
     private(set) var groupedSections: [ChannelSection] = []
-    private(set) var allGroupNames:   [String]         = []
-    private(set) var subGroupNames:   [String]         = []
+    private(set) var allGroupNames: [String]         = []
+    private(set) var subGroupNames: [String]         = []
 
     // MARK: - Private
 
@@ -79,12 +78,12 @@ final class BrowserViewModel {
             guard let self, await self.computeVersion == version else { return }
 
             let result = Self.compute(
-                channels:     channels,
-                search:       search,
-                group:        group,
-                subGroup:     subGroup,
-                source:       source,
-                favsOnly:     favsOnly,
+                channels: channels,
+                search: search,
+                group: group,
+                subGroup: subGroup,
+                source: source,
+                favsOnly: favsOnly,
                 favouriteIDs: favouriteIDs
             )
 
@@ -100,12 +99,12 @@ final class BrowserViewModel {
     // MARK: - Pure computation (nonisolated)
 
     nonisolated static func compute(
-        channels:     [Channel],
-        search:       String,
-        group:        String?,
-        subGroup:     String?,
-        source:       PlaylistSource?,
-        favsOnly:     Bool,
+        channels: [Channel],
+        search: String,
+        group: String?,
+        subGroup: String?,
+        source: PlaylistSource?,
+        favsOnly: Bool,
         favouriteIDs: Set<String>
     ) -> ComputeResult {
 
@@ -162,8 +161,8 @@ final class BrowserViewModel {
         }
 
         return ComputeResult(
-            sections:      sections,
-            groupNames:    groupNames,
+            sections: sections,
+            groupNames: groupNames,
             subGroupNames: subGroupNames
         )
     }
@@ -182,7 +181,7 @@ final class BrowserViewModel {
         selectedSubGroup = subGroup
         recomputeSections(channels: channels, favouriteIDs: favouriteIDs)
     }
-    
+
     func selectSport(_ sport: SportCategory?, channels: [Channel], favouriteIDs: Set<String> = []) {
         selectedSport = sport
         recomputeSections(channels: channels, favouriteIDs: favouriteIDs)
@@ -213,8 +212,8 @@ final class BrowserViewModel {
     // MARK: - Private types
 
     struct ComputeResult {
-        let sections:      [ChannelSection]
-        let groupNames:    [String]
+        let sections: [ChannelSection]
+        let groupNames: [String]
         let subGroupNames: [String]
     }
 }
@@ -223,7 +222,7 @@ final class BrowserViewModel {
 
 struct ChannelSection: Identifiable {
     var id: String { name }
-    let name:     String
+    let name: String
     let channels: [Channel]
 }
 

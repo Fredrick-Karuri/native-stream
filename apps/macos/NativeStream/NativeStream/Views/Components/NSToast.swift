@@ -90,7 +90,7 @@ struct ToastOverlay: View {
                 ToastRow(toast: toast, onDismiss: { onDismiss(toast.id) })
                     .transition(.asymmetric(
                         insertion: .move(edge: .top).combined(with: .opacity),
-                        removal:   .opacity
+                        removal: .opacity
                     ))
             }
         }

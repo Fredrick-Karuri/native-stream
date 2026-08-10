@@ -53,7 +53,12 @@ final class ChannelLoadingViewModelTests: XCTestCase {
     }
 
     private func channel(tvgId: String, groupTitle: String = "Uncategorised", sourceId: String = "") -> Channel {
-        Channel(tvgId: tvgId, name: tvgId, groupTitle: groupTitle, sourceId: sourceId, streamURL: URL(string: "http://example.com/\(tvgId).m3u8")!)
+        Channel(
+            tvgId: tvgId, 
+            name: tvgId, 
+            groupTitle: groupTitle, 
+            sourceId: sourceId, 
+            streamURL: URL(string: "http://example.com/\(tvgId).m3u8")!)
     }
 
     private func source(id: UUID = UUID(), label: String = "Source") -> PlaylistSource {
@@ -80,7 +85,10 @@ final class ChannelLoadingViewModelTests: XCTestCase {
     // MARK: loadAll — basic application
 
     func testLoadAllAppliesChannelsFromRepositoryResult() async {
-        let fetched = [channel(tvgId: "bbc1", groupTitle: "Entertainment"), channel(tvgId: "itv1", groupTitle: "News")]
+        let fetched = [channel(
+            tvgId: "bbc1", 
+            groupTitle: "Entertainment"), 
+            channel(tvgId: "itv1", groupTitle: "News")]
         await repository.setResult(ChannelFetchResult(channels: fetched, perSource: []))
 
         await viewModel.loadAll()
@@ -141,8 +149,15 @@ final class ChannelLoadingViewModelTests: XCTestCase {
     func testLoadAllUpdatesChannelCountOnSourceViewModelPerSource() async {
         let src = source(label: "Source A")
         sourceViewModel.sources = [src]
-        let perSource = SourceFetchResult(sourceID: src.id, channels: [channel(tvgId: "bbc1"), channel(tvgId: "itv1")], discoveredEPGURL: nil, error: nil)
-        await repository.setResult(ChannelFetchResult(channels: perSource.channels, perSource: [perSource]))
+        let perSource = SourceFetchResult(
+            sourceID: src.id, 
+            channels: [
+                channel(tvgId: "bbc1"), 
+                channel(tvgId: "itv1")], 
+                discoveredEPGURL: nil, 
+                error: nil)
+        await repository.setResult(
+            ChannelFetchResult(channels: perSource.channels, perSource: [perSource]))
 
         await viewModel.loadAll()
 
@@ -153,7 +168,11 @@ final class ChannelLoadingViewModelTests: XCTestCase {
         let src = source(label: "Source A")
         sourceViewModel.sources = [src]
         let epgURL = URL(string: "http://example.com/guide.xml")!
-        let perSource = SourceFetchResult(sourceID: src.id, channels: [], discoveredEPGURL: epgURL, error: nil)
+        let perSource = SourceFetchResult(
+            sourceID: src.id, 
+            channels: [], 
+            discoveredEPGURL: epgURL, 
+            error: nil)
         await repository.setResult(ChannelFetchResult(channels: [], perSource: [perSource]))
 
         await viewModel.loadAll()
@@ -178,7 +197,11 @@ final class ChannelLoadingViewModelTests: XCTestCase {
         settings.epgURLString = "http://example.com/existing.xml"
         let src = source(label: "Source A")
         sourceViewModel.sources = [src]
-        let perSource = SourceFetchResult(sourceID: src.id, channels: [], discoveredEPGURL: URL(string: "http://example.com/new.xml")!, error: nil)
+        let perSource = SourceFetchResult(
+            sourceID: src.id, 
+            channels: [], 
+            discoveredEPGURL: URL(string: "http://example.com/new.xml")!, 
+            error: nil)
         await repository.setResult(ChannelFetchResult(channels: [], perSource: [perSource]))
 
         await viewModel.loadAll()
@@ -190,7 +213,11 @@ final class ChannelLoadingViewModelTests: XCTestCase {
         let src = source(label: "Source A")
         sourceViewModel.sources = [src]
         let fetchError = AppError.playlistFetchFailed(url: src.url, underlying: URLError(.notConnectedToInternet))
-        let perSource = SourceFetchResult(sourceID: src.id, channels: [], discoveredEPGURL: nil, error: fetchError)
+        let perSource = SourceFetchResult(
+            sourceID: src.id, 
+            channels: [], 
+            discoveredEPGURL: nil, 
+            error: fetchError)
         await repository.setResult(ChannelFetchResult(channels: [], perSource: [perSource]))
 
         await viewModel.loadAll()

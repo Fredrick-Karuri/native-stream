@@ -16,7 +16,7 @@ struct OnboardingView: View {
 
     @State private var step             = OnboardingStep.splash
     @State private var urlInput         = ""
-    @State private var foundEpgURL: URL? = nil
+    @State private var foundEpgURL: URL?
 
     var onComplete: () -> Void
 
@@ -33,10 +33,10 @@ struct OnboardingView: View {
 
                 case .server:
                     ServerStep(
-                        urlInput:        $urlInput,
+                        urlInput: $urlInput,
                         connectionState: serverHealth.connectionState,
-                        discovery:       discovery,
-                        onConnect:       { url in
+                        discovery: discovery,
+                        onConnect: { url in
                             settings.serverURLString = url
                             Task {
                                 await APIClient.shared.setBaseURL(URL(string: url)!)
@@ -48,8 +48,8 @@ struct OnboardingView: View {
                             if sourceVM.sources.isEmpty {
                                 if let url = settings.serverURL {
                                     sourceVM.addSource(PlaylistSource(
-                                        label:           "StreamServer",
-                                        url:             url.appendingPathComponent("playlist.m3u"),
+                                        label: "StreamServer",
+                                        url: url.appendingPathComponent("playlist.m3u"),
                                         refreshInterval: .sixHours
                                     ))
                                 }
@@ -67,8 +67,8 @@ struct OnboardingView: View {
                         connectionState: serverHealth.connectionState,
                         onSourceAdded: { url, label in
                             sourceVM.addSource(PlaylistSource(
-                                label:           label.isEmpty ? url.lastPathComponent : label,
-                                url:             url,
+                                label: label.isEmpty ? url.lastPathComponent : label,
+                                url: url,
                                 refreshInterval: .sixHours
                             ))
                             Task { await channelLoadingVM.loadAll() }
@@ -117,7 +117,7 @@ struct OnboardingView: View {
             }
             .transition(.asymmetric(
                 insertion: .move(edge: .trailing).combined(with: .opacity),
-                removal:   .move(edge: .leading).combined(with: .opacity)
+                removal: .move(edge: .leading).combined(with: .opacity)
             ))
         }
         .onChange(of: discovery.discoveredURL) { _, url in

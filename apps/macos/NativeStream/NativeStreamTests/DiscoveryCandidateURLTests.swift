@@ -19,14 +19,14 @@ final class DiscoveryCandidateURLTests: XCTestCase {
 
         XCTAssertEqual(url?.absoluteString, "http://nativestream.local:8888")
     }
-    
+
     func testStripsEn0ZoneSuffix() {
         let url = DiscoveryCandidateURL.build(hostString: "fe80::1%en0", port: 8888)
 
         // IPv6 literals are bracketed per RFC 3986 §3.2.2 so host/port is unambiguous.
         XCTAssertEqual(url?.absoluteString, "http://[fe80::1]:8888")
     }
-    
+
     func testStripsLo0ZoneSuffix() {
         let url = DiscoveryCandidateURL.build(hostString: "::1%lo0", port: 8888)
 
@@ -46,7 +46,7 @@ final class DiscoveryCandidateURLTests: XCTestCase {
         XCTAssertEqual(low?.port, 80)
         XCTAssertEqual(high?.port, 65535)
     }
-    
+
     func testStripsArbitraryZoneSuffixes() {
         // Zone suffixes are stripped regardless of interface name, not just en0/lo0.
         let url = DiscoveryCandidateURL.build(hostString: "fe80::1%en1", port: 8888)

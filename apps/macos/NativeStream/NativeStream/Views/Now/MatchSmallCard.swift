@@ -88,7 +88,7 @@ struct MatchSmallCard: View {
 
     }
 
-    private var leftTeam: String  { teamInitials(side: 0) }
+    private var leftTeam: String { teamInitials(side: 0) }
     private var rightTeam: String { teamInitials(side: 1) }
 
     private func teamInitials(side: Int) -> String {

@@ -9,8 +9,8 @@ import SwiftUI
 struct AddSourceSheet: View {
     let onComplete: (PlaylistSource?) -> Void
 
-    @State private var label:    String = ""
-    @State private var url:      String = ""
+    @State private var label: String = ""
+    @State private var url: String = ""
     @State private var interval: RefreshInterval = .sixHours
 
     var body: some View {
@@ -20,15 +20,15 @@ struct AddSourceSheet: View {
                 .foregroundStyle(NS.text)
 
             AddSourceForm(
-                label:    $label,
-                url:      $url,
+                label: $label,
+                url: $url,
                 interval: $interval,
                 onCancel: { onComplete(nil) },
                 onAdd: {
                     guard let parsed = URL(string: url) else { return }
                     onComplete(PlaylistSource(
-                        label:           label.isEmpty ? (parsed.host ?? "Source") : label,
-                        url:             parsed,
+                        label: label.isEmpty ? (parsed.host ?? "Source") : label,
+                        url: parsed,
                         refreshInterval: interval
                     ))
                 }

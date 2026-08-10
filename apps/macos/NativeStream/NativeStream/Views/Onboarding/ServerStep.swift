@@ -14,7 +14,7 @@ struct ServerStep: View {
     @State private var showServer    = false
     @State private var showPlaylist  = false
     @State private var showEpg       = false
-    @State private var progressTask: Task<Void, Never>? = nil
+    @State private var progressTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: NS.Spacing.xl) {
@@ -143,14 +143,14 @@ struct ServerStep: View {
                 case .unreachable: return [
                     "Is the server running? Try: make run-server",
                     "Are you on the same WiFi network?",
-                    "Check the IP in your server's terminal output",
+                    "Check the IP in your server's terminal output"
                 ]
                 case .noPlaylist: return [
                     "Server reached but no playlist found",
-                    "Check StreamServer is running: make run-server",
+                    "Check StreamServer is running: make run-server"
                 ]
                 case .unknown: return [
-                    "Something went wrong — check the server logs",
+                    "Something went wrong — check the server logs"
                 ]
                 }
             }()

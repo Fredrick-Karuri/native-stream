@@ -121,7 +121,7 @@ struct MatchDayScreen: View {
         return items.sorted { $0.programme.start < $1.programme.start }
     }
 
-    private var liveMatches: [MatchItem]     { allMatches.filter { $0.programme.isNow } }
+    private var liveMatches: [MatchItem] { allMatches.filter { $0.programme.isNow } }
     private var upcomingMatches: [MatchItem] { allMatches.filter { !$0.programme.isNow && $0.programme.start > Date() } }
 
     private func parseMatch(_ prog: Programme, channelID: String) -> MatchItem? {
@@ -136,8 +136,7 @@ struct MatchDayScreen: View {
         var variant: MatchCardVariant = prog.isNow ? .live : .plain
         if !prog.isNow {
             let c = competition.lowercased()
-            if c.contains("champions") || c.contains("ucl") { variant = .ucl }
-            else if c.contains("premier") || c.contains("liga") || c.contains("bundesliga") { variant = .featured }
+            if c.contains("champions") || c.contains("ucl") { variant = .ucl } else if c.contains("premier") || c.contains("liga") || c.contains("bundesliga") { variant = .featured }
         }
 
         return MatchItem(

@@ -10,7 +10,7 @@ import SwiftUI
 struct PlayerErrorOverlay: View {
     let error: PlayerError
     let onRetry: () -> Void
-    var onTryWithProxy: (() -> Void)? = nil
+    var onTryWithProxy: (() -> Void)?
 
     var body: some View {
         ZStack {

@@ -8,21 +8,20 @@ import SwiftUI
 extension BrowserScreen {
     struct TopBar: View {
 
-        @Binding var searchText:    String
+        @Binding var searchText: String
         @FocusState.Binding var searchFocused: Bool
 
-        let channelCount:   Int
-        let sources:        [PlaylistSource]
+        let channelCount: Int
+        let sources: [PlaylistSource]
         let selectedSource: PlaylistSource?
         let onSelectSource: (PlaylistSource?) -> Void
-        let onAddPlaylist:  () -> Void
-        let onAddChannel:   () -> Void
-        let sourceVM:         SourceViewModel
+        let onAddPlaylist: () -> Void
+        let onAddChannel: () -> Void
+        let sourceVM: SourceViewModel
         let channelLoadingVM: ChannelLoadingViewModel
-        
+
         @State private var showSourcePicker = false
         @State private var showAddSource = false
-        
 
         var body: some View {
             HStack(spacing: NS.Spacing.md) {
@@ -36,11 +35,11 @@ extension BrowserScreen {
                 }
                 .popover(isPresented: $showSourcePicker, arrowEdge: .bottom) {
                     NSSourcePickerView(
-                        sources:        sources,
+                        sources: sources,
                         selectedSource: selectedSource,
-                        onSelect:       { onSelectSource($0) },
+                        onSelect: { onSelectSource($0) },
                         onAddPlaylist: { showAddSource = true },
-                        onDismiss:      { showSourcePicker = false }
+                        onDismiss: { showSourcePicker = false }
                     )
                     .padding(NS.Spacing.xs)
                 }

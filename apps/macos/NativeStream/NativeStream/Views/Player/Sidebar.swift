@@ -2,58 +2,55 @@
 
 import SwiftUI
 
-
 // MARK: - Player Sidebar
-extension PlayerScreen{
-    struct PlayerSidebar: View {
-        
-        @Environment(EPGViewModel.self)      private var epgVM
-        @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
-        @Environment(PlayerViewModel.self)   private var playerVM
-        
-        let currentChannel: Channel?
-        
-        enum SidebarTab { case onNow, schedule }
-        @State private var tab: SidebarTab = .onNow
-        
-        var body: some View {
-            VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    sidebarTab("On now",   tab: .onNow)
-                    sidebarTab("Schedule", tab: .schedule)
-                }
-                .background(Color.black.opacity(0.6))
+struct PlayerSidebar: View {
+
+    @Environment(EPGViewModel.self)      private var epgVM
+    @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
+    @Environment(PlayerViewModel.self)   private var playerVM
+
+    let currentChannel: Channel?
+
+    enum SidebarTab { case onNow, schedule }
+    @State private var tab: SidebarTab = .onNow
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                sidebarTab("On now", tab: .onNow)
+                sidebarTab("Schedule", tab: .schedule)
+            }
+            .background(Color.black.opacity(0.6))
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.white.opacity(0.07)).frame(height: 0.5)
+            }
+
+            switch tab {
+            case .onNow:    PlayerOnNowTab(currentChannel: currentChannel)
+            case .schedule: PlayerScheduleTab(channel: playerVM.currentChannel)
+            }
+        }
+        .frame(width: NS.Player.sidebarWidth)
+        .background(Color(hex: "0e0e0e"))
+        .overlay(alignment: .leading) {
+            Rectangle().fill(Color.white.opacity(0.07)).frame(width: 0.5)
+        }
+    }
+
+    private func sidebarTab(_ label: String, tab: SidebarTab) -> some View {
+        Button { self.tab = tab } label: {
+            Text(label)
+                .font(NS.Font.captionMed)
+                .foregroundStyle(self.tab == tab ? Color.white.opacity(0.85) : Color.white.opacity(0.35))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, NS.Spacing.sm)
                 .overlay(alignment: .bottom) {
-                    Rectangle().fill(Color.white.opacity(0.07)).frame(height: 0.5)
-                }
-                
-                switch tab {
-                case .onNow:    PlayerOnNowTab(currentChannel: currentChannel)
-                case .schedule: PlayerScheduleTab(channel: playerVM.currentChannel)
-                }
-            }
-            .frame(width: NS.Player.sidebarWidth)
-            .background(Color(hex: "0e0e0e"))
-            .overlay(alignment: .leading) {
-                Rectangle().fill(Color.white.opacity(0.07)).frame(width: 0.5)
-            }
-        }
-        
-        private func sidebarTab(_ label: String, tab: SidebarTab) -> some View {
-            Button { self.tab = tab } label: {
-                Text(label)
-                    .font(NS.Font.captionMed)
-                    .foregroundStyle(self.tab == tab ? Color.white.opacity(0.85) : Color.white.opacity(0.35))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, NS.Spacing.sm)
-                    .overlay(alignment: .bottom) {
-                        if self.tab == tab {
-                            Rectangle().fill(NS.accent).frame(height: 1.5)
-                        }
+                    if self.tab == tab {
+                        Rectangle().fill(NS.accent).frame(height: 1.5)
                     }
-            }
-            .buttonStyle(.plain)
+                }
         }
+        .buttonStyle(.plain)
     }
 }
 
@@ -79,11 +76,11 @@ struct PlayerOnNowTab: View {
     }
 
     private var sortedChannels: [Channel] {
-        filteredChannels.sorted { a, b in
-            let aLive = epgVM.currentProgramme(for: a) != nil
-            let bLive = epgVM.currentProgramme(for: b) != nil
-            if aLive != bLive { return aLive }
-            return epgVM.nextProgramme(for: a) != nil && epgVM.nextProgramme(for: b) == nil
+        filteredChannels.sorted { lhs, rhs in
+            let lhsLive = epgVM.currentProgramme(for: lhs) != nil
+            let rhsLive = epgVM.currentProgramme(for: rhs) != nil
+            if lhsLive != rhsLive { return lhsLive }
+            return epgVM.nextProgramme(for: lhs) != nil && epgVM.nextProgramme(for: rhs) == nil
         }
     }
 
@@ -135,7 +132,7 @@ struct PlayerScheduleTab: View {
         ScrollView {
             LazyVStack(spacing: 2) {
                 ForEach(programmes, id: \.id) { prog in
-                    
+
                     scheduleRow(prog)
                 }
             }
@@ -174,7 +171,6 @@ struct PlayerScheduleTab: View {
     }
 }
 
-
 struct PlayerSidebarRow: View {
 
     @Environment(EPGViewModel.self)    private var epgVM
@@ -184,7 +180,7 @@ struct PlayerSidebarRow: View {
 
     private var isPlaying: Bool { playerVM.currentChannel?.id == channel.id }
     private var current: Programme? { epgVM.currentProgramme(for: channel) }
-    private var next: Programme?    { epgVM.nextProgramme(for: channel) }
+    private var next: Programme? { epgVM.nextProgramme(for: channel) }
 
     var body: some View {
         Button {

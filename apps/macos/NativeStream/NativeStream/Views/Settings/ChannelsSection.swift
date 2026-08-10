@@ -10,7 +10,7 @@ struct ChannelsSection: View {
     @State private var channels: [Stream_V1_ChannelResponse] = []
     @State private var isLoading = true
     @State private var searchText = ""
-    @State private var loadError: String? = nil
+    @State private var loadError: String?
 
     private var filtered: [Stream_V1_ChannelResponse] {
         let managed = channels.filter(\.hasActiveLink_p)
@@ -64,7 +64,7 @@ struct ChannelHeaderRow: View {
     @State private var headers: [(key: String, value: String)] = []
     @State private var newKey = ""
     @State private var newValue = ""
-    @State private var saveError: String? = nil
+    @State private var saveError: String?
     @State private var isSaving = false
 
     var body: some View {

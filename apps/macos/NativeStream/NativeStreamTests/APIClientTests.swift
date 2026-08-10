@@ -33,9 +33,9 @@ final class MockURLProtocol: URLProtocol {
     /// Every request MockURLProtocol has seen, for assertions on method/headers/path/body.
     static var recordedRequests: [URLRequest] = []
 
-    override class func canInit(with request: URLRequest) -> Bool { true }
+    override static func canInit(with request: URLRequest) -> Bool { true }
 
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
         MockURLProtocol.recordedRequests.append(request)
@@ -100,7 +100,7 @@ final class APIClientTests: XCTestCase {
         let malformed = Data(#"{"status": tru"#.utf8)
         MockURLProtocol.requestHandler = { _ in .init(statusCode: 200, body: malformed) }
 
-        await assertThrowsAPIError(expectedCase: .decodingFailed(NSError())) {
+        await assertThrowsAPIError(expectedCase: .decodingFailed(NSError(domain: "test", code: 0))) {
             _ = try await self.client.health()
         }
     }

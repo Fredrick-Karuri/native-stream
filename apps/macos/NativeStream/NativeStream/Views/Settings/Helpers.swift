@@ -53,7 +53,7 @@ struct AddButton: View {
     @State private var isHovered = false
 
     var body: some View {
-        
+
         Button(action: action) {
             HStack {
                 Text(label)
@@ -93,5 +93,3 @@ struct NSTextField: View {
             .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2, lineWidth: 0.5))
     }
 }
-
-

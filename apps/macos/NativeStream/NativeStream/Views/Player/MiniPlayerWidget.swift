@@ -31,7 +31,7 @@ struct MiniPlayerWidget: View {
                         Spacer()
                         NSIconButton(icon: "arrow.up.left.and.arrow.down.right", size: 9, isDark: true) { onExpand() }
                         NSIconButton(icon: "xmark", size: 9, isDark: true) { onClose() }
-                        
+
                     }
                     .padding(8)
                     Spacer()

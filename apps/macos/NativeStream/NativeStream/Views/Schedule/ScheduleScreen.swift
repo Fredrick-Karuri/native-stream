@@ -12,7 +12,7 @@ struct ScheduleScreen: View {
     let onSelectChannel: (Channel) -> Void
 
     @State private var selectedDate: DateItem = DateItem.today
-    @State private var selectedSport: SportCategory? = nil
+    @State private var selectedSport: SportCategory?
 
     // MARK: - Date model
 
@@ -80,15 +80,13 @@ struct ScheduleScreen: View {
 
         for ev in events {
             let hour = Calendar.current.component(.hour, from: ev.programme.start)
-            if hour >= 18      { tonight.append(ev) }
-            else if hour >= 12 { afternoon.append(ev) }
-            else               { morning.append(ev) }
+            if hour >= 18 { tonight.append(ev) } else if hour >= 12 { afternoon.append(ev) } else { morning.append(ev) }
         }
 
         var result: [(label: String, isLive: Bool, items: [EventItem])] = []
-        if !morning.isEmpty   { result.append(("Morning",        false, morning)) }
+        if !morning.isEmpty { result.append(("Morning", false, morning)) }
         if !afternoon.isEmpty { result.append(("This afternoon", false, afternoon)) }
-        if !tonight.isEmpty   { result.append(("Tonight",        false, tonight)) }
+        if !tonight.isEmpty { result.append(("Tonight", false, tonight)) }
         return result
     }
 

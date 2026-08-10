@@ -3,7 +3,6 @@
 //  NativeStream
 import SwiftUI
 
-
 // MARK: - Schedule Event Row (UX-019)
 
 struct ScheduleEventRow: View {
@@ -124,5 +123,3 @@ struct ScheduleEventRow: View {
         )
     }
 }
-
-

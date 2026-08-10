@@ -72,8 +72,11 @@ final class ChannelRepositoryImplPureTests: XCTestCase {
 
     func testTaggedChannelPreservesOtherFields() {
         let original = Channel(
-            tvgId: "bbc1", name: "BBC One", groupTitle: "Entertainment",
-            subGroupTitle: "Drama", sourceId: "old",
+            tvgId: "bbc1", 
+            name: "BBC One", 
+            groupTitle: "Entertainment",
+            subGroupTitle: "Drama", 
+            sourceId: "old",
             logoURL: URL(string: "http://example.com/logo.png"),
             streamURL: URL(string: "http://example.com/bbc1.m3u8")!,
             streamHeaders: ["User-Agent": "NativeStream"]

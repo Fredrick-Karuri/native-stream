@@ -1,4 +1,3 @@
-
 // ConnectionStateDeciderTests
 // Unit tests for ConnectionStateDecider.decide — the pure health/playlist/epg
 // result interpretation extracted from ServerHealthViewModel.checkConnection.

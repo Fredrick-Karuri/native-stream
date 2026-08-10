@@ -48,8 +48,8 @@ struct PlayURLSheet: View {
 
             if showHeaders {
                 VStack(alignment: .leading, spacing: NS.Spacing.sm) {
-                    headerField(label: "Referer",    placeholder: "https://example.com", text: $referer)
-                    headerField(label: "User-Agent", placeholder: "Mozilla/5.0 ...",     text: $userAgent)
+                    headerField(label: "Referer", placeholder: "https://example.com", text: $referer)
+                    headerField(label: "User-Agent", placeholder: "Mozilla/5.0 ...", text: $userAgent)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
@@ -82,8 +82,8 @@ struct PlayURLSheet: View {
 
     private func play() {
         var headers: [String: String] = [:]
-        if !referer.isEmpty    { headers["Referer"]    = referer }
-        if !userAgent.isEmpty  { headers["User-Agent"] = userAgent }
+        if !referer.isEmpty { headers["Referer"] = referer }
+        if !userAgent.isEmpty { headers["User-Agent"] = userAgent }
         playerVM.playURL(urlText, headers: headers)
         isPresented = false
         onPlay()

@@ -25,7 +25,7 @@ final class NowPlayingService {
             MPMediaItemPropertyTitle: channel.name,
             MPNowPlayingInfoPropertyIsLiveStream: true,
             MPNowPlayingInfoPropertyPlaybackRate: 1.0,
-            MPMediaItemPropertyMediaType: MPMediaType.anyVideo.rawValue,
+            MPMediaItemPropertyMediaType: MPMediaType.anyVideo.rawValue
         ]
         if let programme {
             info[MPMediaItemPropertyArtist] = programme.title

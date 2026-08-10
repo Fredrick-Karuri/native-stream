@@ -8,7 +8,7 @@ import Foundation
 struct EPGStore: Sendable {
     private let programmes: [String: [Programme]]
     private let programmesLower: [String: [Programme]]
-    
+
     // TODO: crashes if two channel IDs differ only by case (uniqueKeysWithValues traps on duplicate lowercased keys) — merge instead
 
     init(programmes: [String: [Programme]]) {
@@ -61,4 +61,3 @@ struct EPGStore: Sendable {
     var channelCount: Int { programmes.keys.count }
     var programmeCount: Int { programmes.values.reduce(0) { $0 + $1.count } }
 }
-

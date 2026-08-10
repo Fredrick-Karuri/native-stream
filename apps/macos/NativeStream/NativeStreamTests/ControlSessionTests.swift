@@ -129,7 +129,7 @@ private func withTimeout<T>(
             try await Task.sleep(for: .seconds(seconds))
             return nil
         }
-        let result = try await group.next() ?? nil
+        let result = try await group.next()
         group.cancelAll()
         return result
     }

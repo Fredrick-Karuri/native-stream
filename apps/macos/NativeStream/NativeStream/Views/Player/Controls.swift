@@ -12,7 +12,7 @@ struct PlayerControls: View {
     @Environment(SettingsStore.self)   private var settings
     var pipController: AVPictureInPictureController?
     var currentProgramme: Programme?
-    
+
     @Binding var showSidebar: Bool
 
     var body: some View {
@@ -24,18 +24,18 @@ struct PlayerControls: View {
                 }
                 CtrlButton(
                     icon: playerVM.isPlaying ? "pause.fill" : "play.fill",
-                    size: NS.Player.ctrlIconLg, isPrimary: true
+                    size: NS.Player.ctrlIconLg, 
+                    isPrimary: true
                 ) { playerVM.togglePlayback() }
                 CtrlButton(icon: "forward.end.fill", size: NS.Player.ctrlIconSm) {
                     playerVM.playNext(in: playerVM.channelList)
                 }
 
-
                 Spacer()
 
                 Menu {
-                    ForEach(StreamQuality.presets, id: \.displayName) { q in
-                        Button(q.displayName) { playerVM.setQuality(q) }
+                    ForEach(StreamQuality.presets, id: \.displayName) { quality in
+                        Button(quality.displayName) { playerVM.setQuality(quality) }
                     }
                 } label: {
                     HStack(spacing: 2) {
@@ -86,7 +86,6 @@ struct PlayerControls: View {
         .background(NS.playerBottomGradient)
     }
 }
-
 
 struct AVRoutePickerViewRepresentable: NSViewRepresentable {
     func makeNSView(context: Context) -> AVRoutePickerView {

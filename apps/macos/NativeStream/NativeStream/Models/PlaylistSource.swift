@@ -18,11 +18,11 @@ struct PlaylistSource: Identifiable, Codable, Sendable, Equatable {
 
     // ── Sentinel — all sources merged view ───────────────────────────────────
     static let allSources = PlaylistSource(
-        id:              UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
-        label:           "All Sources",
-        url:             URL(string: "about:blank")!,
-        colorHex:        "",
-        channelCount:    0,
+        id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
+        label: "All Sources",
+        url: URL(string: "about:blank")!,
+        colorHex: "",
+        channelCount: 0,
         refreshInterval: .manual
     )
 
@@ -40,14 +40,14 @@ struct PlaylistSource: Identifiable, Codable, Sendable, Equatable {
     }
 
     init(
-        id:              UUID           = UUID(),
-        label:           String,
-        url:             URL,
-        colorHex:        String         = PlaylistSource.colorBlue,
-        channelCount:    Int            = 0,
+        id: UUID           = UUID(),
+        label: String,
+        url: URL,
+        colorHex: String         = PlaylistSource.colorBlue,
+        channelCount: Int            = 0,
         refreshInterval: RefreshInterval = .sixHours,
-        lastFetched:     Date?          = nil,
-        epgURLString:    String         = ""
+        lastFetched: Date?          = nil,
+        epgURLString: String         = ""
     ) {
         self.id              = id
         self.label           = label
@@ -73,14 +73,14 @@ struct PlaylistSource: Identifiable, Codable, Sendable, Equatable {
 
     init(from decoder: Decoder) throws {
         let c            = try decoder.container(keyedBy: CodingKeys.self)
-        id               = try c.decode(UUID.self,             forKey: .id)
-        label            = try c.decode(String.self,           forKey: .label)
-        url              = try c.decode(URL.self,              forKey: .url)
-        colorHex         = try c.decodeIfPresent(String.self,  forKey: .colorHex)    ?? PlaylistSource.colorBlue
-        channelCount     = try c.decodeIfPresent(Int.self,     forKey: .channelCount) ?? 0
-        refreshInterval  = try c.decode(RefreshInterval.self,  forKey: .refreshInterval)
-        lastFetched      = try c.decodeIfPresent(Date.self,    forKey: .lastFetched)
-        epgURLString     = try c.decodeIfPresent(String.self,  forKey: .epgURLString) ?? ""
+        id               = try c.decode(UUID.self, forKey: .id)
+        label            = try c.decode(String.self, forKey: .label)
+        url              = try c.decode(URL.self, forKey: .url)
+        colorHex         = try c.decodeIfPresent(String.self, forKey: .colorHex)    ?? PlaylistSource.colorBlue
+        channelCount     = try c.decodeIfPresent(Int.self, forKey: .channelCount) ?? 0
+        refreshInterval  = try c.decode(RefreshInterval.self, forKey: .refreshInterval)
+        lastFetched      = try c.decodeIfPresent(Date.self, forKey: .lastFetched)
+        epgURLString     = try c.decodeIfPresent(String.self, forKey: .epgURLString) ?? ""
     }
     static func == (lhs: PlaylistSource, rhs: PlaylistSource) -> Bool {
         lhs.id == rhs.id

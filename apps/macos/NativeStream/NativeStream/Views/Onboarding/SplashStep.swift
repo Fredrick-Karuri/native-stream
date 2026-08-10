@@ -3,7 +3,6 @@
 //
 import SwiftUI
 
-
 struct SplashStep: View {
     let onComplete: () -> Void
     @State private var opacity = 0.0

@@ -133,4 +133,3 @@ struct FavouriteRow: View {
         return (home, away)
     }
 }
-

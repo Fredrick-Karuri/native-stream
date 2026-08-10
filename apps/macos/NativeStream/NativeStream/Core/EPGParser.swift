@@ -1,7 +1,6 @@
 // EPGParser.swift
 import Foundation
 
-
 final class EPGParser: NSObject {
 
     private var programmes: [String: [Programme]] = [:]
@@ -12,7 +11,7 @@ final class EPGParser: NSObject {
     private var insideProgramme = false
     private var insideTitle = false
     private var charBuffer = ""
-    
+
     private static func parseDate(_ string: String) -> Date? {
         // "20240607143000 +0000" — 15 chars min
         guard string.count >= 15 else { return nil }
@@ -42,7 +41,6 @@ final class EPGParser: NSObject {
         let seconds = (h * 3600 + m * 60) * (sign == "+" ? 1 : -1)
         return TimeZone(secondsFromGMT: seconds) ?? TimeZone(identifier: "UTC")!
     }
-
 
     func parse(data: Data) throws -> EPGStore {
         reset()

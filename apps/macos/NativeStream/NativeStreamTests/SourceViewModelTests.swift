@@ -37,7 +37,8 @@ final class SourceViewModelTests: XCTestCase {
         refreshInterval: RefreshInterval = .sixHours
     ) -> PlaylistSource {
         PlaylistSource(
-            id: id, label: label,
+            id: id, 
+            label: label,
             url: URL(string: "http://example.com/playlist.m3u")!,
             refreshInterval: refreshInterval
         )

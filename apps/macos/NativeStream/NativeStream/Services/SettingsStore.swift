@@ -11,7 +11,7 @@ import SwiftUI
 final class SettingsStore {
 
     // MARK: - Stored properties (loaded from UserDefaults in init)
-    
+
     var bufferPreset: BufferPreset {
         didSet { defaults.set(bufferPreset.rawValue, forKey: Keys.bufferPreset) }
     }
@@ -31,15 +31,15 @@ final class SettingsStore {
     var onboardingComplete: Bool {
         didSet { defaults.set(onboardingComplete, forKey: Keys.onboardingComplete) }
     }
-    
+
     var proxyEnabled: Bool {
         didSet { defaults.set(proxyEnabled, forKey: Keys.proxyEnabled) }
     }
-    
+
     var controlDeviceID: String {
         didSet { defaults.set(controlDeviceID, forKey: Keys.controlDeviceID) }
     }
-    
+
     // MARK: - Init
 
     private let defaults: UserDefaults
@@ -89,7 +89,6 @@ final class SettingsStore {
         // controlDeviceID intentionally excluded from allKeys — device identity
         // should survive factory reset so the server recognizes returning devices
     }
-
 
     // MARK: - Reset
 

@@ -55,7 +55,7 @@ struct MatchHeroCard: View {
     private var teamRow: some View {
         HStack(spacing: NS.Spacing.lg) {
             if programme.title.contains(" vs ") {
-                teamBadge(initials: leftTeam,  size: NS.Match.heroBadgeSize)
+                teamBadge(initials: leftTeam, size: NS.Match.heroBadgeSize)
                 Text("LIVE").font(NS.Font.monoSm).foregroundStyle(NS.live).fontWeight(.bold)
                 teamBadge(initials: rightTeam, size: NS.Match.heroBadgeSize)
             } else {
@@ -77,7 +77,7 @@ struct MatchHeroCard: View {
     }
 
     // Extract left/right team initials from "Team A vs Team B"
-    private var leftTeam: String  { teamInitials(side: 0) }
+    private var leftTeam: String { teamInitials(side: 0) }
     private var rightTeam: String { teamInitials(side: 1) }
 
     private func teamInitials(side: Int) -> String {

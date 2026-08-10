@@ -43,8 +43,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: nil, subGroup: nil,
-            source: nil, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: nil, 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         XCTAssertEqual(result.groupNames, ["Entertainment", "Sports"])
@@ -61,8 +66,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: "Sports", subGroup: nil,
-            source: nil, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: "Sports", 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         XCTAssertEqual(result.sections.map(\.name), ["Sports"])
@@ -73,8 +83,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         let channels = [channel(tvgId: "1", name: "BBC One", groupTitle: "Entertainment")]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: "Nonexistent", subGroup: nil,
-            source: nil, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: "Nonexistent", 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         XCTAssertTrue(result.sections.isEmpty)
@@ -89,8 +104,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "bbc", group: nil, subGroup: nil,
-            source: nil, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "bbc", 
+            group: nil, 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         let allChannels = result.sections.flatMap(\.channels)
@@ -104,8 +124,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "sports", group: nil, subGroup: nil,
-            source: nil, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "sports", 
+            group: nil, 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         let allChannels = result.sections.flatMap(\.channels)
@@ -116,8 +141,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         let channels = [channel(tvgId: "1", name: "BBC One", groupTitle: "Entertainment")]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "zzz-no-match", group: nil, subGroup: nil,
-            source: nil, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "zzz-no-match", 
+            group: nil, 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         XCTAssertTrue(result.sections.isEmpty)
@@ -132,8 +162,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: nil, subGroup: nil,
-            source: nil, favsOnly: true, favouriteIDs: ["fav1"]
+            channels: channels, 
+            search: "", 
+            group: nil, 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: true, 
+            favouriteIDs: ["fav1"]
         )
 
         let allChannels = result.sections.flatMap(\.channels)
@@ -144,8 +179,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         let channels = [channel(tvgId: "1", name: "A")]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: nil, subGroup: nil,
-            source: nil, favsOnly: true, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: nil, 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: true, 
+            favouriteIDs: []
         )
 
         XCTAssertTrue(result.sections.isEmpty)
@@ -162,8 +202,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: nil, subGroup: nil,
-            source: sourceA, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: nil, 
+            subGroup: nil,
+            source: sourceA, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         let allChannels = result.sections.flatMap(\.channels)
@@ -177,8 +222,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: nil, subGroup: nil,
-            source: .allSources, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: nil, 
+            subGroup: nil,
+            source: .allSources, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         let allChannels = result.sections.flatMap(\.channels)
@@ -192,8 +242,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: nil, subGroup: nil,
-            source: nil, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: nil, 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         let allChannels = result.sections.flatMap(\.channels)
@@ -205,14 +260,34 @@ final class BrowserViewModelComputeTests: XCTestCase {
     func testSubGroupNamesDerivedForActiveGroupWhenSourceIsSpecific() {
         let specificSource = source(label: "My Source")
         let channels = [
-            channel(tvgId: "1", name: "A", groupTitle: "Sports", subGroupTitle: "Football", sourceId: specificSource.id.uuidString),
-            channel(tvgId: "2", name: "B", groupTitle: "Sports", subGroupTitle: "Rugby", sourceId: specificSource.id.uuidString),
-            channel(tvgId: "3", name: "C", groupTitle: "Sports", subGroupTitle: "", sourceId: specificSource.id.uuidString)
+            channel(
+                tvgId: "1", 
+                name: "A", 
+                groupTitle: "Sports", 
+                subGroupTitle: "Football", 
+                sourceId: specificSource.id.uuidString),
+            channel(
+                tvgId: "2", 
+                name: "B", 
+                groupTitle: "Sports", 
+                subGroupTitle: "Rugby", 
+                sourceId: specificSource.id.uuidString),
+            channel(
+                tvgId: "3", 
+                name: "C", 
+                groupTitle: "Sports", 
+                subGroupTitle: "", 
+                sourceId: specificSource.id.uuidString)
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: "Sports", subGroup: nil,
-            source: specificSource, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: "Sports", 
+            subGroup: nil,
+            source: specificSource, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         XCTAssertEqual(result.subGroupNames, ["Football", "Rugby"])
@@ -220,12 +295,22 @@ final class BrowserViewModelComputeTests: XCTestCase {
 
     func testSubGroupNamesEmptyWhenSourceIsAllSourcesSentinel() {
         let channels = [
-            channel(tvgId: "1", name: "A", groupTitle: "Sports", subGroupTitle: "Football", sourceId: "any")
+            channel(
+                tvgId: "1", 
+                name: "A", 
+                groupTitle: "Sports", 
+                subGroupTitle: "Football", 
+                sourceId: "any")
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: "Sports", subGroup: nil,
-            source: .allSources, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: "Sports", 
+            subGroup: nil,
+            source: .allSources, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         XCTAssertEqual(result.subGroupNames, [])
@@ -237,8 +322,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: "Sports", subGroup: nil,
-            source: nil, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: "Sports", 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         XCTAssertEqual(result.subGroupNames, [])
@@ -253,8 +343,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: "Sports", subGroup: nil,
-            source: specificSource, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: "Sports", 
+            subGroup: nil,
+            source: specificSource, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         XCTAssertEqual(result.subGroupNames, ["Football"])
@@ -267,8 +362,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: nil, subGroup: "Football",
-            source: nil, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: nil, 
+            subGroup: "Football",
+            source: nil, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         let allChannels = result.sections.flatMap(\.channels)
@@ -284,8 +384,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "bbc", group: nil, subGroup: nil,
-            source: nil, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "bbc", 
+            group: nil, 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         // groupNames should still list both groups even though search narrows sections
@@ -302,8 +407,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "", group: nil, subGroup: nil,
-            source: sourceA, favsOnly: false, favouriteIDs: []
+            channels: channels, 
+            search: "", 
+            group: nil, 
+            subGroup: nil,
+            source: sourceA, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         XCTAssertEqual(result.groupNames, ["Entertainment"])
@@ -319,8 +429,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
         ]
 
         let result = BrowserViewModel.compute(
-            channels: channels, search: "bbc", group: nil, subGroup: nil,
-            source: nil, favsOnly: true, favouriteIDs: ["fav-bbc", "fav-itv"]
+            channels: channels, 
+            search: "bbc", 
+            group: nil, 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: true, 
+            favouriteIDs: ["fav-bbc", "fav-itv"]
         )
 
         let allChannels = result.sections.flatMap(\.channels)
@@ -331,8 +446,13 @@ final class BrowserViewModelComputeTests: XCTestCase {
 
     func testEmptyChannelListProducesEmptyResult() {
         let result = BrowserViewModel.compute(
-            channels: [], search: "", group: nil, subGroup: nil,
-            source: nil, favsOnly: false, favouriteIDs: []
+            channels: [], 
+            search: "", 
+            group: nil, 
+            subGroup: nil,
+            source: nil, 
+            favsOnly: false, 
+            favouriteIDs: []
         )
 
         XCTAssertTrue(result.sections.isEmpty)

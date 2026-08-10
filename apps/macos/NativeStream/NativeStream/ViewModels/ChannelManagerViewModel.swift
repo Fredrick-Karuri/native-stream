@@ -11,10 +11,10 @@ import SdkGenSwift
 final class ChannelManagerViewModel {
 
     var channels: [Stream_V1_ChannelResponse] = []
-    var discoveryStatus: Stream_V1_DiscoveryStatusResponse? = nil
+    var discoveryStatus: Stream_V1_DiscoveryStatusResponse?
     var unmatched: [Stream_V1_UnmatchedLink] = []
     var isLoading = false
-    var error: String? = nil
+    var error: String?
 
     // MARK: - Channels
 
@@ -46,7 +46,7 @@ final class ChannelManagerViewModel {
         req.logoURL = logoURL
         req.streamURL = streamURL
         req.keywords = keywords
-        
+
         do {
             let response = try await APIClient.shared.createChannel(req)
             let resolvedURL = URL(string: streamURL)!
@@ -61,7 +61,7 @@ final class ChannelManagerViewModel {
             self.error = error.localizedDescription
             return nil
         }
-        
+
     }
 
     func updateStreamURL(channelID: String, url: String) async {

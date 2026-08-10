@@ -53,7 +53,7 @@ struct BrowserScreen: View {
         }
         .onAppear {
             browserVM.restoreSelection(
-                from:     sourceVM.sources,
+                from: sourceVM.sources,
                 channels: channelLoadingVM.channels
             )
         }
@@ -65,76 +65,76 @@ struct BrowserScreen: View {
         }
         .onChange(of: browserVM.searchText) {
             browserVM.clearGroupWhenSearching(
-                channels:     channelLoadingVM.channels,
+                channels: channelLoadingVM.channels,
                 favouriteIDs: favourites.favouriteIDs
             )
             recompute()
         }
-        .onChange(of: browserVM.selectedGroup)  { recompute() }
+        .onChange(of: browserVM.selectedGroup) { recompute() }
         .onChange(of: browserVM.selectedSource) { recompute() }
-        .onChange(of: favourites.favouriteIDs)  { recompute() }
+        .onChange(of: favourites.favouriteIDs) { recompute() }
     }
 
     // MARK: - Subviews
 
     private var topBar: some View {
         TopBar(
-            searchText:     Bindable(browserVM).searchText,
-            searchFocused:  $searchFocused,
-            channelCount:   browserVM.filteredCount,
-            sources:        sourceVM.sources,
+            searchText: Bindable(browserVM).searchText,
+            searchFocused: $searchFocused,
+            channelCount: browserVM.filteredCount,
+            sources: sourceVM.sources,
             selectedSource: browserVM.selectedSource,
             onSelectSource: { source in
                 browserVM.selectSource(source, channels: channelLoadingVM.channels)
             },
-            onAddPlaylist:  { /* navigate to Settings → Sources */ },
-            onAddChannel:   { browserVM.showAddChannel = true },
-            sourceVM:       sourceVM,
+            onAddPlaylist: { /* navigate to Settings → Sources */ },
+            onAddChannel: { browserVM.showAddChannel = true },
+            sourceVM: sourceVM,
             channelLoadingVM: channelLoadingVM
         )
     }
 
     private var groupChips: some View {
         BrowserGroupChips(
-            allGroupNames:      browserVM.allGroupNames,
-            subGroupNames:      browserVM.subGroupNames,
-            activeSports:       activeSports,
-            selectedSource:     browserVM.selectedSource,
-            selectedGroup:      browserVM.selectedGroup,
-            selectedSubGroup:   browserVM.selectedSubGroup,
-            selectedSport:      browserVM.selectedSport,
+            allGroupNames: browserVM.allGroupNames,
+            subGroupNames: browserVM.subGroupNames,
+            activeSports: activeSports,
+            selectedSource: browserVM.selectedSource,
+            selectedGroup: browserVM.selectedGroup,
+            selectedSubGroup: browserVM.selectedSubGroup,
+            selectedSport: browserVM.selectedSport,
             showFavouritesOnly: browserVM.showFavouritesOnly,
             onSelectAll: {
                 browserVM.selectGroup(
                     nil,
-                    channels:     channelLoadingVM.channels,
+                    channels: channelLoadingVM.channels,
                     favouriteIDs: favourites.favouriteIDs
                 )
             },
             onSelectGroup: { group in
                 browserVM.selectGroup(
                     group,
-                    channels:     channelLoadingVM.channels,
+                    channels: channelLoadingVM.channels,
                     favouriteIDs: favourites.favouriteIDs
                 )
             },
             onSelectSubGroup: { sub in
                 browserVM.selectSubGroup(
                     sub,
-                    channels:     channelLoadingVM.channels,
+                    channels: channelLoadingVM.channels,
                     favouriteIDs: favourites.favouriteIDs
                 )
             },
             onSelectSport: { sport in
                 browserVM.selectSport(
                     sport,
-                    channels:     channelLoadingVM.channels,
+                    channels: channelLoadingVM.channels,
                     favouriteIDs: favourites.favouriteIDs
                 )
             },
             onToggleFavourites: {
                 browserVM.toggleFavourites(
-                    channels:     channelLoadingVM.channels,
+                    channels: channelLoadingVM.channels,
                     favouriteIDs: favourites.favouriteIDs
                 )
             }
@@ -143,20 +143,20 @@ struct BrowserScreen: View {
 
     private var content: some View {
         BrowserContent(
-            sections:        displayedSections,
-            isLoading:       channelLoadingVM.isLoading,
-            searchText:      browserVM.searchText,
+            sections: displayedSections,
+            isLoading: channelLoadingVM.isLoading,
+            searchText: browserVM.searchText,
             onSelectChannel: onSelectChannel,
             showSourceBadge: browserVM.selectedSource == nil
                              || browserVM.selectedSource!.isAll,
-            sources:         sourceVM.sources
+            sources: sourceVM.sources
         )
     }
     // MARK: - Helpers
 
     private func recompute() {
         browserVM.recomputeSections(
-            channels:     channelLoadingVM.channels,
+            channels: channelLoadingVM.channels,
             favouriteIDs: favourites.favouriteIDs
         )
     }

@@ -27,7 +27,7 @@ actor M3UParser {
     }
 
     /// Parse from a local file:// or remote https:// URL.
-    func parse(url: URL) async throws -> (channels: [Channel],epgURL: URL?, warnings: [M3UParseWarning]) {
+    func parse(url: URL) async throws -> (channels: [Channel], epgURL: URL?, warnings: [M3UParseWarning]) {
         let data: Data
         do {
             if url.isFileURL {
@@ -53,14 +53,14 @@ actor M3UParser {
 
     // MARK: - Internal parsing
 
-    private func parseText(_ text: String) -> (channels: [Channel],epgURL: URL?, warnings: [M3UParseWarning]) {
+    private func parseText(_ text: String) -> (channels: [Channel], epgURL: URL?, warnings: [M3UParseWarning]) {
         var channels: [Channel] = []
         var warnings: [M3UParseWarning] = []
         let lines = text.components(separatedBy: .newlines)
-        var epgURL: URL? = nil
+        var epgURL: URL?
 
         var lineIndex = 0
-        var pendingMeta: ChannelMetadata? = nil
+        var pendingMeta: ChannelMetadata?
 
         for (i, rawLine) in lines.enumerated() {
             lineIndex = i + 1
@@ -112,7 +112,7 @@ actor M3UParser {
         var tvgId: String = ""
         var name: String
         var groupTitle: String = "Uncategorised"
-        var logoURL: URL? = nil
+        var logoURL: URL?
     }
 
     private func parseExtInf(
@@ -158,7 +158,7 @@ actor M3UParser {
         // Match key="value" or key='value'
         let patterns = [
             "\(key)=\"([^\"]*)\"",
-            "\(key)='([^']*)'",
+            "\(key)='([^']*)'"
         ]
         for pattern in patterns {
             if let regex = try? NSRegularExpression(pattern: pattern),

@@ -12,26 +12,25 @@ import SdkGenSwift
 
 @Observable
 @MainActor
-final class PlayerViewModel:NSObject {
+final class PlayerViewModel: NSObject {
 
     // MARK: - State
 
-    var currentChannel: Channel? = nil
-    var player: AVPlayer? = nil
+    var currentChannel: Channel?
+    var player: AVPlayer?
     var isPlaying: Bool = false
     var quality: StreamQuality = .auto
-    var error: PlayerError? = nil
+    var error: PlayerError?
     private(set) var retryCount: Int = 0
     var isMuted: Bool = false
     var channelList: [Channel] = []
-
 
     var pipController: AVPictureInPictureController?
     var pipActive: Bool = false
 
     // MARK: - Dependencies
 
-    var epgViewModel: EPGViewModel? = nil
+    var epgViewModel: EPGViewModel?
     var bufferPreset: BufferPreset = .balanced
 
     private var playerItemObservation: Task<Void, Never>?
@@ -40,8 +39,8 @@ final class PlayerViewModel:NSObject {
     private let maxRetries = 3
     private let retryDelay: TimeInterval = 2
     private static let proxyRetryGracePeriod: TimeInterval = 2
-    
-    private(set) var activeLinkFailureReason: String? = nil
+
+    private(set) var activeLinkFailureReason: String?
 
     // MARK: - Playback
 
@@ -82,7 +81,7 @@ final class PlayerViewModel:NSObject {
     private func startPlayback(url: URL, headers: [String: String] = [:]) {
         print("[player] url=\(url) headers=\(headers)")
         let item: AVPlayerItem
- 
+
         if headers.isEmpty {
             item = AVPlayerItem(url: url)
         } else {
@@ -93,22 +92,21 @@ final class PlayerViewModel:NSObject {
             )
             item = AVPlayerItem(asset: asset)
         }
- 
+
         item.preferredForwardBufferDuration = 0
         item.automaticallyPreservesTimeOffsetFromLive = true
- 
+
         player?.pause()
         player = AVPlayer(playerItem: item)
         player?.automaticallyWaitsToMinimizeStalling = true
         player?.play()
         isPlaying = true
         manageScreenSleep(disableSleep: true)
- 
+
         observePlayerItem(item)
         setupNowPlaying()
 
     }
-
 
     // MARK: Retry logic via async KVO observation
     private func observePlayerItem(_ item: AVPlayerItem) {
@@ -182,7 +180,7 @@ final class PlayerViewModel:NSObject {
         try? await Task.sleep(for: .seconds(Self.proxyRetryGracePeriod))
         return isPlaying
     }
-    
+
     // MARK: - Retry (manual, from UI)
 
     func retry() {
@@ -225,9 +223,9 @@ final class PlayerViewModel:NSObject {
 
     // MARK: - Quality
     
-    func setQuality(_ q: StreamQuality) {
-        quality = q
-        player?.currentItem?.preferredPeakBitRate = PlaybackBitrate.preferredPeakBitRate(for: q)
+    func setQuality(_ newQuality: StreamQuality) {
+        quality = newQuality
+        player?.currentItem?.preferredPeakBitRate = PlaybackBitrate.preferredPeakBitRate(for: newQuality)
     }
 
     // MARK: - Now Playing
@@ -238,7 +236,7 @@ final class PlayerViewModel:NSObject {
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: channel.name,
             MPNowPlayingInfoPropertyIsLiveStream: true,
-            MPNowPlayingInfoPropertyPlaybackRate: 1.0,
+            MPNowPlayingInfoPropertyPlaybackRate: 1.0
         ]
 
         if let programme = epgViewModel?.currentProgramme(for: channel) {
@@ -346,4 +344,3 @@ extension PlayerViewModel: AVPictureInPictureControllerDelegate {
 private final class SleepAssertion: @unchecked Sendable {
     var id: IOPMAssertionID = 0
 }
-

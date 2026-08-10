@@ -4,7 +4,6 @@
 
 import Foundation
 
-
 // MARK: - Errors
 
 enum APIError: Error, LocalizedError {
@@ -29,4 +28,3 @@ enum APIError: Error, LocalizedError {
         }
     }
 }
-

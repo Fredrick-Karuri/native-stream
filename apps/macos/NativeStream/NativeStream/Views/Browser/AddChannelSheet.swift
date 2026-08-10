@@ -10,7 +10,7 @@ struct AddChannelSheet: View {
     @State private var groupTitle = "General"
     @State private var tvgID      = ""
     @State private var isLoading  = false
-    @State private var error: String? = nil
+    @State private var error: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
@@ -81,7 +81,7 @@ struct AddChannelSheet: View {
         isLoading = true
         error = nil
         let keywords = [name.lowercased().replacingOccurrences(of: " ", with: "")]
-        
+
         let newChannel = await channelManager.addChannel(
             name: name,
             groupTitle: groupTitle.isEmpty ? "General" : groupTitle,
@@ -95,7 +95,7 @@ struct AddChannelSheet: View {
         } else {
             error = channelManager.error
         }
-        
+
         isLoading = false
     }
 }

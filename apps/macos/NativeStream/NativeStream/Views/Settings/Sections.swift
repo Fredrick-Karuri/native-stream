@@ -4,14 +4,13 @@
 
 import SwiftUI
 
-
 // MARK: - Sources section
 
 struct SourcesSection: View {
 
     @Environment(SourceViewModel.self)         private var sourceVM
     @Environment(ChannelLoadingViewModel.self) private var channelLoadingVM
-    
+
     @State private var showAddSheet = false
 
     var body: some View {
@@ -32,12 +31,11 @@ struct SourcesSection: View {
                     Task { await channelLoadingVM.loadAll() }
                 }
             }
-        
+
         }
     }
 
 }
-
 
 struct SourceRow: View {
     @Environment(SourceViewModel.self)         private var sourceVM

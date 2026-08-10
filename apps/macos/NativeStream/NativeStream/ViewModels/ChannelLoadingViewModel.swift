@@ -16,7 +16,7 @@ final class ChannelLoadingViewModel {
 
     var channels: [Channel] = []
     var isLoading: Bool = false
-    var error: AppError? = nil
+    var error: AppError?
 
     // MARK: - Computed
 

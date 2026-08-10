@@ -15,8 +15,8 @@ final class NowScreenViewModel {
 
     // MARK: - Published buckets
 
-    private(set) var liveMatches:  [(channel: Channel, programme: Programme)] = []
-    private(set) var liveOnAir:    [(channel: Channel, programme: Programme)] = []
+    private(set) var liveMatches: [(channel: Channel, programme: Programme)] = []
+    private(set) var liveOnAir: [(channel: Channel, programme: Programme)] = []
     private(set) var startingSoon: [(channel: Channel, programme: Programme)] = []
 
     // MARK: - Derived counts

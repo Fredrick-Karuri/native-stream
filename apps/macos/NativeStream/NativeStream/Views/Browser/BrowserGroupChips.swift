@@ -8,18 +8,18 @@ import SwiftUI
 
 struct BrowserGroupChips: View {
 
-    let allGroupNames:      [String]
-    let subGroupNames:      [String]
-    let activeSports:       [SportCategory]
-    let selectedSource:     PlaylistSource?
-    let selectedGroup:      String?
-    let selectedSubGroup:   String?
-    let selectedSport:      SportCategory?
+    let allGroupNames: [String]
+    let subGroupNames: [String]
+    let activeSports: [SportCategory]
+    let selectedSource: PlaylistSource?
+    let selectedGroup: String?
+    let selectedSubGroup: String?
+    let selectedSport: SportCategory?
     let showFavouritesOnly: Bool
-    let onSelectAll:        () -> Void
-    let onSelectGroup:      (String) -> Void
-    let onSelectSubGroup:   (String?) -> Void
-    let onSelectSport:      (SportCategory?) -> Void
+    let onSelectAll: () -> Void
+    let onSelectGroup: (String) -> Void
+    let onSelectSubGroup: (String?) -> Void
+    let onSelectSport: (SportCategory?) -> Void
     let onToggleFavourites: () -> Void
 
     private var showSubGroups: Bool {
@@ -37,14 +37,14 @@ struct BrowserGroupChips: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: NS.Spacing.xs) {
                     NSChip(
-                        label:    "All",
+                        label: "All",
                         isActive: selectedGroup == nil && !showFavouritesOnly
                     ) { onSelectAll() }
 
                     NSChip(
-                        label:    "Favourites",
+                        label: "Favourites",
                         isActive: showFavouritesOnly,
-                        icon:     "star.fill"
+                        icon: "star.fill"
                     ) { onToggleFavourites() }
 
                     ForEach(allGroupNames, id: \.self) { group in
@@ -78,7 +78,7 @@ struct BrowserGroupChips: View {
                 .background(NS.surface)
                 .transition(.asymmetric(
                     insertion: .push(from: .top).combined(with: .opacity),
-                    removal:   .push(from: .bottom).combined(with: .opacity)
+                    removal: .push(from: .bottom).combined(with: .opacity)
                 ))
             }
 
@@ -88,13 +88,13 @@ struct BrowserGroupChips: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: NS.Spacing.xs) {
                         NSChip(
-                            label:    "All Sports",
+                            label: "All Sports",
                             isActive: selectedSport == nil
                         ) { onSelectSport(nil) }
 
                         ForEach(activeSports, id: \.self) { sport in
                             NSChip(
-                                label:    sport.label,
+                                label: sport.label,
                                 isActive: selectedSport == sport
                             ) { onSelectSport(sport) }
                         }
@@ -105,7 +105,7 @@ struct BrowserGroupChips: View {
                 .background(NS.surface)
                 .transition(.asymmetric(
                     insertion: .push(from: .top).combined(with: .opacity),
-                    removal:   .push(from: .bottom).combined(with: .opacity)
+                    removal: .push(from: .bottom).combined(with: .opacity)
                 ))
             }
         }

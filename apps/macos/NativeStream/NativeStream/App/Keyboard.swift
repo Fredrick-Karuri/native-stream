@@ -1,9 +1,7 @@
 // File:Keyboard.swift
 
-
 import SwiftUI
 import AppKit
-
 
 extension AppShell {
     final class GlobalKeyMonitor {

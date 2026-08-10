@@ -10,9 +10,9 @@ import Observation
 import SwiftProtobuf
 import SdkGenSwift
 
-private let pingIntervalSeconds: TimeInterval     = 30
+private let pingIntervalSeconds: TimeInterval = 30
 private let reconnectBaseDelaySeconds: TimeInterval = 1
-private let reconnectMaxDelaySeconds: TimeInterval  = 30
+private let reconnectMaxDelaySeconds: TimeInterval = 30
 
 @Observable
 @MainActor
@@ -22,7 +22,7 @@ final class ControlSession {
 
     private var task: URLSessionWebSocketTask?
     private var session = URLSession(configuration: .default)
-    
+
     @ObservationIgnored
     private var continuation: AsyncStream<Stream_V1_Envelope>.Continuation?
 
@@ -34,7 +34,7 @@ final class ControlSession {
     private var lastServerURL: URL?
     private var lastDeviceID = ""
     private var lastDeviceName = ""
-    
+
     init() {
         var cont: AsyncStream<Stream_V1_Envelope>.Continuation!
         self.incomingMessages = AsyncStream { continuation in

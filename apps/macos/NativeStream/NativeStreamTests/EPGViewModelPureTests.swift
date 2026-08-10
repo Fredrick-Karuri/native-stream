@@ -26,7 +26,8 @@ final class EPGViewModelPureTests: XCTestCase {
     // MARK: - normalizeEPGURL
 
     func testNormalizeEPGURLRewritesGitHubBlobURLToRaw() {
-        let url = URL(string: "https://github.com/user/repo/raw/main/guide.xml")!
+        let url = URL(
+            string: "https://github.com/user/repo/raw/main/guide.xml")!
 
         let normalized = EPGViewModel.normalizeEPGURL(url)
 
@@ -45,7 +46,8 @@ final class EPGViewModelPureTests: XCTestCase {
         // No "/raw/" segment present — only the domain swap should NOT apply
         // since the implementation only rewrites when host == "github.com".
         // A github.com URL without "/raw/" still gets the domain swapped.
-        let url = URL(string: "https://github.com/user/repo/blob/main/guide.xml")!
+        let url = URL(
+            string: "https://github.com/user/repo/blob/main/guide.xml")!
 
         let normalized = EPGViewModel.normalizeEPGURL(url)
 
@@ -57,8 +59,13 @@ final class EPGViewModelPureTests: XCTestCase {
     /// Builds a minimal valid gzip byte sequence: 10-byte fixed header (no
     /// optional fields), a payload, and an 8-byte trailer (CRC32 + ISIZE,
     /// values irrelevant to stripGzipHeader since it only computes offsets).
-    private func gzipBytes(flags: UInt8 = 0x00, extra: [UInt8] = [], name: [UInt8]? = nil, comment: [UInt8]? = nil, payload: [UInt8]) -> Data {
-        var bytes: [UInt8] = [0x1f, 0x8b, 0x08, flags, 0, 0, 0, 0, 0, 0xff] // ID1 ID2 CM FLG MTIME(4) XFL OS
+    private func gzipBytes(
+        flags: UInt8 = 0x00,
+        extra: [UInt8] = [],
+        name: [UInt8]? = nil,
+        comment: [UInt8]? = nil,
+        payload: [UInt8]) -> Data {
+        var bytes: [UInt8] = [0x1f, 0x8b, 0x08, flags, 0, 0, 0, 0, 0, 0xff]// ID1 ID2 CM FLG MTIME(4) XFL OS
         if flags & 0x04 != 0 {
             let xlen = extra.count
             bytes.append(UInt8(xlen & 0xff))
@@ -148,37 +155,61 @@ final class EPGViewModelPureTests: XCTestCase {
     func testMatchesSportReturnsTrueWhenTitleContainsKeyword() {
         let prog = programme(title: "Premier League: Arsenal vs Chelsea")
 
-        XCTAssertTrue(viewModel.matchesSport(.football, programme: prog, channel: channel()))
-    }
+        XCTAssertTrue(
+            viewModel.matchesSport(
+                .football,
+                programme: prog,
+                channel: channel()
+            ))}
 
     func testMatchesSportIsCaseInsensitive() {
         let prog = programme(title: "PREMIER LEAGUE HIGHLIGHTS")
 
-        XCTAssertTrue(viewModel.matchesSport(.football, programme: prog, channel: channel()))
-    }
+        XCTAssertTrue(
+            viewModel.matchesSport(
+                .football,
+                programme: prog,
+                channel: channel()
+            ))}
 
     func testMatchesSportReturnsFalseWhenNoKeywordMatches() {
         let prog = programme(title: "The Evening News")
 
-        XCTAssertFalse(viewModel.matchesSport(.football, programme: prog, channel: channel()))
-    }
+        XCTAssertFalse(
+            viewModel.matchesSport(
+                .football,
+                programme: prog,
+                channel: channel()
+            ))}
 
     func testMatchesSportDoesNotCrossMatchDifferentSports() {
         let prog = programme(title: "NBA Finals Game 7")
 
-        XCTAssertFalse(viewModel.matchesSport(.football, programme: prog, channel: channel()))
-        XCTAssertTrue(viewModel.matchesSport(.basketball, programme: prog, channel: channel()))
-    }
+        XCTAssertFalse(
+            viewModel.matchesSport(
+                .football, programme: prog, channel: channel()))
+        XCTAssertTrue(
+            viewModel.matchesSport(
+                .basketball,
+                programme: prog,
+                channel: channel()
+            ))}
 
     // MARK: - Query methods (stores set directly)
 
     func testCurrentProgrammeFindsMatchAcrossMultipleStores() {
-        let live = Programme(channelId: "bbc1", title: "Live Now", start: Date().addingTimeInterval(-60), stop: Date().addingTimeInterval(60))
+        let live = Programme(
+            channelId: "bbc1",
+            title: "Live Now",
+            start: Date().addingTimeInterval(-60),
+            stop: Date().addingTimeInterval(60))
         let storeA = EPGStore(programmes: ["itv1": []])
         let storeB = EPGStore(programmes: ["bbc1": [live]])
         viewModel.stores = [UUID(): storeA, UUID(): storeB]
 
-        XCTAssertEqual(viewModel.currentProgramme(for: channel(tvgId: "bbc1"))?.title, "Live Now")
+        XCTAssertEqual(
+            viewModel.currentProgramme(
+                for: channel(tvgId: "bbc1"))?.title, "Live Now")
     }
 
     func testCurrentProgrammeReturnsNilWhenNoStoreHasMatch() {
@@ -188,12 +219,28 @@ final class EPGViewModelPureTests: XCTestCase {
     }
 
     func testScheduleWithHoursFiltersToWindowAndDeduplicates() {
-        let inWindow = Programme(channelId: "bbc1", title: "In Window", start: Date().addingTimeInterval(600), stop: Date().addingTimeInterval(1200))
-        let outsideWindow = Programme(channelId: "bbc1", title: "Too Far", start: Date().addingTimeInterval(30_000), stop: Date().addingTimeInterval(31_000))
-        let past = Programme(channelId: "bbc1", title: "Already Ended", start: Date().addingTimeInterval(-7200), stop: Date().addingTimeInterval(-3600))
-        viewModel.stores = [UUID(): EPGStore(programmes: ["bbc1": [inWindow, outsideWindow, past]])]
+        let inWindow = Programme(
+            channelId: "bbc1",
+            title: "In Window",
+            start: Date().addingTimeInterval(600),
+            stop: Date().addingTimeInterval(1200))
+        let outsideWindow = Programme(
+            channelId: "bbc1",
+            title: "Too Far",
+            start: Date().addingTimeInterval(30_000),
+            stop: Date().addingTimeInterval(31_000))
+        let past = Programme(
+            channelId: "bbc1",
+            title: "Already Ended",
+            start: Date().addingTimeInterval(-7200),
+            stop: Date().addingTimeInterval(-3600))
+        viewModel.stores = [
+            UUID(): EPGStore(
+                programmes: ["bbc1": [inWindow, outsideWindow, past]])
+        ]
 
-        let result = viewModel.schedule(for: channel(tvgId: "bbc1"), hours: 6)
+        let result = viewModel.schedule(
+            for: channel(tvgId: "bbc1"), hours: 6)
 
         XCTAssertEqual(result.map(\.title), ["In Window"])
     }
@@ -206,36 +253,75 @@ final class EPGViewModelPureTests: XCTestCase {
     // MARK: - Sport aggregate helpers
 
     func testHasContentTrueWhenLiveProgrammeMatchesSport() {
-        let live = Programme(channelId: "bbc1", title: "Premier League Live", start: Date().addingTimeInterval(-60), stop: Date().addingTimeInterval(60))
-        viewModel.stores = [UUID(): EPGStore(programmes: ["bbc1": [live]])]
+        let live = Programme(
+            channelId: "bbc1",
+            title: "Premier League Live",
+            start: Date().addingTimeInterval(-60),
+            stop: Date().addingTimeInterval(60))
+        viewModel.stores = [
+            UUID(): EPGStore(programmes: ["bbc1": [live]])
+        ]
 
-        XCTAssertTrue(viewModel.hasContent(for: .football, in: [channel(tvgId: "bbc1")]))
+        XCTAssertTrue(viewModel.hasContent(
+            for: .football, in: [channel(tvgId: "bbc1")]
+        ))
     }
 
     func testHasContentFalseWhenNothingMatches() {
         viewModel.stores = [UUID(): EPGStore(programmes: [:])]
 
-        XCTAssertFalse(viewModel.hasContent(for: .football, in: [channel()]))
+        XCTAssertFalse(viewModel.hasContent(
+            for: .football, in: [channel()]
+        ))
     }
 
     func testLiveCountCountsOnlyCurrentlyMatchingChannels() {
-        let live = Programme(channelId: "bbc1", title: "NBA Finals", start: Date().addingTimeInterval(-60), stop: Date().addingTimeInterval(60))
-        let notSport = Programme(channelId: "itv1", title: "The News", start: Date().addingTimeInterval(-60), stop: Date().addingTimeInterval(60))
-        viewModel.stores = [UUID(): EPGStore(programmes: ["bbc1": [live], "itv1": [notSport]])]
+        let live = Programme(
+            channelId: "bbc1",
+            title: "NBA Finals",
+            start: Date().addingTimeInterval(-60),
+            stop: Date().addingTimeInterval(60))
+        let notSport = Programme(
+            channelId: "itv1",
+            title: "The News",
+            start: Date().addingTimeInterval(-60),
+            stop: Date().addingTimeInterval(60))
+        viewModel.stores = [UUID(): EPGStore(
+            programmes: ["bbc1": [live], "itv1": [notSport]]
+        )]
 
-        let count = viewModel.liveCount(for: .basketball, in: [channel(tvgId: "bbc1"), channel(tvgId: "itv1")])
+        let count = viewModel.liveCount(
+            for: .basketball, in: [channel(tvgId: "bbc1"),
+                                   channel(tvgId: "itv1")])
 
         XCTAssertEqual(count, 1)
     }
 
     func testActiveSportsSortedByDescendingLiveCount() {
-        let footballLive = Programme(channelId: "bbc1", title: "Premier League", start: Date().addingTimeInterval(-60), stop: Date().addingTimeInterval(60))
-        let basketballLiveA = Programme(channelId: "itv1", title: "NBA Finals", start: Date().addingTimeInterval(-60), stop: Date().addingTimeInterval(60))
-        let basketballLiveB = Programme(channelId: "sky1", title: "WNBA Game", start: Date().addingTimeInterval(-60), stop: Date().addingTimeInterval(60))
+        let footballLive = Programme(
+            channelId: "bbc1",
+            title: "Premier League",
+            start: Date().addingTimeInterval(-60),
+            stop: Date().addingTimeInterval(60))
+        let basketballLiveA = Programme(
+            channelId: "itv1",
+            title: "NBA Finals",
+            start: Date().addingTimeInterval(-60),
+            stop: Date().addingTimeInterval(60))
+        let basketballLiveB = Programme(
+            channelId: "sky1",
+            title: "WNBA Game",
+            start: Date().addingTimeInterval(-60),
+            stop: Date().addingTimeInterval(60))
         viewModel.stores = [UUID(): EPGStore(programmes: [
-            "bbc1": [footballLive], "itv1": [basketballLiveA], "sky1": [basketballLiveB]
+            "bbc1": [footballLive],
+            "itv1": [basketballLiveA],
+            "sky1": [basketballLiveB]
         ])]
-        let channels = [channel(tvgId: "bbc1"), channel(tvgId: "itv1"), channel(tvgId: "sky1")]
+        let channels = [
+            channel(tvgId: "bbc1"),
+            channel(tvgId: "itv1"),
+            channel(tvgId: "sky1")]
 
         let active = viewModel.activeSports(in: channels)
 

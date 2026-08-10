@@ -84,5 +84,3 @@ struct ScoreBlock: View {
         }
     }
 }
-
-

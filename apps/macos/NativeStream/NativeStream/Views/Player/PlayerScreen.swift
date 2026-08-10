@@ -18,8 +18,8 @@ struct PlayerScreen: View {
     @State private var showControls = true
     @Binding var isSidebarOpen: Bool
 
-    @State private var hideTask: Task<Void, Never>? = nil
-    
+    @State private var hideTask: Task<Void, Never>?
+
     private var activeChannel: Channel? {
         playerVM.currentChannel ?? channel
     }
@@ -93,7 +93,7 @@ struct PlayerScreen: View {
         }
         .animation(.easeInOut(duration: 0.2), value: isSidebarOpen)
     }
-    
+
     /// action for 403-type failures, and only if the proxy isn't already on.
     private var canTryProxy: Bool {
         playerVM.activeLinkFailureReason == "forbidden" && !settings.proxyEnabled

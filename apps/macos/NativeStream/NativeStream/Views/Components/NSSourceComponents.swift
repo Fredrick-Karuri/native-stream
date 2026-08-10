@@ -8,8 +8,8 @@ import SwiftUI
 
 struct NSSourcePill: View {
 
-    let source:  PlaylistSource?
-    let action:  () -> Void
+    let source: PlaylistSource?
+    let action: () -> Void
 
     @State private var isHovered = false
 
@@ -70,11 +70,11 @@ struct NSSourcePill: View {
 
 struct NSSourcePickerView: View {
 
-    let sources:        [PlaylistSource]
+    let sources: [PlaylistSource]
     let selectedSource: PlaylistSource?
-    let onSelect:       (PlaylistSource?) -> Void
-    let onAddPlaylist:  () -> Void
-    let onDismiss:      () -> Void
+    let onSelect: (PlaylistSource?) -> Void
+    let onAddPlaylist: () -> Void
+    let onDismiss: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -92,22 +92,22 @@ struct NSSourcePickerView: View {
 
             // All Sources row
             SourceRow(
-                label:     "All Sources",
-                meta:      "\(sources.reduce(0) { $0 + $1.channelCount }) channels",
-                dotColor:  NS.text3,
-                isActive:  selectedSource == nil || selectedSource!.isAll,
-                onClick:   { onSelect(nil); onDismiss() }
+                label: "All Sources",
+                meta: "\(sources.reduce(0) { $0 + $1.channelCount }) channels",
+                dotColor: NS.text3,
+                isActive: selectedSource == nil || selectedSource!.isAll,
+                onClick: { onSelect(nil); onDismiss() }
             )
 
             // Per-source rows
             ForEach(sources) { source in
                 Divider().overlay(NS.border).padding(.leading, NS.Spacing.lg)
                 SourceRow(
-                    label:    source.label,
-                    meta:     "\(source.url.host ?? source.url.absoluteString) · \(source.channelCount) ch",
+                    label: source.label,
+                    meta: "\(source.url.host ?? source.url.absoluteString) · \(source.channelCount) ch",
                     dotColor: Color(hex: source.colorHex),
                     isActive: selectedSource?.id == source.id,
-                    onClick:  { onSelect(source); onDismiss() }
+                    onClick: { onSelect(source); onDismiss() }
                 )
             }
 
@@ -146,24 +146,24 @@ struct NSSourcePickerView: View {
 }
 
 // MARK: - SourceRow
-extension NSSourcePickerView{
+extension NSSourcePickerView {
     private struct SourceRow: View {
-        
-        let label:    String
-        let meta:     String
+
+        let label: String
+        let meta: String
         let dotColor: Color
         let isActive: Bool
-        let onClick:  () -> Void
-        
+        let onClick: () -> Void
+
         @State private var isHovered = false
-        
+
         var body: some View {
             Button(action: onClick) {
                 HStack(spacing: NS.Spacing.sm) {
                     Circle()
                         .fill(dotColor)
                         .frame(width: 8, height: 8)
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         Text(label)
                             .font(NS.Font.captionMed)
@@ -173,9 +173,9 @@ extension NSSourcePickerView{
                             .foregroundStyle(NS.text3)
                             .lineLimit(1)
                     }
-                    
+
                     Spacer()
-                    
+
                     if isActive {
                         Image(systemName: "checkmark")
                             .font(.system(size: 11, weight: .semibold))

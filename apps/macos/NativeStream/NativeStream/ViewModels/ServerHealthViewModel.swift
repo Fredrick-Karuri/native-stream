@@ -18,7 +18,7 @@ final class ServerHealthViewModel {
     var status: ServerStatus = .unknown
     var isChecking = false
     var connectionState: OnboardingConnectionState = .idle
-    
+
     func checkConnection(serverURL: URL) async {
         connectionState = .checking
         async let healthTask   = try? APIClient.shared.health()
@@ -35,7 +35,6 @@ final class ServerHealthViewModel {
     func resetConnectionState() {
         connectionState = .idle
     }
-
 
     private var checkTask: Task<Void, Never>?
 

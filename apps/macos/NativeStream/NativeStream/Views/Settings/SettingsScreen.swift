@@ -19,7 +19,7 @@ enum SettingsSection: String, CaseIterable {
         case .playback:  return "play.circle"
         case .server:    return "cpu"
         case .proxy:     return "lock.shield"
-        case .discovery: return "antenna.radiowaves.left.and.right" 
+        case .discovery: return "antenna.radiowaves.left.and.right"
         }
     }
 }
@@ -33,7 +33,6 @@ struct SettingsScreen: View {
     @Environment(ServerDiscoveryService.self) private var discovery
     @Environment(ControlViewModel.self)       private var controlVM
     @Environment(\.scenePhase) private var scenePhase
-
 
     @State private var selected: SettingsSection = .sources
     @State private var showResetConfirm = false
@@ -93,8 +92,8 @@ struct SettingsScreen: View {
             }
             Divider().overlay(NS.border).padding(.vertical, NS.Spacing.xs)
             DestructiveNavItem(
-                icon:   "arrow.counterclockwise",
-                label:  "Reset App",
+                icon: "arrow.counterclockwise",
+                label: "Reset App",
                 action: { showResetConfirm = true }
             )
 
@@ -157,7 +156,7 @@ struct SettingsScreen: View {
             Task { await serverHealth.check(serverURL: url) }
         }
     }
-    
+
     private var controllerIndicator: some View {
         HStack(spacing: NS.Spacing.sm) {
             Circle()
@@ -174,7 +173,6 @@ struct SettingsScreen: View {
         .padding(.horizontal, NS.Spacing.sm)
         .padding(.vertical, NS.Spacing.xs)
     }
-
 
     // MARK: - Panel routing
 
@@ -256,5 +254,3 @@ struct DestructiveNavItem: View {
         .onHover { isHovered = $0 }
     }
 }
-
-

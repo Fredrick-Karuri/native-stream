@@ -28,8 +28,8 @@ struct NowScreen: View {
         }
         .background(NS.bg)
         .task(id: channelLoadingVM.channels.count) { vm.recompute(channels: channelLoadingVM.channels, epgVM: epgVM) }
-        .task(id: epgVM.stores.count)        { vm.recompute(channels: channelLoadingVM.channels, epgVM: epgVM) }
-        .onReceive(clockTick)                { _ in vm.recompute(channels: channelLoadingVM.channels, epgVM: epgVM) }
+        .task(id: epgVM.stores.count) { vm.recompute(channels: channelLoadingVM.channels, epgVM: epgVM) }
+        .onReceive(clockTick) { _ in vm.recompute(channels: channelLoadingVM.channels, epgVM: epgVM) }
     }
 
     // MARK: - Scroll content
@@ -43,10 +43,10 @@ struct NowScreen: View {
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: NS.Spacing.xxl) {
-                    if !vm.liveMatches.isEmpty  {
+                    if !vm.liveMatches.isEmpty {
                         MatchesLiveSection(items: vm.liveMatches, onSelectChannel: onSelectChannel)
                     }
-                    if !vm.liveOnAir.isEmpty    {
+                    if !vm.liveOnAir.isEmpty {
                         LiveOnAirSection(items: vm.liveOnAir, onSelectChannel: onSelectChannel)
                     }
                     if !vm.startingSoon.isEmpty {

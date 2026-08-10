@@ -98,7 +98,7 @@ struct SportNavRail: View {
                 .animation(.easeOut(duration: 0.3), value: epgVM.isLoading)
                 .padding(.vertical, NS.Spacing.xs)
             }
-            
+
             Spacer()
 
             // ── Bottom: fixed utility nav ─────────────────────────────────────

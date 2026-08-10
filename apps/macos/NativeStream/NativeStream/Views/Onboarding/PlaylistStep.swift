@@ -3,7 +3,6 @@
 
 import SwiftUI
 
-
 struct PlaylistStep: View {
     let connectionState: OnboardingConnectionState
     let onSourceAdded: (URL, String) -> Void
@@ -13,7 +12,7 @@ struct PlaylistStep: View {
     @State private var playlistInput = ""
     @State private var labelInput    = ""
     @State private var isProbing     = false
-    @State private var foundEpg: URL? = nil
+    @State private var foundEpg: URL?
     @State private var isAdded       = false
 
     var body: some View {

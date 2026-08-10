@@ -6,7 +6,6 @@ import Foundation
 import SwiftProtobuf
 import SdkGenSwift
 
-
 // MARK: - APIClient
 
 actor APIClient {
@@ -27,7 +26,7 @@ actor APIClient {
         e.dateEncodingStrategy = .iso8601
         return e
     }()
-    
+
     private func rawProtoBody(
         method: String, path: String, message: any SwiftProtobuf.Message
     ) async throws -> Data {
@@ -51,8 +50,8 @@ actor APIClient {
         config.timeoutIntervalForResource = 30
         config.urlCache = URLCache(
             memoryCapacity: 10 * 1024 * 1024,  // 10 MB
-            diskCapacity:   50 * 1024 * 1024,  // 50 MB
-            diskPath:       "nativestream_api_cache"
+            diskCapacity: 50 * 1024 * 1024,  // 50 MB
+            diskPath: "nativestream_api_cache"
         )
         config.requestCachePolicy = .useProtocolCachePolicy
         if let protocolClasses {
@@ -81,7 +80,7 @@ actor APIClient {
     func playlistData() async throws -> Data {
         try await rawGet("playlist.m3u")
     }
-    
+
     func probePlaylistForEpg(url: URL) async -> URL? {
         guard let data = try? await fetchRawURL(url),
               let text = String(data: data.prefix(8192), encoding: .utf8) ??
@@ -96,7 +95,7 @@ actor APIClient {
         }
         return nil
     }
-    
+
     func fetchRawURL(_ url: URL) async throws -> Data {
         var req = URLRequest(url: url)
         req.cachePolicy = .useProtocolCachePolicy
@@ -156,7 +155,7 @@ actor APIClient {
             throw APIError.decodingFailed(error)
         }
     }
-    
+
     // MARK: - Discovery
 
     func discoveryStatus() async throws -> Stream_V1_DiscoveryStatusResponse {
@@ -208,7 +207,7 @@ actor APIClient {
             throw APIError.decodingFailed(error)
         }
     }
-    
+
     // MARK: - Proxy config
 
     func getProxyEnabled() async throws -> Bool {
@@ -219,7 +218,7 @@ actor APIClient {
             throw APIError.decodingFailed(error)
         }
     }
-    
+
     func setProxyEnabled(_ enabled: Bool) async throws {
         var req = Stream_V1_UpdateProxyConfigRequest()
         req.enabled = enabled

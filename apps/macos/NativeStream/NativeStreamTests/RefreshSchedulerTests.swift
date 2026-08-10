@@ -101,7 +101,8 @@ final class RefreshSchedulerTests: XCTestCase {
         let firstCountAfterWaiting = await firstJobCount.value
 
         XCTAssertEqual(
-            firstCountAtReplaceTime, firstCountAfterWaiting,
+            firstCountAtReplaceTime, 
+            firstCountAfterWaiting,
             "First job should not fire again after being replaced"
         )
     }

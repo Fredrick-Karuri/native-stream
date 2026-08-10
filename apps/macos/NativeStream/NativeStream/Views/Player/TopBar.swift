@@ -4,13 +4,13 @@
 
 import SwiftUI
 
-extension PlayerScreen{
+extension PlayerScreen {
     struct PlayerTopBar: View {
         let channel: Channel?
         let programme: Programme?
         let onBack: () -> Void
         let onStop: () -> Void
-        
+
         var body: some View {
             HStack(alignment: .top, spacing: NS.Spacing.md) {
                 Button(action: onBack) {
@@ -24,7 +24,7 @@ extension PlayerScreen{
                 }
                 .buttonStyle(.plain)
                 .padding(.top, NS.Spacing.xxs)
-                
+
                 VStack(alignment: .leading, spacing: 2) {
                     Text(channel?.name ?? "")
                         .font(NS.Font.heading).foregroundStyle(.white)
@@ -34,9 +34,9 @@ extension PlayerScreen{
                             .foregroundStyle(Color.white.opacity(0.5))
                     }
                 }
-                
+
                 Spacer()
-                
+
                 NSIconButton(icon: "xmark") { onStop() }
             }
             .padding(.horizontal, NS.Spacing.xl)

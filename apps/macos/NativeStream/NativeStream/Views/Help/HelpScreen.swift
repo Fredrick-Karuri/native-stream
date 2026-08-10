@@ -33,7 +33,7 @@ struct HelpScreen: View {
             HStack {
                 HStack(spacing: NS.Spacing.xxs) {
                     helpTab("User Guide", tab: .userGuide)
-                    helpTab("Developer",  tab: .developerRef)
+                    helpTab("Developer", tab: .developerRef)
                 }
                 .padding(NS.Spacing.xxs)
                 .background(NS.surface2)
@@ -257,9 +257,9 @@ struct HelpBlock: Identifiable {
 
     enum Kind { case text, code, tip, warning }
 
-    static func text(_ s: String) -> HelpBlock { .init(kind: .text, content: s) }
-    static func code(_ s: String) -> HelpBlock { .init(kind: .code, content: s) }
-    static func tip(_ s: String)  -> HelpBlock { .init(kind: .tip,  content: s) }
-    static func warn(_ s: String) -> HelpBlock { .init(kind: .warning, content: s) }
-}
+    static func text(_ content: String) -> HelpBlock { .init(kind: .text, content: content) }
+    static func code(_ content: String) -> HelpBlock { .init(kind: .code, content: content) }
+    static func tip(_ content: String) -> HelpBlock { .init(kind: .tip, content: content) }
+    static func warn(_ content: String) -> HelpBlock { .init(kind: .warning, content: content) }
 
+}

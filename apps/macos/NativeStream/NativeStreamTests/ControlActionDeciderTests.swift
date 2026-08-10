@@ -15,11 +15,11 @@ final class ControlActionDeciderTests: XCTestCase {
     // MARK: Helpers
 
     private func envelope(type: Stream_V1_MessageType, from: String, to: String) -> Stream_V1_Envelope {
-        var e = Stream_V1_Envelope()
-        e.type = type
-        e.from = from
-        e.to = to
-        return e
+        var enve = Stream_V1_Envelope()
+        enve.type = type
+        enve.from = from
+        enve.to = to
+        return enve
     }
 
     // MARK: .play

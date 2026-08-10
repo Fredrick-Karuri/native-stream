@@ -1,38 +1,37 @@
 import SwiftUI
 
-
     struct ChannelCard: View {
-        
+
         @Environment(EPGViewModel.self)      private var epgVM
         @Environment(PlayerViewModel.self)   private var playerVM
         @Environment(FavouritesManager.self) private var favourites
-        
+
         let channel: Channel
         let onTap: () -> Void
         var showSourceBadge: Bool            = false
-        var sources:         [PlaylistSource] = []
-        
+        var sources: [PlaylistSource] = []
+
         @State private var isHovered = false
-        
+
         private var isLive: Bool { programme?.isSportMatch ?? false }
         private var isPlaying: Bool { playerVM.currentChannel?.id == channel.id }
         private var programme: Programme? { epgVM.currentProgramme(for: channel) }
-        
+
         private var borderColour: Color {
             isPlaying ? NS.accentBorder :
             isLive    ? Color(hex: "ef4444").opacity(0.157) :
             NS.border
         }
-        
+
         var body: some View {
             Button(action: onTap) {
-                
+
                 VStack(alignment: .leading, spacing: 6) {
-                    
+
                     // Artwork
                     ZStack(alignment: .bottom) {
                         ChannelLogoView(channel: channel, borderColour: borderColour)
-                        
+
                         if let prog = programme {
                             NSProgressBar(value: prog.progress, height: 3, glow: false)
                                 .clipShape(.rect(
@@ -40,7 +39,7 @@ import SwiftUI
                                     bottomTrailingRadius: NS.Radius.lg
                                 ))
                         }
-                        
+
                         VStack {
                             HStack(alignment: .top) {
                                 if isLive { NSLiveBadge(isLive: true) }
@@ -53,13 +52,13 @@ import SwiftUI
                     }
                     .scaleEffect(isHovered ? 1.02 : 1.0)
                     .animation(.easeOut(duration: 0.12), value: isHovered)
-                    
+
                     // Channel name
                     Text(channel.name)
                         .font(NS.Font.captionMed)
                         .foregroundStyle(NS.text)
                         .lineLimit(1)
-                    
+
                     // EPG line
                     if let prog = programme {
                         Text(prog.title)
@@ -98,13 +97,12 @@ import SwiftUI
                         )
                     }
 
-                    
                 }
             }
             .buttonStyle(.plain)
             .onHover { isHovered = $0 }
         }
-        
+
         private var playingBadge: some View {
             HStack(spacing: 3) {
                 Image(systemName: "play.fill").font(.system(size: 7))
@@ -117,7 +115,7 @@ import SwiftUI
             .clipShape(RoundedRectangle(cornerRadius: NS.Radius.sm))
             .padding(8)
         }
-        
+
         private var starButton: some View {
             Button { favourites.toggle(channel) } label: {
                 Image(systemName: favourites.isFavourite(channel) ? "star.fill" : "star")
@@ -129,13 +127,13 @@ import SwiftUI
             .padding(8)
         }
     }
-    
+
     // MARK: - Channel Logo (UX-004)
-    
+
     struct ChannelLogoView: View {
         let channel: Channel
         var borderColour: Color = NS.border
-        
+
         var body: some View {
             Group {
                 if let url = channel.logoURL {
@@ -162,7 +160,7 @@ import SwiftUI
                     .stroke(borderColour, lineWidth: 0.5)
             )
         }
-        
+
         private var placeholder: some View {
             ZStack {
                 NS.surface2
@@ -172,4 +170,3 @@ import SwiftUI
             }
         }
     }
-

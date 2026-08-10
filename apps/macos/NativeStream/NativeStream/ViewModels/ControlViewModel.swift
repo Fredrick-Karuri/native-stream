@@ -57,7 +57,7 @@ final class ControlViewModel {
         ) else { return }
         await controlSession.send(envelope)
     }
-    
+
     // MARK: - Private
 
     private func handle(_ envelope: Stream_V1_Envelope, playerVM: PlayerViewModel) async {

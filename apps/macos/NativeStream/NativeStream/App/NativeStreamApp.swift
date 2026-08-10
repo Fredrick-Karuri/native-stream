@@ -6,7 +6,6 @@ import SwiftUI
 @main
 struct NativeStreamApp: App {
 
-    
     @State private var epgVM          = EPGViewModel()
     @State private var playerVM       = PlayerViewModel()
     @State private var favourites     = FavouritesManager()
@@ -18,7 +17,7 @@ struct NativeStreamApp: App {
     @State private var sourceVM: SourceViewModel
     @State private var channelLoadingVM: ChannelLoadingViewModel
     @State private var settings: SettingsStore
-    
+
     init() {
         let s = SettingsStore()
         let dataStore = SettingsDataStore()
@@ -72,7 +71,7 @@ struct NativeStreamApp: App {
                         }
                 }
             }
-            
+
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)

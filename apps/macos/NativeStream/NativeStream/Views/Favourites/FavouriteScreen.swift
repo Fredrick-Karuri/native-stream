@@ -56,9 +56,9 @@ struct FavouritesScreen: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: NS.Spacing.xxl) {
                         if !liveNow.isEmpty { liveSection }
-                        if !onAir.isEmpty    { onAirSection }
-                        if !upNext.isEmpty  { upNextSection }
-                        if !noEPG.isEmpty   { noEPGSection }
+                        if !onAir.isEmpty { onAirSection }
+                        if !upNext.isEmpty { upNextSection }
+                        if !noEPG.isEmpty { noEPGSection }
                     }
                     .padding(NS.Spacing.xl)
                     .padding(.bottom, 80)
@@ -105,7 +105,7 @@ struct FavouritesScreen: View {
             }
         }
     }
-    
+
     private var onAirSection: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.md) {
             HStack(spacing: NS.Spacing.sm) {
@@ -186,4 +186,3 @@ struct FavouritesScreen: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
-

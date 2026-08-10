@@ -9,13 +9,13 @@
 
 struct BrowserContent: View {
 
-    let sections:        [ChannelSection]
-    let isLoading:       Bool
-    let searchText:      String
+    let sections: [ChannelSection]
+    let isLoading: Bool
+    let searchText: String
     let onSelectChannel: (Channel) -> Void
     let showSourceBadge: Bool
-    let sources:         [PlaylistSource]
-    
+    let sources: [PlaylistSource]
+
     @State private var gridWidth: CGFloat = 700
 
     var body: some View {
@@ -48,10 +48,10 @@ struct BrowserContent: View {
         LazyVGrid(columns: grid, spacing: NS.Spacing.sm) {
             ForEach(channels) { channel in
                 ChannelCard(
-                    channel:         channel,
-                    onTap:           { onSelectChannel(channel) },
+                    channel: channel,
+                    onTap: { onSelectChannel(channel) },
                     showSourceBadge: showSourceBadge,
-                    sources:         sources
+                    sources: sources
                 )
             }
         }

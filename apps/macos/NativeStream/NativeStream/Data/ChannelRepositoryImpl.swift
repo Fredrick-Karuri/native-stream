@@ -99,13 +99,13 @@ actor ChannelRepositoryImpl: ChannelRepository {
 
     nonisolated func taggedChannel(_ channel: Channel, sourceID: UUID) -> Channel {
         Channel(
-            tvgId:         channel.tvgId,
-            name:          channel.name,
-            groupTitle:    channel.groupTitle,
+            tvgId: channel.tvgId,
+            name: channel.name,
+            groupTitle: channel.groupTitle,
             subGroupTitle: channel.subGroupTitle,
-            sourceId:      sourceID.uuidString,
-            logoURL:       channel.logoURL,
-            streamURL:     channel.streamURL,
+            sourceId: sourceID.uuidString,
+            logoURL: channel.logoURL,
+            streamURL: channel.streamURL,
             streamHeaders: channel.streamHeaders
         )
     }

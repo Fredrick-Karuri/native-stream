@@ -17,14 +17,13 @@ struct AppShell: View {
 
     @State private var destination: AppDestination = .now
     @State private var browserVM = BrowserViewModel()
-    @State private var selectedChannel: Channel?   = nil
+    @State private var selectedChannel: Channel?
     @State private var showPlayer                  = false
     @State private var showPlayURL                 = false
-    @State private var keyMonitor: Any?            = nil
-    
+    @State private var keyMonitor: Any?
+
     @State private var keyMonitorEngine = GlobalKeyMonitor()
     @State private var isPlayerSidebarOpen = true
-
 
     var body: some View {
         HStack(spacing: 0) {
@@ -41,7 +40,7 @@ struct AppShell: View {
                         .padding(NS.Spacing.lg)
                         .transition(.asymmetric(
                             insertion: .move(edge: .bottom).combined(with: .opacity),
-                            removal:   .move(edge: .bottom).combined(with: .opacity)
+                            removal: .move(edge: .bottom).combined(with: .opacity)
                         ))
                 }
 
@@ -55,7 +54,7 @@ struct AppShell: View {
         .background {
             Button("") {
                 destination = .allChannels
-                
+
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     NotificationCenter.default.post(name: .focusSearchField, object: nil)
                 }
@@ -69,8 +68,8 @@ struct AppShell: View {
         // Dynamic Key Monitoring for Player Overrides and Esc intercepts
         // Sync state to the decoupled engine cleanly on any structural swap
         .onChange(of: destination) { _, _ in synchronizeMonitor() }
-        .onChange(of: showPlayer)   { _, _ in synchronizeMonitor() }
-        .onChange(of: showPlayURL)  { _, _ in synchronizeMonitor() }
+        .onChange(of: showPlayer) { _, _ in synchronizeMonitor() }
+        .onChange(of: showPlayURL) { _, _ in synchronizeMonitor() }
         .onChange(of: isPlayerSidebarOpen) { _, _ in synchronizeMonitor() }
 
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: playerVM.isPlaying)
@@ -108,21 +107,21 @@ struct AppShell: View {
             broadcastPlayerState()
         }
     }
-    
+
     private func broadcastPlayerState() {
         Task {
             await controlVM.broadcastState(
                 channelID: playerVM.currentChannel?.id ?? "",
                 channelName: playerVM.currentChannel?.name ?? "",
                 streamURL: playerVM.currentChannel?.streamURL.absoluteString ?? "",
-                playing:   playerVM.isPlaying,
-                volume:      Double(playerVM.player?.volume ?? 1.0)
+                playing: playerVM.isPlaying,
+                volume: Double(playerVM.player?.volume ?? 1.0)
             )
         }
     }
 
     // MARK: - Helpers
-    
+
     private func closePlayerView() {
         playerVM.pipController?.stopPictureInPicture()
         playerVM.pipController = nil
@@ -163,7 +162,7 @@ struct AppShell: View {
 
             .transition(.asymmetric(
                 insertion: .move(edge: .trailing).combined(with: .opacity),
-                removal:   .move(edge: .leading).combined(with: .opacity)
+                removal: .move(edge: .leading).combined(with: .opacity)
             ))
         } else {
             Group {
@@ -180,7 +179,7 @@ struct AppShell: View {
             }
             .transition(.asymmetric(
                 insertion: .move(edge: .trailing).combined(with: .opacity),
-                removal:   .move(edge: .leading).combined(with: .opacity)
+                removal: .move(edge: .leading).combined(with: .opacity)
             ))
         }
     }
@@ -198,7 +197,7 @@ struct AppShell: View {
         }
         withAnimation(.easeInOut(duration: 0.25)) { showPlayer = true }
     }
-    
+
     // MARK: - Monitor Binding Synchronizer
 
     private func synchronizeMonitor() {
@@ -218,7 +217,6 @@ struct AppShell: View {
         )
     }
 
-
 }
 
 extension Notification.Name {
@@ -226,5 +224,3 @@ extension Notification.Name {
     static let openPlayURL = Notification.Name("openPlayURL")
     static let focusSearchField = Notification.Name("focusSearchField") // New communication pipe
 }
-
-

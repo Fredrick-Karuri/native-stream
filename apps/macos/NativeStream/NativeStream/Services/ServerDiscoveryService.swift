@@ -13,8 +13,8 @@ private let healthCheckTimeoutSecs = 5.0
 @MainActor
 final class ServerDiscoveryService {
 
-    var discoveredURL: URL? = nil
-    var isScanning: Bool    = false
+    var discoveredURL: URL?
+    var isScanning: Bool = false
 
     private var browser: NWBrowser?
 
@@ -31,8 +31,8 @@ final class ServerDiscoveryService {
             self.stopScanning()
         }
 
-        let params  = NWParameters()
-        
+        let params = NWParameters()
+
         params.includePeerToPeer = true
         let browser = NWBrowser(for: .bonjourWithTXTRecord(type: serviceType, domain: "local"), using: params)
         self.browser = browser
@@ -70,12 +70,12 @@ final class ServerDiscoveryService {
         connection.stateUpdateHandler = { [weak self] state in
             guard let self else { return }
             if case .ready = state {
-                guard let host = connection.currentPath?.remoteEndpoint,
-                      case .hostPort(let h, let port) = host else {
+                guard let remoteEndpoint = connection.currentPath?.remoteEndpoint,
+                      case .hostPort(let remoteHost, let port) = remoteEndpoint else {
                     connection.cancel()
                     return
                 }
-                let candidate = DiscoveryCandidateURL.build(hostString: "\(h)", port: Int(port.rawValue))
+                let candidate = DiscoveryCandidateURL.build(hostString: "\(remoteHost)", port: Int(port.rawValue))
                 connection.cancel()
                 guard let candidate else { return }
                 Task { await self.verifyCandidate(candidate) }
@@ -115,7 +115,7 @@ private func withTimeout<T: Sendable>(
             try? await Task.sleep(for: .seconds(seconds))
             return nil
         }
-        let result = await group.next() ?? nil
+        let result = (await group.next()).flatMap { $0 }
         group.cancelAll()
         return result
     }

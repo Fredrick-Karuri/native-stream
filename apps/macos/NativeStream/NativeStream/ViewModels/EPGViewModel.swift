@@ -10,16 +10,16 @@ final class EPGViewModel {
     var stores: [UUID: EPGStore] = [:]
     var isLoading: Bool = false
     var isAvailable: Bool = true
-    var epgURL: URL? = nil
+    var epgURL: URL?
 
     private let settingsKey = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
-    
+
     private static let session: URLSession = {
         let config = URLSessionConfiguration.default
         config.urlCache = URLCache(
             memoryCapacity: 10 * 1024 * 1024,
-            diskCapacity:   50 * 1024 * 1024,
-            diskPath:       "nativestream_epg_cache"
+            diskCapacity: 50 * 1024 * 1024,
+            diskPath: "nativestream_epg_cache"
         )
         config.requestCachePolicy = .useProtocolCachePolicy
         return URLSession(configuration: config)
@@ -38,7 +38,6 @@ final class EPGViewModel {
             return Self.normalizeEPGURL(url) != settingsURL
         }
         var collected: [UUID: EPGStore] = [:]
-
 
         await withTaskGroup(of: (id: UUID, store: EPGStore?).self) { group in
             for source in uniqueSources {
@@ -65,7 +64,7 @@ final class EPGViewModel {
 
             for await result in group {
                 if let store = result.store {
-                    
+
                     collected[result.id] = store
                 }
             }
@@ -126,7 +125,7 @@ final class EPGViewModel {
             .replacingOccurrences(of: "/raw/", with: "/")
         return URL(string: fixed) ?? url
     }
-    
+
     nonisolated static func stripGzipHeader(_ data: Data) -> Data? {
         guard data.count > 18 else { return nil }
         var offset = 10
