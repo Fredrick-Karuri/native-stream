@@ -198,7 +198,7 @@ func Load() (Config, error) {
 	// Docker: explicit config path overrides everything.
 	if p := os.Getenv("NATIVESTREAM_CONFIG"); p != "" {
 		return loadFile(cfg, p)
-		
+
 	}
 	// Docker: data directory for snapshots/cache.
 	if d := os.Getenv("NATIVESTREAM_DATA"); d != "" {
@@ -300,7 +300,7 @@ func applyDiscovery(cfg *Config, raw *rawConfig) {
 		cfg.Discovery.DirectM3UURLs = raw.Discovery.DirectM3U.URLs
 	}
 	if raw.Discovery.LocalScript.Enabled {
-    	cfg.Discovery.LocalScriptPath = raw.Discovery.LocalScript.Path
+		cfg.Discovery.LocalScriptPath = raw.Discovery.LocalScript.Path
 	}
 }
 

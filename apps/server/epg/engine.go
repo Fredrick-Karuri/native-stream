@@ -1,4 +1,4 @@
-// epg/engine.go — NS-131, NS-132, NS-133, NS-134
+// epg/engine.go
 // Fetches match schedules, generates XMLTV, caches, and refreshes on a timer.
 
 package epg
@@ -80,8 +80,8 @@ type Engine struct {
 
 func New(cfg Config, s *store.Store) *Engine {
 	return &Engine{
-		cfg:   cfg,
-		store: s,
+		cfg:    cfg,
+		store:  s,
 		client: &http.Client{Timeout: 15 * time.Second},
 	}
 }
@@ -122,22 +122,22 @@ func (e *Engine) RunRefresher(ctx context.Context) {
 	e.loadCacheFromDisk()
 
 	// Fetch fresh data
-	e.refresh()
+	e.refresh(ctx)
 
 	ticker := time.NewTicker(e.cfg.RefreshInterval)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
-			e.refresh()
+			e.refresh(ctx)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (e *Engine) refresh() {
-	matches := e.fetchMatches()
+func (e *Engine) refresh(ctx context.Context) {
+	matches := e.fetchMatches(ctx)
 	matches = e.assignChannels(matches)
 
 	e.mu.Lock()
@@ -154,19 +154,19 @@ func (e *Engine) refresh() {
 	e.saveCacheToDisk(xml)
 }
 
-// ── Match fetching (NS-131: ESPN, NS-132: football-data.org) ──────────────────
+// ── Match fetching  ──────────────────
 
-func (e *Engine) fetchMatches() []Match {
+func (e *Engine) fetchMatches(ctx context.Context) []Match {
 	var all []Match
 	if e.cfg.ESPNEnabled {
-		if m, err := e.fetchESPN(); err == nil {
+		if m, err := e.fetchESPN(ctx); err == nil {
 			all = append(all, m...)
 		} else {
 			fmt.Fprintf(os.Stderr, "[epg] ESPN fetch failed: %v\n", err)
 		}
 	}
 	if e.cfg.FootballDataKey != "" {
-		if m, err := e.fetchFootballData(); err == nil {
+		if m, err := e.fetchFootballData(ctx); err == nil {
 			all = append(all, m...)
 		} else {
 			fmt.Fprintf(os.Stderr, "[epg] football-data fetch failed: %v\n", err)
@@ -175,10 +175,14 @@ func (e *Engine) fetchMatches() []Match {
 	return all
 }
 
-func (e *Engine) fetchESPN() ([]Match, error) {
+func (e *Engine) fetchESPN(ctx context.Context) ([]Match, error) {
 	// ESPN public scoreboard API — no key required
 	url := "https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard"
-	resp, err := e.client.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := e.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -187,11 +191,14 @@ func (e *Engine) fetchESPN() ([]Match, error) {
 	return parseESPNResponse(body), nil
 }
 
-func (e *Engine) fetchFootballData() ([]Match, error) {
+func (e *Engine) fetchFootballData(ctx context.Context) ([]Match, error) {
 	// football-data.org — requires free API key
 	today := time.Now().Format("2006-01-02")
 	url := fmt.Sprintf("https://api.football-data.org/v4/matches?dateFrom=%s&dateTo=%s", today, today)
-	req, _ := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("X-Auth-Token", e.cfg.FootballDataKey)
 	resp, err := e.client.Do(req)
 	if err != nil {
@@ -272,17 +279,17 @@ func (e *Engine) saveCacheToDisk(data []byte) {
 // assignChannels matches fetched matches to store channels via keywords.
 // Matches against homeTeam, awayTeam, and competition name.
 func (e *Engine) assignChannels(matches []Match) []Match {
-    channels := e.store.All()
-    for i, m := range matches {
-        searchText := strings.ToLower(m.HomeTeam + " " + m.AwayTeam + " " + m.Competition + " " + m.Sport)
-        for _, ch := range channels {
-            for _, kw := range ch.Keywords {
-                if strings.Contains(searchText, strings.ToLower(kw)) {
-                    matches[i].ChannelIDs = append(matches[i].ChannelIDs, ch.ID)
-                    break
-                }
-            }
-        }
-    }
-    return matches
+	channels := e.store.All()
+	for i, m := range matches {
+		searchText := strings.ToLower(m.HomeTeam + " " + m.AwayTeam + " " + m.Competition + " " + m.Sport)
+		for _, ch := range channels {
+			for _, kw := range ch.Keywords {
+				if strings.Contains(searchText, strings.ToLower(kw)) {
+					matches[i].ChannelIDs = append(matches[i].ChannelIDs, ch.ID)
+					break
+				}
+			}
+		}
+	}
+	return matches
 }

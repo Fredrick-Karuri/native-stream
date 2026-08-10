@@ -23,7 +23,7 @@ func TestLoggingMiddleware_CapturesStatus(t *testing.T) {
 
 	wrapped := LoggingMiddleware(inner)
 
-	req := httptest.NewRequest(http.MethodGet, "/anything", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/anything", nil)
 	rec := httptest.NewRecorder()
 
 	wrapped.ServeHTTP(rec, req)
@@ -45,7 +45,7 @@ func TestLoggingMiddleware_DefaultsTo200WhenHandlerWritesNoHeader(t *testing.T) 
 
 	wrapped := LoggingMiddleware(inner)
 
-	req := httptest.NewRequest(http.MethodGet, "/anything", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/anything", nil)
 	rec := httptest.NewRecorder()
 
 	wrapped.ServeHTTP(rec, req)
@@ -66,7 +66,7 @@ func TestRecoveryMiddleware_RecoversFromPanic(t *testing.T) {
 
 	wrapped := RecoveryMiddleware(inner)
 
-	req := httptest.NewRequest(http.MethodGet, "/anything", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/anything", nil)
 	rec := httptest.NewRecorder()
 
 	wrapped.ServeHTTP(rec, req)
@@ -85,7 +85,7 @@ func TestRecoveryMiddleware_PassesThroughNormalResponses(t *testing.T) {
 
 	wrapped := RecoveryMiddleware(inner)
 
-	req := httptest.NewRequest(http.MethodGet, "/anything", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/anything", nil)
 	rec := httptest.NewRecorder()
 
 	wrapped.ServeHTTP(rec, req)

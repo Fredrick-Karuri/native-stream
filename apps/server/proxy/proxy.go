@@ -7,15 +7,14 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
-	"time"
-	"net/url"
 	"sync/atomic"
+	"time"
 
 	"github.com/fredrick-karuri/nativestream/server/store"
 )
-
 
 type Config struct {
 	Enabled   bool
@@ -86,16 +85,16 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		defer resp.Body.Close()
 
 		copyResponseHeaders(w, resp)
-		
+
 		w.Header().Set("Content-Type", "video/MP2T")
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-		
+
 		if resp.StatusCode == http.StatusPartialContent {
 			if cr := resp.Header.Get("Content-Range"); cr != "" {
 				w.Header().Set("Content-Range", cr)
 			}
 		}
-		
+
 		w.WriteHeader(resp.StatusCode)
 		io.Copy(w, resp.Body)
 		return
@@ -181,7 +180,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 
 	copyResponseHeaders(w, resp)
-	
+
 	contentType := resp.Header.Get("Content-Type")
 	isPlaylist := strings.Contains(contentType, "mpegurl") || strings.HasSuffix(targetURL, ".m3u8")
 
@@ -190,7 +189,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Pragma", "no-cache")
 		w.Header().Set("Expires", "0")
 	}
-	
+
 	w.WriteHeader(resp.StatusCode)
 
 	if isPlaylist {
@@ -214,7 +213,7 @@ func copyResponseHeaders(w http.ResponseWriter, resp *http.Response) {
 	}
 }
 
-//  Explicitly stores mapping via the deterministic hash key
+// Explicitly stores mapping via the deterministic hash key
 type cachedSegment struct {
 	TargetURL string
 	Headers   map[string]string

@@ -12,8 +12,8 @@ import (
 
 type espnResponse struct {
 	Events []struct {
-		Name        string `json:"name"`
-		Date        string `json:"date"`
+		Name         string `json:"name"`
+		Date         string `json:"date"`
 		Competitions []struct {
 			Competitors []struct {
 				HomeAway string `json:"homeAway"`
@@ -66,11 +66,11 @@ func parseESPNResponse(data []byte) []Match {
 
 type fdResponse struct {
 	Matches []struct {
-		ID          int    `json:"id"`
+		ID          int `json:"id"`
 		Competition struct {
 			Name string `json:"name"`
 		} `json:"competition"`
-		UtcDate string `json:"utcDate"`
+		UtcDate  string `json:"utcDate"`
 		HomeTeam struct {
 			Name string `json:"name"`
 		} `json:"homeTeam"`

@@ -29,7 +29,7 @@ func newTestHandler() *Handler {
 func TestHandleHealth(t *testing.T) {
 	h := newTestHandler()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/health", nil)
 	rec := httptest.NewRecorder()
 
 	h.handleHealth(rec, req)
@@ -73,7 +73,7 @@ func TestHandleHealth(t *testing.T) {
 func TestHandleDeleteChannel_NotFound(t *testing.T) {
 	h := newTestHandler()
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/channels/nope", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodDelete, "/api/channels/nope", nil)
 	req.SetPathValue("id", "nope")
 	rec := httptest.NewRecorder()
 
@@ -96,7 +96,7 @@ func TestHandleDeleteChannel_Success(t *testing.T) {
 	h := newTestHandler()
 	h.store.Add(&store.Channel{ID: "ch1", Name: "Test Channel"})
 
-	req := httptest.NewRequest(http.MethodDelete, "/api/channels/ch1", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodDelete, "/api/channels/ch1", nil)
 	req.SetPathValue("id", "ch1")
 	rec := httptest.NewRecorder()
 
@@ -116,7 +116,7 @@ func TestHandleDeleteChannel_Success(t *testing.T) {
 func TestHandleProbe(t *testing.T) {
 	h := newTestHandler()
 
-	req := httptest.NewRequest(http.MethodPost, "/api/probe", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/api/probe", nil)
 	rec := httptest.NewRecorder()
 
 	h.handleProbe(rec, req)

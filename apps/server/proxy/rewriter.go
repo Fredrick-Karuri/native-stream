@@ -9,7 +9,6 @@ import (
 	"strings"
 )
 
-
 func isMasterPlaylist(body string) bool {
 	return strings.Contains(body, "#EXT-X-STREAM-INF")
 }

@@ -36,9 +36,8 @@ func (e *Engine) toProtoStatus() *streamv1.DiscoveryStatusResponse {
 	return resp
 }
 
-
 func (e *Engine) handleTriggerRun(w http.ResponseWriter, r *http.Request) {
-    e.TriggerRun(context.Background())
+	e.TriggerRun(context.Background())
 	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.StatusResponse{Status: "triggered"})
 }
 

@@ -23,7 +23,7 @@ import (
 func TestHandleListChannels_Empty(t *testing.T) {
 	h := newTestHandler()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/channels", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/channels", nil)
 	rec := httptest.NewRecorder()
 	h.handleListChannels(rec, req)
 
@@ -43,7 +43,7 @@ func TestHandleListChannels_WithChannels(t *testing.T) {
 	h := newTestHandler()
 	h.store.Add(&store.Channel{ID: "ch1", Name: "Test Channel"})
 
-	req := httptest.NewRequest(http.MethodGet, "/api/channels", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/channels", nil)
 	rec := httptest.NewRecorder()
 	h.handleListChannels(rec, req)
 
@@ -61,7 +61,7 @@ func TestHandleListChannels_WithChannels(t *testing.T) {
 func TestHandleGetChannel_NotFound(t *testing.T) {
 	h := newTestHandler()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/channels/missing", nil)
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/channels/missing", nil)
 	req.SetPathValue("id", "missing")
 	rec := httptest.NewRecorder()
 	h.handleGetChannel(rec, req)
@@ -89,7 +89,8 @@ func TestHandleCreateChannel_Success(t *testing.T) {
 	}
 	data, _ := protojson.MarshalOptions{UseProtoNames: true}.Marshal(reqBody)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/channels", bytes.NewReader(data))
+	req := httptest.NewRequestWithContext(
+		t.Context(), http.MethodPost, "/api/channels", bytes.NewReader(data))
 	rec := httptest.NewRecorder()
 	h.handleCreateChannel(rec, req)
 
@@ -110,7 +111,8 @@ func TestHandleCreateChannel_MissingName(t *testing.T) {
 	h := newTestHandler()
 
 	data, _ := protojson.MarshalOptions{UseProtoNames: true}.Marshal(&streamv1.CreateChannelRequest{})
-	req := httptest.NewRequest(http.MethodPost, "/api/channels", bytes.NewReader(data))
+	req := httptest.NewRequestWithContext(
+		t.Context(), http.MethodPost, "/api/channels", bytes.NewReader(data))
 	rec := httptest.NewRecorder()
 	h.handleCreateChannel(rec, req)
 
@@ -127,7 +129,8 @@ func TestHandleUpdateChannel_Success(t *testing.T) {
 	reqBody := &streamv1.UpdateChannelRequest{Name: &newName}
 	data, _ := protojson.MarshalOptions{UseProtoNames: true}.Marshal(reqBody)
 
-	req := httptest.NewRequest(http.MethodPut, "/api/channels/ch1", bytes.NewReader(data))
+	req := httptest.NewRequestWithContext(
+		t.Context(), http.MethodPut, "/api/channels/ch1", bytes.NewReader(data))
 	req.SetPathValue("id", "ch1")
 	rec := httptest.NewRecorder()
 	h.handleUpdateChannel(rec, req)
@@ -144,7 +147,8 @@ func TestHandleUpdateChannel_NotFound(t *testing.T) {
 	h := newTestHandler()
 
 	data, _ := protojson.MarshalOptions{UseProtoNames: true}.Marshal(&streamv1.UpdateChannelRequest{})
-	req := httptest.NewRequest(http.MethodPut, "/api/channels/missing", bytes.NewReader(data))
+	req := httptest.NewRequestWithContext(
+		t.Context(), http.MethodPut, "/api/channels/missing", bytes.NewReader(data))
 	req.SetPathValue("id", "missing")
 	rec := httptest.NewRecorder()
 	h.handleUpdateChannel(rec, req)

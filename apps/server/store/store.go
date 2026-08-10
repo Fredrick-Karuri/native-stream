@@ -29,10 +29,10 @@ type FailureReason string
 
 const (
 	FailureReasonNone        FailureReason = ""
-	FailureReasonForbidden   FailureReason = "forbidden"    // 401/403 — proxy may help
-	FailureReasonUnreachable FailureReason = "unreachable"  // TCP connect failed
-	FailureReasonTimeout     FailureReason = "timeout"      // no response in time
-	FailureReasonBadContent  FailureReason = "bad_content"  // not valid HLS/video
+	FailureReasonForbidden   FailureReason = "forbidden"   // 401/403 — proxy may help
+	FailureReasonUnreachable FailureReason = "unreachable" // TCP connect failed
+	FailureReasonTimeout     FailureReason = "timeout"     // no response in time
+	FailureReasonBadContent  FailureReason = "bad_content" // not valid HLS/video
 )
 
 type LinkScore struct {
@@ -51,31 +51,31 @@ type LinkScore struct {
 }
 
 type Channel struct {
-	ID         string     `json:"id"`
-	Name       string     `json:"name"`
-	GroupTitle string     `json:"group_title"`
-	TvgID      string     `json:"tvg_id"`
-	LogoURL    string     `json:"logo_url"`
-	Keywords   []string   `json:"keywords"`
-	ActiveLink *LinkScore `json:"active_link"`
+	ID         string       `json:"id"`
+	Name       string       `json:"name"`
+	GroupTitle string       `json:"group_title"`
+	TvgID      string       `json:"tvg_id"`
+	LogoURL    string       `json:"logo_url"`
+	Keywords   []string     `json:"keywords"`
+	ActiveLink *LinkScore   `json:"active_link"`
 	Candidates []*LinkScore `json:"candidates"`
-	CreatedAt  time.Time  `json:"created_at"`
-	UpdatedAt  time.Time  `json:"updated_at"`
+	CreatedAt  time.Time    `json:"created_at"`
+	UpdatedAt  time.Time    `json:"updated_at"`
 }
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 type Store struct {
-	mu       sync.RWMutex
-	channels map[string]*Channel
-	path     string
+	mu              sync.RWMutex
+	channels        map[string]*Channel
+	path            string
 	minScoreHealthy float64
 }
 
 func New(snapshotPath string, minScoreHealthy float64) *Store {
 	return &Store{
-		channels: make(map[string]*Channel),
-		path:     snapshotPath,
+		channels:        make(map[string]*Channel),
+		path:            snapshotPath,
 		minScoreHealthy: minScoreHealthy,
 	}
 }
@@ -120,17 +120,17 @@ func (s *Store) HealthyChannels() []*Channel {
 }
 
 func (s *Store) ChannelsWithLink() []*Channel {
-    s.mu.RLock()
-    defer s.mu.RUnlock()
-    var out []*Channel
-    for _, ch := range s.channels {
-        if ch.ActiveLink != nil || len(ch.Candidates) > 0 {
-            cp := *ch
-            out = append(out, &cp)
-        }
-    }
-    sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
-    return out
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var out []*Channel
+	for _, ch := range s.channels {
+		if ch.ActiveLink != nil || len(ch.Candidates) > 0 {
+			cp := *ch
+			out = append(out, &cp)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out
 }
 
 func (s *Store) Add(ch *Channel) {
@@ -324,13 +324,13 @@ func (s *Store) Snapshot() error {
 		return fmt.Errorf("marshal snapshot: %w", err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(s.path), 0o750); err != nil {
 		return fmt.Errorf("create snapshot dir: %w", err)
 	}
 
 	// Atomic write: write to .tmp then rename
 	tmp := s.path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
 		return fmt.Errorf("write snapshot tmp: %w", err)
 	}
 	if err := os.Rename(tmp, s.path); err != nil {
@@ -382,7 +382,7 @@ func (s *Store) RunSnapshotter(ctx context.Context, interval time.Duration) {
 }
 
 func (s *Store) DeleteAll() {
-    s.mu.Lock()
-    defer s.mu.Unlock()
-    s.channels = make(map[string]*Channel)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.channels = make(map[string]*Channel)
 }

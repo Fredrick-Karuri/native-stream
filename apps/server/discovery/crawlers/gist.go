@@ -77,8 +77,8 @@ func (c *GistCrawler) Fetch(ctx context.Context) ([]discovery.RawItem, error) {
 }
 
 type gistResponse struct {
-	UpdatedAt string                 `json:"updated_at"`
-	Files     map[string]gistFile    `json:"files"`
+	UpdatedAt string              `json:"updated_at"`
+	Files     map[string]gistFile `json:"files"`
 }
 
 type gistFile struct {
