@@ -61,6 +61,7 @@ type xmlProgramme struct {
 // ── Engine ────────────────────────────────────────────────────────────────────
 // defaultMatchDuration is used when a fetched match has no explicit duration.
 const defaultMatchDuration = 110 * time.Minute
+
 type Config struct {
 	Enabled         bool
 	RefreshInterval time.Duration

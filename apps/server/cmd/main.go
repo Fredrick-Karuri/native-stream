@@ -8,6 +8,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/fredrick-karuri/nativestream/server"
@@ -225,7 +227,11 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	go shutdown.OnSignal(srv, cancel, 10*time.Second)
+	const shutdownTimeout = 10 * time.Second
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigCh)
+	go shutdown.OnSignal(sigCh, srv, cancel, shutdownTimeout)
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		slog.Error("server error", "err", err)
