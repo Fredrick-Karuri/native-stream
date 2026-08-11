@@ -154,12 +154,14 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}()
 
 		copyResponseHeaders(w, resp)
+		w.Header().Set("Content-Type", "application/vnd.apple.mpegurl; charset=utf-8")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		w.WriteHeader(resp.StatusCode)
 
 		body, _ := io.ReadAll(resp.Body)
 		rewritten := p.rewriteMediaPlaylist(string(body), decoded, channelID, headers)
-		if _, err := w.Write([]byte(rewritten)); err != nil {
+		if _, err := w.Write([]byte(rewritten)); err != nil { // #nosec G705 -- Content-Type is forced above with nosniff, so this cannot be sniffed/rendered as HTML
 			slog.Debug("proxy: write variant playlist failed", "err", err)
 		}
 		return
@@ -212,6 +214,12 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	isPlaylist := strings.Contains(contentType, "mpegurl") || strings.HasSuffix(targetURL, ".m3u8")
 
 	if isPlaylist {
+		// Force the content type explicitly rather than trusting whatever
+		// the upstream sent (or omitted) — prevents the rewritten body,
+		// which embeds upstream-controlled URI text, from being sniffed
+		// and rendered as HTML by a browser (gosec G705).
+		w.Header().Set("Content-Type", "application/vnd.apple.mpegurl; charset=utf-8")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		w.Header().Set("Pragma", "no-cache")
 		w.Header().Set("Expires", "0")
@@ -223,7 +231,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(resp.Body)
 
 		rewritten := p.rewritePlaylist(string(body), targetURL, channelID, ch.ActiveLink.Headers)
-		if _, err := w.Write([]byte(rewritten)); err != nil {
+		if _, err := w.Write([]byte(rewritten)); err != nil { // #nosec G705 -- Content-Type is forced above with nosniff, so this cannot be sniffed/rendered as HTML
 			slog.Debug("proxy: write playlist failed", "err", err)
 		}
 	} else {

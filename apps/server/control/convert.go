@@ -18,6 +18,8 @@ import (
 // a register payload) to the internal DeviceKind used by SessionInfo.
 func ProtoKindToControlKind(kind streamv1.DeviceKind) DeviceKind {
 	switch kind {
+	case streamv1.DeviceKind_DEVICE_KIND_UNSPECIFIED:
+		return ""
 	case streamv1.DeviceKind_DEVICE_KIND_CONTROLLER:
 		return KindController
 	case streamv1.DeviceKind_DEVICE_KIND_TARGET:

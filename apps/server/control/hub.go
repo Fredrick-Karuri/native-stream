@@ -136,8 +136,23 @@ func (h *Hub) handleEnvelope(ctx context.Context, env *streamv1.Envelope) {
 		h.handlePong(env)
 	case streamv1.MessageType_MESSAGE_TYPE_PING:
 		// clients should not send ping — ignore
-	case streamv1.MessageType_MESSAGE_TYPE_VOLUME_SET:
-		h.forwardEnvelope(ctx, env) // unicast to target
+	case streamv1.MessageType_MESSAGE_TYPE_VOLUME_SET,
+		streamv1.MessageType_MESSAGE_TYPE_PLAY,
+		streamv1.MessageType_MESSAGE_TYPE_STOP,
+		streamv1.MessageType_MESSAGE_TYPE_PULL_BACK_ACK:
+		h.forwardEnvelope(ctx, env) // unicast/broadcast to target(s)
+	case streamv1.MessageType_MESSAGE_TYPE_SESSION_LIST:
+		// server-originated only — a client shouldn't send this, but
+		// forward rather than drop in case of a benign echo/relay.
+		h.forwardEnvelope(ctx, env)
+	case streamv1.MessageType_MESSAGE_TYPE_REGISTER:
+		// registration is handled inline in api.handleWebSocket before
+		// dispatch — reaching here means a client sent a second
+		// register mid-session, which is unexpected.
+		slog.Debug("lmc: unexpected register envelope in route loop", "from", env.From)
+		h.forwardEnvelope(ctx, env)
+	case streamv1.MessageType_MESSAGE_TYPE_UNSPECIFIED:
+		slog.Warn("lmc: envelope with unspecified type", "from", env.From, "to", env.To)
 	default:
 		h.forwardEnvelope(ctx, env)
 	}
