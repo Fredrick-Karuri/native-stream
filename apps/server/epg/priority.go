@@ -1,4 +1,4 @@
-// epg/priority.go — NS-221
+// epg/priority.go
 // Match-aware priority escalation: tells the discovery engine which channels
 // need aggressive crawling because a match is starting within 2 hours.
 

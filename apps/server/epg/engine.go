@@ -59,7 +59,8 @@ type xmlProgramme struct {
 }
 
 // ── Engine ────────────────────────────────────────────────────────────────────
-
+// defaultMatchDuration is used when a fetched match has no explicit duration.
+const defaultMatchDuration = 110 * time.Minute
 type Config struct {
 	Enabled         bool
 	RefreshInterval time.Duration
@@ -240,7 +241,7 @@ func (e *Engine) generateXMLTV(matches []Match) []byte {
 		title := fmt.Sprintf("%s vs %s — %s", m.HomeTeam, m.AwayTeam, m.Competition)
 		dur := m.Duration
 		if dur == 0 {
-			dur = 110 * time.Minute
+			dur = defaultMatchDuration
 		}
 		stop := m.KickOff.Add(dur)
 		for _, chID := range m.ChannelIDs {
