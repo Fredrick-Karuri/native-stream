@@ -16,6 +16,7 @@ import (
 	"github.com/fredrick-karuri/nativestream/server/control"
 	"github.com/fredrick-karuri/nativestream/server/epg"
 	"github.com/fredrick-karuri/nativestream/server/httpx"
+	"github.com/fredrick-karuri/nativestream/server/intsafe"
 	"github.com/fredrick-karuri/nativestream/server/playlist"
 	"github.com/fredrick-karuri/nativestream/server/proxy"
 	"github.com/fredrick-karuri/nativestream/server/store"
@@ -105,7 +106,9 @@ func (h *Handler) handlePlaylist(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/x-mpegurl; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
-	fmt.Fprint(w, playlist.Generate(channels, cfg))
+	if _, err := fmt.Fprint(w, playlist.Generate(channels, cfg)); err != nil {
+		slog.Warn("handlePlaylist: write failed", "err", err)
+	}
 }
 
 // ── EPG ───────────────────────────────────────────────────────────────────────
@@ -118,7 +121,9 @@ func (h *Handler) handleEPG(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 	w.Header().Set("Cache-Control", "max-age=3600")
-	w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		slog.Warn("handleEPG: write failed", "err", err)
+	}
 }
 
 // ── Channel management ────────────────────────────────────────────────────────
@@ -248,8 +253,8 @@ func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
 	resp := &streamv1.HealthResponse{
 		Status:     "ok",
 		Uptime:     time.Since(h.startTime).Round(time.Second).String(),
-		Channels:   proto.Int32(int32(total)),
-		Healthy:    proto.Int32(int32(healthy)),
+		Channels:   proto.Int32(intsafe.ToInt32(total)),
+		Healthy:    proto.Int32(intsafe.ToInt32(healthy)),
 		Version:    h.version,
 		ServerName: proto.String(h.serverName),
 		Addr:       proto.String(h.serverAddr),
@@ -301,24 +306,29 @@ func (h *Handler) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	_, data, err := conn.Read(r.Context())
 	if err != nil {
 		slog.Warn("lmc: no register message received", "err", err)
-		conn.CloseNow()
+		if cerr := conn.CloseNow(); cerr != nil {
+			slog.Debug("lmc: close after read failure", "err", cerr)
+		}
 		return
 	}
 
 	var env streamv1.Envelope
 	if err := protojson.Unmarshal(data, &env); err != nil || env.Type != streamv1.MessageType_MESSAGE_TYPE_REGISTER {
 		slog.Warn("lmc: first message was not register")
-		conn.CloseNow()
+		if cerr := conn.CloseNow(); cerr != nil {
+			slog.Debug("lmc: close after bad register type", "err", cerr)
+		}
 		return
 	}
 
 	var payload streamv1.RegisterPayload
 	if err := protojson.Unmarshal([]byte(env.PayloadJson), &payload); err != nil {
 		slog.Warn("lmc: bad register payload", "err", err)
-		conn.CloseNow()
+		if cerr := conn.CloseNow(); cerr != nil {
+			slog.Debug("lmc: close after bad payload", "err", cerr)
+		}
 		return
 	}
-
 	// Use client-supplied device_id from From field, or generate one
 	deviceID := env.From
 	if deviceID == "" {
@@ -350,7 +360,9 @@ func (h *Handler) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		deviceID,
 		&streamv1.SessionListPayload{Sessions: pbSessions},
 	)
-	client.Send(r.Context(), sessionEnv)
+	if err := client.Send(r.Context(), sessionEnv); err != nil {
+		slog.Warn("lmc: failed to send session list", "device_id", deviceID, "err", err)
+	}
 
 	// Block until connection closes
 	control.ReadLoop(r.Context(), h.hub, client)

@@ -11,6 +11,7 @@ package api
 import (
 	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
 	"github.com/fredrick-karuri/nativestream/server/control"
+	"github.com/fredrick-karuri/nativestream/server/intsafe"
 	"github.com/fredrick-karuri/nativestream/server/store"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -58,7 +59,7 @@ func toProtoChannelResponse(ch *store.Channel) *streamv1.ChannelResponse {
 		GroupTitle:     ch.GroupTitle,
 		TvgId:          ch.TvgID,
 		LogoUrl:        ch.LogoURL,
-		CandidateCount: int32(len(ch.Candidates)),
+		CandidateCount: intsafe.ToInt32(len(ch.Candidates)),
 		HasActiveLink:  ch.ActiveLink != nil,
 	}
 	if ch.ActiveLink != nil {
@@ -72,9 +73,9 @@ func toProtoLinkScore(link *store.LinkScore) *streamv1.LinkScoreResponse {
 	resp := &streamv1.LinkScoreResponse{
 		Url:       link.URL,
 		Score:     link.Score,
-		LatencyMs: int32(link.LatencyMS),
+		LatencyMs: intsafe.FromInt64ToInt32(link.LatencyMS),
 		State:     string(link.State),
-		FailCount: int32(link.FailCount),
+		FailCount: intsafe.ToInt32(link.FailCount),
 		Headers:   link.Headers,
 	}
 	if link.FailureReason != store.FailureReasonNone {

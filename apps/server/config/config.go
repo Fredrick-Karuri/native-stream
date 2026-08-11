@@ -6,6 +6,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -215,15 +216,22 @@ func Load() (Config, error) {
 }
 
 // loadFile opens path, decodes YAML into rawConfig, and merges it into cfg.
+// path is either the fixed ~/.config/nativestream/config.yaml default or
+// the NATIVESTREAM_CONFIG env var (see Load) — both operator-controlled,
+// never derived from a client request.
 func loadFile(cfg Config, path string) (Config, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) // #nosec G304 G703
 	if os.IsNotExist(err) {
 		return cfg, nil
 	}
 	if err != nil {
 		return cfg, fmt.Errorf("open config: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			slog.Warn("config: failed to close config file", "path", path, "err", cerr)
+		}
+	}()
 
 	var raw rawConfig
 	if err := yaml.NewDecoder(f).Decode(&raw); err != nil {

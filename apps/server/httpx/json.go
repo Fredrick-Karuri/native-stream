@@ -9,6 +9,7 @@ package httpx
 
 import (
 	"io"
+	"log/slog"
 	"net/http"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -31,7 +32,9 @@ func WriteProtoJSON(w http.ResponseWriter, status int, msg proto.Message) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		slog.Warn("httpx: write response failed", "err", err)
+	}
 }
 
 // ReadProtoJSON decodes a JSON request body into a proto message.

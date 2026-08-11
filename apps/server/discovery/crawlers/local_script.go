@@ -19,6 +19,9 @@ type LocalScriptCrawler struct {
 	ScriptPath string
 }
 
+// ScriptPath originates from discovery.local_script.path in the operator's
+// config.yaml (see cmd/main.go), never from a client request — the trust
+// boundary is filesystem access to the operator's own config file.
 func NewLocalScriptCrawler(path string) *LocalScriptCrawler {
 	return &LocalScriptCrawler{ScriptPath: path}
 }
@@ -54,7 +57,7 @@ func (c *LocalScriptCrawler) FetchDirect(ctx context.Context) ([]discovery.Direc
 	default:
 		interpreter = "/bin/bash"
 	}
-	cmd := exec.CommandContext(execCtx, interpreter, c.ScriptPath)
+	cmd := exec.CommandContext(execCtx, interpreter, c.ScriptPath) // #nosec G204 -- see NewLocalScriptCrawler
 	cmd.Env = os.Environ()
 	out, err := cmd.Output()
 

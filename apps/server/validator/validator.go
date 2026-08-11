@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -245,8 +246,14 @@ func (v *Validator) measure(
 		link.FailCount++
 		return link
 	}
-	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("validator: close probe body", "url", url, "err", cerr)
+		}
+	}()
+	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+		slog.Debug("validator: drain probe body failed", "url", url, "err", err)
+	}
 
 	link.FailureReason = classifyHTTPFailure(resp.StatusCode)
 	reachability := reachabilityScore(resp.StatusCode)
@@ -303,7 +310,11 @@ func (v *Validator) estimateBitrate(ctx context.Context, url string, headers map
 	if err != nil {
 		return 0
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("validator: close bitrate probe body", "url", url, "err", cerr)
+		}
+	}()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 10240))
 	elapsed := time.Since(start)

@@ -3,7 +3,7 @@
 # All fields have defaults — you can start with an empty file.
 
 server:
-  host: 127.0.0.1   # NEVER change to 0.0.0.0 — localhost only
+  host: 127.0.0.1
   port: 8888
 
 store:

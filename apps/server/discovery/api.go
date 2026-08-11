@@ -8,6 +8,7 @@ import (
 
 	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
 	"github.com/fredrick-karuri/nativestream/server/httpx"
+	"github.com/fredrick-karuri/nativestream/server/intsafe"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -26,9 +27,9 @@ func (e *Engine) toProtoStatus() *streamv1.DiscoveryStatusResponse {
 	defer e.mu.Unlock()
 
 	resp := &streamv1.DiscoveryStatusResponse{
-		FoundToday:     int32(e.foundToday),
-		PromotedToday:  int32(e.promotedToday),
-		UnmatchedCount: int32(len(e.unmatched)),
+		FoundToday:     intsafe.ToInt32(e.foundToday),
+		PromotedToday:  intsafe.ToInt32(e.promotedToday),
+		UnmatchedCount: intsafe.ToInt32(len(e.unmatched)),
 	}
 	if !e.lastRun.IsZero() {
 		resp.LastRun = timestamppb.New(e.lastRun)
@@ -55,6 +56,6 @@ func (e *Engine) handleUnmatched(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.WriteProtoJSON(w, http.StatusOK, &streamv1.UnmatchedResponse{
 		Unmatched: rows,
-		Total:     int32(len(rows)),
+		Total:     intsafe.ToInt32(len(rows)),
 	})
 }

@@ -82,7 +82,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "upstream target server error", http.StatusBadGateway)
 			return
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if cerr := resp.Body.Close(); cerr != nil {
+				slog.Debug("proxy: close segment upstream body", "err", cerr)
+			}
+		}()
 
 		copyResponseHeaders(w, resp)
 
@@ -96,7 +100,9 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(resp.StatusCode)
-		io.Copy(w, resp.Body)
+		if _, err := io.Copy(w, resp.Body); err != nil {
+			slog.Debug("proxy: copy segment body failed", "err", err)
+		}
 		return
 	}
 
@@ -141,7 +147,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "variant upstream error", http.StatusBadGateway)
 			return
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if cerr := resp.Body.Close(); cerr != nil {
+				slog.Debug("proxy: close variant upstream body", "err", cerr)
+			}
+		}()
 
 		copyResponseHeaders(w, resp)
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -149,7 +159,9 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		body, _ := io.ReadAll(resp.Body)
 		rewritten := p.rewriteMediaPlaylist(string(body), decoded, channelID, headers)
-		w.Write([]byte(rewritten))
+		if _, err := w.Write([]byte(rewritten)); err != nil {
+			slog.Debug("proxy: write variant playlist failed", "err", err)
+		}
 		return
 	}
 
@@ -188,7 +200,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "upstream error", http.StatusBadGateway)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("proxy: close playlist upstream body", "err", cerr)
+		}
+	}()
 
 	copyResponseHeaders(w, resp)
 
@@ -207,9 +223,13 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(resp.Body)
 
 		rewritten := p.rewritePlaylist(string(body), targetURL, channelID, ch.ActiveLink.Headers)
-		w.Write([]byte(rewritten))
+		if _, err := w.Write([]byte(rewritten)); err != nil {
+			slog.Debug("proxy: write playlist failed", "err", err)
+		}
 	} else {
-		io.Copy(w, resp.Body)
+		if _, err := io.Copy(w, resp.Body); err != nil {
+			slog.Debug("proxy: copy passthrough body failed", "err", err)
+		}
 	}
 }
 

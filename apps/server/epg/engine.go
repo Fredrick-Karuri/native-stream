@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -186,7 +187,11 @@ func (e *Engine) fetchESPN(ctx context.Context) ([]Match, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("epg: close ESPN response body", "err", cerr)
+		}
+	}()
 	body, _ := io.ReadAll(resp.Body)
 	return parseESPNResponse(body), nil
 }
@@ -204,7 +209,11 @@ func (e *Engine) fetchFootballData(ctx context.Context) ([]Match, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("epg: close football-data response body", "err", cerr)
+		}
+	}()
 	body, _ := io.ReadAll(resp.Body)
 	return parseFootballDataResponse(body), nil
 }
@@ -272,8 +281,8 @@ func (e *Engine) saveCacheToDisk(data []byte) {
 	if e.cfg.CachePath == "" {
 		return
 	}
-	_ = os.MkdirAll(filepath.Dir(e.cfg.CachePath), 0o755)
-	_ = os.WriteFile(e.cfg.CachePath, data, 0o644)
+	_ = os.MkdirAll(filepath.Dir(e.cfg.CachePath), 0o750)
+	_ = os.WriteFile(e.cfg.CachePath, data, 0o600)
 }
 
 // assignChannels matches fetched matches to store channels via keywords.
