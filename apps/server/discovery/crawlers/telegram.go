@@ -1,4 +1,4 @@
-// discovery/crawlers/telegram.go — NS-213
+// discovery/crawlers/telegram.go
 // Fetches messages from public Telegram channels via t.me/s/:channel web preview.
 // No API key or account required for public channels.
 
@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strings"
@@ -94,7 +95,11 @@ func (c *TelegramCrawler) fetchChannel(ctx context.Context, channel string) ([]d
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("telegram: close response body", "channel", channel, "err", cerr)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("telegram %d for @%s", resp.StatusCode, channel)

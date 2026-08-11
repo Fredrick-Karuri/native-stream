@@ -22,7 +22,11 @@ const readTimeout = 70 * time.Second // slightly longer than 2 missed pings (60s
 // Registration envelope is handled inline before the loop starts.
 func ReadLoop(ctx context.Context, hub *Hub, client *Client) {
 	defer hub.Unregister(client)
-	defer client.Conn.CloseNow()
+	defer func() {
+		if err := client.Conn.CloseNow(); err != nil {
+			slog.Debug("lmc: close client connection", "device_id", client.DeviceID, "err", err)
+		}
+	}()
 
 	for {
 		readCtx, cancel := context.WithTimeout(ctx, readTimeout)

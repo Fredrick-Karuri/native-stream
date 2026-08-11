@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -110,7 +111,11 @@ func (c *RedditCrawler) fetchSubreddit(ctx context.Context, sub string) ([]disco
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("reddit: close response body", "subreddit", sub, "err", cerr)
+		}
+	}()
 
 	if resp.StatusCode == http.StatusTooManyRequests {
 		return nil, fmt.Errorf("reddit rate limited")

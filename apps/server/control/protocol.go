@@ -12,10 +12,11 @@
 package control
 
 import (
+	"time"
+
 	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"time"
 )
 
 // DeviceKind describes the role a device plays in the control network.

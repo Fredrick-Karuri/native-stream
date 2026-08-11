@@ -1,4 +1,4 @@
-// discovery/crawlers/gist.go — NS-211
+// discovery/crawlers/gist.go
 // Fetches M3U content from configured public GitHub Gists.
 // Uses If-Modified-Since to skip unchanged gists.
 
@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -110,7 +111,11 @@ func (c *GistCrawler) fetchGist(ctx context.Context, id string) ([]discovery.Raw
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("gist: close gist response body", "id", id, "err", cerr)
+		}
+	}()
 
 	// Respect rate limit
 	if remaining := resp.Header.Get("X-RateLimit-Remaining"); remaining == "0" {
@@ -167,7 +172,11 @@ func (c *GistCrawler) fetchRaw(ctx context.Context, url string) (string, error) 
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("gist: close raw file body", "url", url, "err", cerr)
+		}
+	}()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20)) // max 10MB
 	return string(body), err

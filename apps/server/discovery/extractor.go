@@ -1,4 +1,4 @@
-// discovery/extractor.go — NS-203
+// discovery/extractor.go
 // Extracts M3U8/M3U URLs from raw text content.
 // Expands .m3u files by fetching them and extracting individual stream URLs.
 
@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"regexp"
@@ -111,7 +112,11 @@ func (e *LinkExtractor) expandM3U(ctx context.Context, m3uURL, sourceURL string)
 	if err != nil {
 		return nil
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("extractor: close m3u response body", "url", m3uURL, "err", cerr)
+		}
+	}()
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 5<<20)) // max 5MB
 	if err != nil {

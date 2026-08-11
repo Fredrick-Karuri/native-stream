@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -98,7 +99,11 @@ func (c *DirectM3UCrawler) fetchURL(ctx context.Context, url string) (*discovery
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("direct_m3u: close response body", "url", url, "err", cerr)
+		}
+	}()
 
 	if resp.StatusCode == http.StatusNotModified {
 		return nil, nil // Nothing changed

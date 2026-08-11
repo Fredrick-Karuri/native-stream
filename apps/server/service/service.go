@@ -6,6 +6,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -68,7 +69,11 @@ func Install(binaryPath string) error {
 	if err != nil {
 		return fmt.Errorf("create plist: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			slog.Warn("service: close plist file", "path", path, "err", cerr)
+		}
+	}()
 
 	if err := template.Must(template.New("plist").Parse(plistTemplate)).Execute(f, data); err != nil {
 		return fmt.Errorf("write plist: %w", err)
