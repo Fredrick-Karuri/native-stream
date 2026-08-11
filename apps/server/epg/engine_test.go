@@ -268,8 +268,8 @@ func TestUpcomingMatchChannels_OnlyReturnsMatchesWithinWindow(t *testing.T) {
 	e.mu.Lock()
 	e.matches = []Match{
 		{HomeTeam: "A", AwayTeam: "B", KickOff: now.Add(30 * time.Minute), ChannelIDs: []string{"c1"}}, // in window
-		{HomeTeam: "C", AwayTeam: "D", KickOff: now.Add(3 * time.Hour), ChannelIDs: []string{"c2"}},     // outside window
-		{HomeTeam: "E", AwayTeam: "F", KickOff: now.Add(-1 * time.Hour), ChannelIDs: []string{"c3"}},    // already started
+		{HomeTeam: "C", AwayTeam: "D", KickOff: now.Add(3 * time.Hour), ChannelIDs: []string{"c2"}},    // outside window
+		{HomeTeam: "E", AwayTeam: "F", KickOff: now.Add(-1 * time.Hour), ChannelIDs: []string{"c3"}},   // already started
 	}
 	e.mu.Unlock()
 
