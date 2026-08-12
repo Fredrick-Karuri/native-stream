@@ -15,6 +15,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// LoopbackHost is the only bind address considered safe without an API token.
+// Anything else is treated as "exposed" and requires Server.APIToken to be set.
+const LoopbackHost = "127.0.0.1"
+
 // ── Domain types ─────────────────────────────────────────────────────────────
 
 type Config struct {
@@ -28,12 +32,19 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Host string
-	Port int
+	Host     string
+	Port     int
+	APIToken string
 }
 
 func (s ServerConfig) Addr() string {
 	return fmt.Sprintf("%s:%d", s.Host, s.Port)
+}
+
+// IsExposed reports whether this server is bound beyond loopback, and
+// therefore reachable from outside the local machine.
+func (s ServerConfig) IsExposed() bool {
+	return s.Host != LoopbackHost
 }
 
 type StoreConfig struct {
@@ -86,8 +97,9 @@ type SeedConfig struct {
 
 type rawConfig struct {
 	Server struct {
-		Host string `yaml:"host"`
-		Port int    `yaml:"port"`
+		Host     string `yaml:"host"`
+		Port     int    `yaml:"port"`
+		APIToken string `yaml:"api_token"`
 	} `yaml:"server"`
 	Store struct {
 		SnapshotPath     string  `yaml:"snapshot_path"`
@@ -159,7 +171,10 @@ func Defaults() Config {
 	home, _ := os.UserHomeDir()
 	base := filepath.Join(home, ".config", "nativestream")
 	return Config{
-		Server: ServerConfig{Host: "0.0.0.0", Port: 8889},
+		// Loopback-only is the safe-by-default bind. Anything wider must be
+		// an explicit operator choice in config.yaml (see IsExposed/guard
+		// in Load), not something a fresh install can end up with by accident.
+		Server: ServerConfig{Host: LoopbackHost, Port: 8889},
 		Store: StoreConfig{
 			SnapshotPath:     filepath.Join(base, "channels.json"),
 			SnapshotInterval: 5 * time.Minute,
@@ -191,15 +206,20 @@ func Defaults() Config {
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-// Load resolves the config path, applies Docker env overrides, then delegates
-// to loadFile.
+// Load resolves the config path, applies Docker env overrides, delegates to
+// loadFile, then enforces the exposed-bind/token guard (HOST-002): a server
+// bound beyond loopback with no API token is refused rather than started
+// unauthenticated.
 func Load() (Config, error) {
 	cfg := Defaults()
 
 	// Docker: explicit config path overrides everything.
 	if p := os.Getenv("NATIVESTREAM_CONFIG"); p != "" {
-		return loadFile(cfg, p)
-
+		loaded, err := loadFile(cfg, p)
+		if err != nil {
+			return loaded, err
+		}
+		return loaded, guardExposedBindRequiresToken(loaded)
 	}
 	// Docker: data directory for snapshots/cache.
 	if d := os.Getenv("NATIVESTREAM_DATA"); d != "" {
@@ -213,7 +233,28 @@ func Load() (Config, error) {
 	}
 
 	home, _ := os.UserHomeDir()
-	return loadFile(cfg, filepath.Join(home, ".config", "nativestream", "config.yaml"))
+	loaded, err := loadFile(cfg, filepath.Join(home, ".config", "nativestream", "config.yaml"))
+	if err != nil {
+		return loaded, err
+	}
+	return loaded, guardExposedBindRequiresToken(loaded)
+}
+
+// guardExposedBindRequiresToken refuses to hand back a config that binds
+// beyond loopback without an API token configured. This is the single choke
+// point that makes "accidentally expose an unauthenticated API" impossible:
+// every path through Load() — file config, Docker env vars — passes through
+// here before main() ever opens a listening socket.
+func guardExposedBindRequiresToken(cfg Config) error {
+	if cfg.Server.IsExposed() && cfg.Server.APIToken == "" {
+		return fmt.Errorf(
+			"config: server.host is %q (non-loopback) but server.api_token is unset — "+
+				"refusing to start an unauthenticated server open beyond localhost; "+
+				"set server.api_token in config.yaml or bind to %q",
+			cfg.Server.Host, LoopbackHost,
+		)
+	}
+	return nil
 }
 
 // loadFile opens path, decodes YAML into rawConfig, and merges it into cfg.
@@ -258,6 +299,7 @@ func applyRaw(cfg *Config, raw *rawConfig) {
 func applyServer(cfg *Config, raw *rawConfig) {
 	applyString(&cfg.Server.Host, raw.Server.Host)
 	applyInt(&cfg.Server.Port, raw.Server.Port)
+	applyString(&cfg.Server.APIToken, raw.Server.APIToken)
 }
 
 func applyStore(cfg *Config, raw *rawConfig) {
