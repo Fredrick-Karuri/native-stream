@@ -1,0 +1,346 @@
+// PlayerViewModel
+// Owns AVPlayer lifecycle, retry logic, quality selection, and platform integrations.
+
+import Foundation
+import AVFoundation
+import MediaPlayer
+import Observation
+import Combine
+import AVKit
+import IOKit.pwr_mgt
+import SdkGenSwift
+
+@Observable
+@MainActor
+final class PlayerViewModel: NSObject {
+
+    // MARK: - State
+
+    var currentChannel: Channel?
+    var player: AVPlayer?
+    var isPlaying: Bool = false
+    var quality: StreamQuality = .auto
+    var error: PlayerError?
+    private(set) var retryCount: Int = 0
+    var isMuted: Bool = false
+    var channelList: [Channel] = []
+
+    var pipController: AVPictureInPictureController?
+    var pipActive: Bool = false
+
+    // MARK: - Dependencies
+
+    var epgViewModel: EPGViewModel?
+    var bufferPreset: BufferPreset = .balanced
+
+    private var playerItemObservation: Task<Void, Never>?
+    private let sleepAssertion = SleepAssertion()
+
+    private let maxRetries = 3
+    private let retryDelay: TimeInterval = 2
+    private static let proxyRetryGracePeriod: TimeInterval = 2
+
+    private(set) var activeLinkFailureReason: String?
+
+    // MARK: - Playback
+
+    func play(channel: Channel) async throws {
+        playerItemObservation?.cancel()
+        error = nil
+        retryCount = 0
+        activeLinkFailureReason = nil
+        currentChannel = channel
+        startPlayback(url: channel.streamURL)
+    }
+
+    /// Play any URL directly without persisting a channel.
+    /// Creates a temporary Channel not added to the playlist.
+    func playURL(_ urlString: String, headers: [String: String] = [:]) {
+        guard let url = URL(string: urlString.trimmingCharacters(in: .whitespaces)) else {
+            error = .unsupportedFormat
+            return
+        }
+        let temp = Channel(
+            tvgId: "",
+            name: urlString,
+            groupTitle: "Direct",
+            streamURL: url,
+            streamHeaders: headers
+        )
+        currentChannel = temp
+        error = nil
+        retryCount = 0
+        activeLinkFailureReason = nil
+        startPlayback(url: url, headers: headers)
+    }
+
+    // MARK: - Internal playback
+
+    /// Uses AVURLAsset when headers are present so streams requiring
+    /// Referer/User-Agent or custom tokens play without buffering failures.
+    private func startPlayback(url: URL, headers: [String: String] = [:]) {
+        print("[player] url=\(url) headers=\(headers)")
+        let item: AVPlayerItem
+
+        if headers.isEmpty {
+            item = AVPlayerItem(url: url)
+        } else {
+            // AVURLAssetHTTPHeaderFieldsKey injects headers on every HLS request
+            let asset = AVURLAsset(
+                url: url,
+                options: ["AVURLAssetHTTPHeaderFieldsKey": headers]
+            )
+            item = AVPlayerItem(asset: asset)
+        }
+
+        item.preferredForwardBufferDuration = 0
+        item.automaticallyPreservesTimeOffsetFromLive = true
+
+        player?.pause()
+        player = AVPlayer(playerItem: item)
+        player?.automaticallyWaitsToMinimizeStalling = true
+        player?.play()
+        isPlaying = true
+        manageScreenSleep(disableSleep: true)
+
+        observePlayerItem(item)
+        setupNowPlaying()
+
+    }
+
+    // MARK: Retry logic via async KVO observation
+    private func observePlayerItem(_ item: AVPlayerItem) {
+        playerItemObservation?.cancel()
+        playerItemObservation = Task { [weak self] in
+            guard let self else { return }
+
+            await withTaskGroup(of: Void.self) { group in
+                // Status observation (existing)
+                group.addTask {
+                    for await status in item.publisher(for: \.status).values {
+                        guard !Task.isCancelled else { return }
+                        if status == .failed {
+                            print("[player] error=\(item.error?.localizedDescription ?? "unknown")")
+                            print("[player] error detail=\(String(describing: item.error))")
+                            await self.handleFailure(underlyingError: item.error)
+                            return
+                        }
+                    }
+                }
+
+                // Stall observation (new)
+                group.addTask {
+                    for await _ in NotificationCenter.default
+                        .notifications(named: .AVPlayerItemPlaybackStalled, object: item) {
+                        guard !Task.isCancelled else { return }
+                        await MainActor.run { self.player?.play() }  // attempt resume
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleFailure(underlyingError: Error?) async {
+        guard retryCount < maxRetries else {
+            await refreshActiveLinkFailureReason()
+            error = .maxRetriesExceeded
+            updateNowPlayingState(paused: true)
+            return
+        }
+
+        retryCount += 1
+        try? await Task.sleep(for: .seconds(retryDelay))
+        guard !Task.isCancelled, let channel = currentChannel else { return }
+
+        // Re-fetch — server may have a fresher active link after a probe
+        guard let detail = try? await APIClient.shared.getChannel(id: channel.id),
+              detail.hasActiveLink,
+              let activeURL = URL(string: detail.activeLink.url) else {
+            error = .noActiveLink
+            return
+        }
+        activeLinkFailureReason = detail.hasActiveLink ? detail.activeLink.failureReason : nil
+        startPlayback(url: activeURL)
+    }
+
+    /// Fetches the channel one more time so the terminal error state knows
+    /// *why* playback failed (e.g. "forbidden") before surfacing recovery options.
+    private func refreshActiveLinkFailureReason() async {
+        guard let channel = currentChannel else { return }
+        let detail = try? await APIClient.shared.getChannel(id: channel.id)
+        activeLinkFailureReason = (detail?.hasActiveLink == true) ? detail?.activeLink.failureReason : nil
+    }
+
+    /// Enables the proxy and retries the current stream — mirrors Android's
+    /// PlayerViewModel.tryWithProxy (PRX-UX-002).
+    func tryWithProxy(settings: SettingsStore) async -> Bool {
+        try? await APIClient.shared.setProxyEnabled(true)
+        settings.proxyEnabled = true
+        retry()
+        try? await Task.sleep(for: .seconds(Self.proxyRetryGracePeriod))
+        return isPlaying
+    }
+
+    // MARK: - Retry (manual, from UI)
+
+    func retry() {
+        error = nil
+        retryCount = 0
+        guard let channel = currentChannel else { return }
+        Task { try? await play(channel: channel) }
+    }
+
+    // PiP
+
+    func setupPiP(playerLayer: AVPlayerLayer) {
+        guard AVPictureInPictureController.isPictureInPictureSupported(),
+              pipController == nil else { return }
+        let pip = AVPictureInPictureController(playerLayer: playerLayer)
+        pip?.delegate = self
+        pipController = pip
+    }
+
+    func enterPiP() {
+        pipController?.startPictureInPicture()
+    }
+
+    // MARK: - Toggle
+
+    func togglePlayback() {
+        guard let player else { return }
+        if isPlaying {
+            player.pause()
+            isPlaying = false
+            updateNowPlayingState(paused: true)
+            manageScreenSleep(disableSleep: false)
+        } else {
+            player.play()
+            isPlaying = true
+            updateNowPlayingState(paused: false)
+            manageScreenSleep(disableSleep: true)
+        }
+    }
+
+    // MARK: - Quality
+
+    func setQuality(_ newQuality: StreamQuality) {
+        quality = newQuality
+        player?.currentItem?.preferredPeakBitRate = PlaybackBitrate.preferredPeakBitRate(for: newQuality)
+    }
+
+    // MARK: - Now Playing
+
+    func setupNowPlaying() {
+        guard let channel = currentChannel else { return }
+
+        var info: [String: Any] = [
+            MPMediaItemPropertyTitle: channel.name,
+            MPNowPlayingInfoPropertyIsLiveStream: true,
+            MPNowPlayingInfoPropertyPlaybackRate: 1.0
+        ]
+
+        if let programme = epgViewModel?.currentProgramme(for: channel) {
+            info[MPMediaItemPropertyArtist] = programme.title
+        }
+
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+
+        let commandCenter = MPRemoteCommandCenter.shared()
+        commandCenter.playCommand.addTarget { [weak self] _ in
+            self?.togglePlayback()
+            return .success
+        }
+        commandCenter.pauseCommand.addTarget { [weak self] _ in
+            self?.togglePlayback()
+            return .success
+        }
+    }
+
+    private func updateNowPlayingState(paused: Bool) {
+        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+        info[MPNowPlayingInfoPropertyPlaybackRate] = paused ? 0.0 : 1.0
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+
+    func setMainLayerHidden(_ hidden: Bool) {
+        // AVPictureInPictureController handles its own rendering;
+        // we just need to hide the source layer
+        pipController?.playerLayer.opacity = hidden ? 0 : 1
+    }
+    private func manageScreenSleep(disableSleep: Bool) {
+        if disableSleep {
+            guard sleepAssertion.id == 0 else { return }
+            let result = IOPMAssertionCreateWithName(
+                kIOPMAssertionTypeNoDisplaySleep as CFString,
+                IOPMAssertionLevel(kIOPMAssertionLevelOn),
+                "NativeStream playback" as CFString,
+                &sleepAssertion.id
+            )
+            if result != kIOReturnSuccess { sleepAssertion.id = 0 }
+        } else {
+            guard sleepAssertion.id != 0 else { return }
+            IOPMAssertionRelease(sleepAssertion.id)
+            sleepAssertion.id = 0
+        }
+    }
+
+    deinit {
+        if sleepAssertion.id != 0 { IOPMAssertionRelease(sleepAssertion.id) }
+    }
+
+    // MARK: - Cleanup
+
+    func cleanup() {
+        pipController?.stopPictureInPicture()
+        pipController = nil
+        playerItemObservation?.cancel()
+        player?.pause()
+        player?.replaceCurrentItem(with: nil)
+        isPlaying = false
+        pipActive = false
+        manageScreenSleep(disableSleep: false)
+    }
+
+    func stop() {
+        cleanup()
+        currentChannel = nil
+    }
+
+    func toggleMute() {
+        isMuted.toggle()
+        player?.isMuted = isMuted
+    }
+
+    func playNext(in channels: [Channel]) {
+        guard let current = currentChannel,
+              let idx = channels.firstIndex(where: { $0.id == current.id }) else { return }
+        let next = channels[(idx + 1) % channels.count]
+        Task { try? await play(channel: next) }
+    }
+
+    func playPrevious(in channels: [Channel]) {
+        guard let current = currentChannel,
+              let idx = channels.firstIndex(where: { $0.id == current.id }) else { return }
+        let prev = channels[(idx - 1 + channels.count) % channels.count]
+        Task { try? await play(channel: prev) }
+    }
+}
+
+extension PlayerViewModel: AVPictureInPictureControllerDelegate {
+    nonisolated func pictureInPictureWillStart(_ controller: AVPictureInPictureController) {
+        Task { @MainActor in
+            self.pipActive = true
+            self.setMainLayerHidden(true)
+        }
+    }
+    nonisolated func pictureInPictureWillStop(_ controller: AVPictureInPictureController) {
+        Task { @MainActor in
+            self.pipActive = false
+            self.setMainLayerHidden(false)
+        }
+    }
+}
+
+private final class SleepAssertion: @unchecked Sendable {
+    var id: IOPMAssertionID = 0
+}

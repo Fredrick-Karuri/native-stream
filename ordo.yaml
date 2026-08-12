@@ -4,25 +4,28 @@ groups:
     commands:
       dev:
         description: Run server with dev config
-        run: "cd app/server && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml go run ./cmd"
+        run: "cd apps/server && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml go run ./cmd"
       build:
         description: Build the server binary
-        run: "cd app/server && go build -o nativestream-server ./cmd/"
+        run: "cd apps/server && go build -o nativestream-server ./cmd/"
       run:
         description: Build and run the server
-        run: "cd app/server && go build -o nativestream-server ./cmd/ && ./nativestream-server"
+        run: "cd apps/server && go build -o nativestream-server ./cmd/ && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml ./nativestream-server"
       test:
         description: Run Go tests
-        run: "cd app/server && go test -race -v ./..."
+        run: "cd apps/server && go test -race -v ./..."
       vet:
         description: Run go vet
-        run: "cd app/server && go vet ./..."
+        run: "cd apps/server && go vet ./..."
+      lint:
+        description: Run golangci-lint
+        run: "cd apps/server && golangci-lint run --timeout 5m --config ../../tooling/lint/golangci.yml"
       restart:
         description: Rebuild and restart server in background
         run: |
-          cd app/server && go build -o nativestream-server ./cmd/
-          lsof -ti :8888 | xargs kill -9 2>/dev/null; sleep 1
-          ./nativestream-server >> /tmp/nativestream.log 2>> /tmp/nativestream-error.log &
+          cd apps/server && go build -o nativestream-server ./cmd/
+          lsof -ti :8889 | xargs kill -9 2>/dev/null; sleep 1
+          NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml ./nativestream-server >> /tmp/nativestream.log 2>> /tmp/nativestream-error.log &
           sleep 1 && echo "✓ Restarted"
           tail -f /tmp/nativestream.log /tmp/nativestream-error.log
       logs:
@@ -30,97 +33,135 @@ groups:
         run: "tail -f /tmp/nativestream.log /tmp/nativestream-error.log"
       release-patch:
         description: Bump patch version and release the server
-        run: "./release.sh server patch"
+        run: "cd tooling/scripts && ./release.sh server patch"
       release-minor:
         description: Bump minor version and release the server
-        run: "./release.sh server minor"
+        run: "cd tooling/scripts && ./release.sh server minor"
       release-major:
         description: Bump major version and release the server
-        run: "./release.sh server major"
+        run: "cd tooling/scripts && ./release.sh server major"
       release-current:
         description: Re-release current server version, no bump
-        run: "./release.sh server current"
+        run: "cd tooling/scripts && ./release.sh server current"
 
   mac:
     description: macOS client
     commands:
       build:
-        description: Build Mac app (Release)
-        run: |
-          xcodebuild -project app/macos/NativeStream/NativeStream.xcodeproj \
-                     -scheme NativeStream \
-                     -configuration Release \
-                     -derivedDataPath app/macos/NativeStream/DerivedData \
-                     build
-          xattr -cr app/macos/NativeStream/DerivedData/Build/Products/Release/NativeStream.app
-      run:
         description: Build and launch Mac app (Debug)
         run: |
-          xcodebuild -project app/macos/NativeStream/NativeStream.xcodeproj \
+          xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
                      -scheme NativeStream \
                      -configuration Debug \
-                     -derivedDataPath app/macos/NativeStream/DerivedData \
-                     build
-          open app/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
+                     build | xcbeautify
       lint:
         description: Lint the macOS client with SwiftLint
-        run: "swiftlint lint --path app/macos/NativeStream"
+        run: "swiftlint lint --config tooling/lint/swiftlint.yml"
+      test-unit:
+        description: Run macOS unit tests
+        run: |
+          set -o pipefail && xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
+                     -only-testing:NativeStreamTests \
+                     test | xcbeautify
+      test-ui:
+        description: Run macOS UI tests
+        run: |
+          set -o pipefail && xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
+                     -destination 'platform=macOS' \
+                     -only-testing:NativeStreamUITests \
+                     test | xcbeautify
+      test-all:
+        description: Run all macOS tests (unit + UI)
+        run: |
+          set -o pipefail && xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
+                     -only-testing:NativeStreamTests \
+                     test | xcbeautify
+          set -o pipefail && xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -derivedDataPath apps/macos/NativeStream/DerivedData \
+                     -destination 'platform=macOS' \
+                     -only-testing:NativeStreamUITests \
+                     test | xcbeautify
       release-patch:
         description: Bump patch version and release the macOS app
-        run: "./release.sh macos patch"
+        run: "cd tooling/scripts && ./release.sh macos patch"
       release-minor:
         description: Bump minor version and release the macOS app
-        run: "./release.sh macos minor"
+        run: "cd tooling/scripts && ./release.sh macos minor"
       release-major:
         description: Bump major version and release the macOS app
-        run: "./release.sh macos major"
+        run: "cd tooling/scripts && ./release.sh macos major"
       release-current:
         description: Re-release current macOS version, no bump
-        run: "./release.sh macos current"
+        run: "cd tooling/scripts && ./release.sh macos current"
 
   android:
     description: Android client
     commands:
+      build:
+        description: Build Android debug APK
+        run: "cd apps/android && ./gradlew assembleDebug"
       test-unit:
         description: Run Android local unit and integration tests
-        run: "cd app/android && ./gradlew testDebugUnitTest"
+        run: "cd apps/android && ./gradlew testDebugUnitTest"
       test-ui:
         description: Run Android instrumented Compose UI tests (requires emulator/device)
-        run: "cd app/android && ./gradlew connectedDebugAndroidTest"
+        run: "cd apps/android && ./gradlew connectedDebugAndroidTest"
       test-all:
         description: Run all Android tests (unit + UI)
         run: |
-          cd app/android && ./gradlew testDebugUnitTest
+          cd apps/android && ./gradlew testDebugUnitTest
           ./gradlew connectedDebugAndroidTest
       lint:
         description: Run Android Lint
-        run: "cd app/android && ./gradlew lint"
+        run: "cd apps/android && ./gradlew lint"
       release-patch:
         description: Bump patch version and release the Android app
-        run: "./release.sh android patch"
+        run: "cd tooling/scripts && ./release.sh android patch"
       release-minor:
         description: Bump minor version and release the Android app
-        run: "./release.sh android minor"
+        run: "cd tooling/scripts && ./release.sh android minor"
       release-major:
         description: Bump major version and release the Android app
-        run: "./release.sh android major"
+        run: "cd tooling/scripts && ./release.sh android major"
       release-current:
         description: Re-release current Android version, no bump
-        run: "./release.sh android current"
+        run: "cd tooling/scripts && ./release.sh android current"
+
+  build:
+    description: Build all platforms
+    commands:
+      all:
+        description: Build server, Android, and Mac
+        run: |
+          (cd apps/server && go build -o nativestream-server ./cmd/)
+          (cd apps/android && ./gradlew assembleDebug)
+          (cd apps/macos/NativeStream && xcodebuild -project NativeStream.xcodeproj \
+                     -scheme NativeStream \
+                     -configuration Debug \
+                     -derivedDataPath DerivedData \
+                     build | xcbeautify)
 
   dev:
     description: Full dev environment
     commands:
       start:
-        description: Start server in background and launch app
-        run: |
-          cd app/server && go build -o nativestream-server ./cmd/ && ./nativestream-server &
-          xcodebuild -project app/macos/NativeStream/NativeStream.xcodeproj \
-                     -scheme NativeStream \
-                     -configuration Debug \
-                     -derivedDataPath app/macos/NativeStream/DerivedData \
-                     build
-          open app/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
+          description: Start server in background and launch app
+          run: |
+            cd apps/server && go build -o nativestream-server ./cmd/ && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml ./nativestream-server &
+            xcodebuild -project apps/macos/NativeStream/NativeStream.xcodeproj \
+                      -scheme NativeStream \
+                      -configuration Debug \
+                      -derivedDataPath apps/macos/NativeStream/DerivedData \
+                      build | xcbeautify
+            open apps/macos/NativeStream/DerivedData/Build/Products/Debug/NativeStream.app
 
   service:
     description: launchd service management
@@ -128,8 +169,8 @@ groups:
       install:
         description: Install server as launchd service
         run: |
-          cd app/server && go build -o nativestream-server ./cmd/
-          sudo cp app/server/nativestream-server /usr/local/bin/nativestream-server
+          cd apps/server && go build -o nativestream-server ./cmd/
+          sudo cp apps/server/nativestream-server /usr/local/bin/nativestream-server
           /usr/local/bin/nativestream-server --install-service
       uninstall:
         description: Remove launchd service
@@ -142,4 +183,4 @@ groups:
     commands:
       all:
         description: Remove binaries and derived data
-        run: "rm -f app/server/nativestream-server && rm -rf app/macos/NativeStream/DerivedData"
+        run: "rm -f apps/server/nativestream-server && rm -rf apps/macos/NativeStream/DerivedData"

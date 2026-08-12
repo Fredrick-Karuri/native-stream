@@ -13,21 +13,23 @@ The content orchestration engine behind NativeStream. It manages content ingesti
 
 ## Quick Start
 
-### Homebrew (recommended)
+### Download a release (recommended)
 
 ```bash
-brew tap yourname/nativestream
-brew install nativestream-server
-brew services start nativestream-server
+curl -L https://github.com/Fredrick-Karuri/native-stream/releases/latest/download/nativestream-server-darwin-arm64.tar.gz | tar -xz
+sudo mv nativestream-server-darwin-arm64 /usr/local/bin/nativestream-server
+nativestream-server --install-service
 ```
 
-The server starts automatically on login.
+(Swap the asset name for your platform — `darwin-amd64`, `linux-amd64`, or `linux-arm64` — see [the latest release](https://github.com/Fredrick-Karuri/native-stream/releases) for all options and checksums.)
+
+`--install-service` runs it as a background launchd service that starts on login. Skip that flag to just run it in the foreground instead.
 
 ### Build from source
 
 ```bash
-git clone https://github.com/yourname/nativestream.git
-cd nativestream
+git clone https://github.com/Fredrick-Karuri/native-stream.git
+cd native-stream
 ordo server:build && ordo server:run
 # or, without ordo installed:
 make build-server && make run-server
@@ -46,7 +48,7 @@ For the full endpoint reference, see [docs/api.md](docs/api.md). For configurati
 | Requirement | Version/Detail |
 |---|---|
 | Go | 1.25 (per the Docker build — confirm this matches the non-Docker build requirement) |
-| OS | macOS (Homebrew tap + launchd service); Linux via Docker (unverified, see [docs/development.md](docs/development.md#docker-work-in-progress--unverified)) |
+| OS | macOS (prebuilt binary + launchd service) or Linux (prebuilt binary, or Docker — unverified, see [docs/development.md](docs/development.md#docker-work-in-progress--unverified)) |
 | Runtime dependencies | None beyond the Go standard library |
 
 ## Running as a Service
@@ -64,7 +66,7 @@ ordo service:uninstall   # or: make uninstall-service
 Dev server (port 8889, separate config):
 
 ```bash
-ordo server:dev   # or: make server-dev
+ordo server:dev   # or: make run-server
 ```
 
 For the full command reference — build, test, lint, restart, logs — see [docs/development.md](docs/development.md).

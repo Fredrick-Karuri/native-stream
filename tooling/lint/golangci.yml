@@ -1,0 +1,38 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck       # unchecked errors
+    - govet          # go vet checks
+    - staticcheck    # static analysis
+    - unused         # unused code
+    - misspell       # spelling
+    - bodyclose      # http response body not closed
+    - noctx          # http requests without context
+    - gosec          # security issues
+    - exhaustive     # exhaustive enum switches
+    # gofmt and goimports are formatters in golangci-lint v2 — they
+    # belong under formatters.enable below, not here. Listing them in
+    # both places is a v2 schema violation ("X is a formatter").
+
+  settings:
+    gosec:
+      excludes:
+        - G104   # errors unhandled — covered by errcheck
+
+  exclusions:
+    rules:
+      - path: "_test\\.go"
+        linters: [gosec, errcheck]
+      - path: "cmd/main\\.go"
+        linters: [exhaustive]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/yourname/nativestream

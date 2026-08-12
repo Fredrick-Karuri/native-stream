@@ -1,13 +1,11 @@
-.PHONY: build-server run-server clean build-app run-app dev test-server test-android-unit test-android-ui test-android-all \
+.PHONY: build test lint build-server run-server clean build-mac run-mac lint-mac dev  \
+		test-server test-android-unit test-android-ui test-android-all \
         release-server-patch release-server-minor release-server-major release-server-current \
         release-android-patch release-android-minor release-android-major release-android-current \
-        release-macos-patch release-macos-minor release-macos-major release-macos-current
-
-
-VERSION := $(shell cat VERSION)
+        release-macos-patch release-macos-minor release-macos-major release-macos-current test-mac-unit test-mac-ui
 
 # ── Go Server ─────────────────────────────────────────────────────────────────
-SERVER_DIR := app/server
+SERVER_DIR := apps/server
 SERVER_BIN := $(SERVER_DIR)/nativestream-server
 
 build-server:
@@ -15,12 +13,9 @@ build-server:
 	cd $(SERVER_DIR) && go build -o nativestream-server ./cmd/
 	@echo "✓ Binary: $(SERVER_BIN)"
 
-server-dev:
-	cd app/server && NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml go run ./cmd
-
 run-server: build-server
-	@echo "→ Starting server on http://127.0.0.1:8888"
-	$(SERVER_BIN)
+	@echo "→ Starting server on http://127.0.0.1:8889"
+	NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml $(SERVER_BIN)
 
 test-server:
 	@echo "→ Running Go tests..."
@@ -30,49 +25,65 @@ vet-server:
 	cd $(SERVER_DIR) && go vet ./...
 
 lint-server:
-	cd app/server && golangci-lint run --timeout 5m
+	cd apps/server && golangci-lint run --timeout 5m --config ../../tooling/lint/golangci.yml
 
 restart-server: build-server
 	@echo "→ Stopping server..."
-	@lsof -ti :8888 | xargs kill -9 2>/dev/null; sleep 1
+	@lsof -ti :8889 | xargs kill -9 2>/dev/null; sleep 1
 	@echo "→ Starting server..."
-	@$(SERVER_BIN) >> /tmp/nativestream.log 2>> /tmp/nativestream-error.log &
+	@NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml $(SERVER_BIN) >> /tmp/nativestream.log 2>> /tmp/nativestream-error.log &
 	@sleep 1 && echo "✓ Restarted"
 	tail -f /tmp/nativestream.log /tmp/nativestream-error.log
 logs:
 	tail -f /tmp/nativestream.log /tmp/nativestream-error.log
 
 # ── Mac App ───────────────────────────────────────────────────────────────────
-APP_DIR     := app/macos/NativeStream
+APP_DIR     := apps/macos/NativeStream
 SCHEME      := NativeStream
 DERIVED     := $(APP_DIR)/DerivedData
 
-build-app:
-	@echo "→ Building Mac app (Release)..."
-	xcodebuild -project $(APP_DIR)/NativeStream.xcodeproj \
-	           -scheme $(SCHEME) \
-	           -configuration Release \
-	           -derivedDataPath $(DERIVED) \
-	           build
-	@echo "→ Stripping extended attributes..."
-	xattr -cr $(DERIVED)/Build/Products/Release/NativeStream.app
-	@echo "✓ App built"
-
-run-app:
+build-mac:
 	@echo "→ Building Mac app (Debug)..."
 	xcodebuild -project $(APP_DIR)/NativeStream.xcodeproj \
 	           -scheme $(SCHEME) \
 	           -configuration Debug \
 	           -derivedDataPath $(DERIVED) \
-	           build
+	           build | xcbeautify
+	@echo "→ Stripping extended attributes..."
+	xattr -cr $(DERIVED)/Build/Products/Debug/NativeStream.app
+	@echo "✓ App built"
+
+run-mac: build-mac
 	@echo "→ Launching NativeStream..."
 	open $(DERIVED)/Build/Products/Debug/NativeStream.app
 
-lint-client:
-	swiftlint lint --path app/macos/NativeStream
+lint-mac:
+	swiftlint lint --config tooling/lint/swiftlint.yml
+
+test-mac-unit:
+	@echo "→ Running macOS unit tests..."
+	set -o pipefail && xcodebuild -project $(APP_DIR)/NativeStream.xcodeproj \
+	           -scheme $(SCHEME) \
+	           -derivedDataPath $(DERIVED) \
+	           -only-testing:NativeStreamTests \
+	           test | xcbeautify
+
+test-mac-ui:
+	@echo "→ Running macOS UI tests..."
+	set -o pipefail && xcodebuild -project $(APP_DIR)/NativeStream.xcodeproj \
+	           -scheme $(SCHEME) \
+	           -derivedDataPath $(DERIVED) \
+	           -destination 'platform=macOS' \
+	           -only-testing:NativeStreamUITests \
+	           test | xcbeautify
+
+test-mac: test-mac-unit test-mac-ui
 
 # ── Android App ───────────────────────────────────────────────────────────────
-ANDROID_DIR := app/android
+ANDROID_DIR := apps/android
+
+build-android:
+	cd $(ANDROID_DIR) && ./gradlew assembleDebug
 
 test-android-unit:
 	@echo "→ Running Android local unit and integration tests..."
@@ -88,15 +99,16 @@ lint-android:
 	cd $(ANDROID_DIR) && ./gradlew lint
 
 
-# ── Dev (server + app together) ───────────────────────────────────────────────
-dev:
+# ── Dev (server + mac together; Android is run from Android Studio) ───────────
+dev: build-server
 	@echo "→ Starting server in background..."
-	$(MAKE) build-server
-	$(SERVER_BIN) &
-	@echo "→ Launching app..."
-	$(MAKE) run-app
+	NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml $(SERVER_BIN) &
+	@echo "→ Launching Mac app..."
+	$(MAKE) run-mac
 
 # ── Docker ────────────────────────────────────────────────────────────────────
+VERSION := $(shell cat apps/server/VERSION)
+
 docker-build:
 	docker build -t nativestream-server:$(VERSION) -t nativestream-server:latest .
  
@@ -119,16 +131,16 @@ docker-test: docker-build
 release-binaries:
 	@echo "→ Building release binaries v$(VERSION)"
 	@mkdir -p dist
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -C app/server \
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -C apps/server \
 		-ldflags="-s -w -X main.version=$(VERSION)" \
 		-o ../../dist/nativestream-server-darwin-arm64 ./cmd/
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -C app/server \
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -C apps/server \
 		-ldflags="-s -w -X main.version=$(VERSION)" \
 		-o ../../dist/nativestream-server-darwin-amd64 ./cmd/
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -C app/server \
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -C apps/server \
 		-ldflags="-s -w -X main.version=$(VERSION)" \
 		-o ../../dist/nativestream-server-linux-amd64 ./cmd/
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C app/server \
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -C apps/server \
 		-ldflags="-s -w -X main.version=$(VERSION)" \
 		-o ../../dist/nativestream-server-linux-arm64 ./cmd/
 	cd dist && shasum -a 256 nativestream-server-* > checksums.txt
@@ -136,32 +148,34 @@ release-binaries:
 
 # One target per component per bump type, wired to release.sh.
 # e.g. `make release-macos-patch` → ./release.sh macos patch
+SCRIPTS_DIR := tooling/scripts
+
 release-server-patch:
-	./release.sh server patch
+	cd $(SCRIPTS_DIR) && ./release.sh server patch
 release-server-minor:
-	./release.sh server minor
+	cd $(SCRIPTS_DIR) && ./release.sh server minor
 release-server-major:
-	./release.sh server major
+	cd $(SCRIPTS_DIR) && ./release.sh server major
 release-server-current:
-	./release.sh server current
+	cd $(SCRIPTS_DIR) && ./release.sh server current
 
 release-android-patch:
-	./release.sh android patch
+	cd $(SCRIPTS_DIR) && ./release.sh android patch
 release-android-minor:
-	./release.sh android minor
+	cd $(SCRIPTS_DIR) && ./release.sh android minor
 release-android-major:
-	./release.sh android major
+	cd $(SCRIPTS_DIR) && ./release.sh android major
 release-android-current:
-	./release.sh android current
+	cd $(SCRIPTS_DIR) && ./release.sh android current
 
 release-macos-patch:
-	./release.sh macos patch
+	cd $(SCRIPTS_DIR) && ./release.sh macos patch
 release-macos-minor:
-	./release.sh macos minor
+	cd $(SCRIPTS_DIR) && ./release.sh macos minor
 release-macos-major:
-	./release.sh macos major
+	cd $(SCRIPTS_DIR) && ./release.sh macos major
 release-macos-current:
-	./release.sh macos current
+	cd $(SCRIPTS_DIR) && ./release.sh macos current
 
 # ── Service (macOS) ───────────────────────────────────────────────────
 install-service: build-server
@@ -181,3 +195,8 @@ clean:
 	rm -f $(SERVER_BIN)
 	rm -rf $(DERIVED)
 	@echo "✓ Clean"
+
+# ── all ─────────────────────────────────────────────────────────────────
+build: build-server build-android build-mac
+lint : lint-mac lint-server lint-android
+test: test-android-unit test-mac-unit test-server

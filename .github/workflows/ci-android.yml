@@ -4,12 +4,12 @@ on:
   push:
     branches: [main, "develop", "feat/*"]
     paths:
-      - "app/android/**"
+      - "apps/android/**"
       - ".github/workflows/ci-android.yml"
   pull_request:
     branches: [main]
     paths:
-      - "app/android/**"
+      - "apps/android/**"
 
 jobs:
   test-and-build:
@@ -33,24 +33,24 @@ jobs:
           gradle-home-cache-cleanup: true
 
       - name: Grant Execute Permission to Gradle Wrapper
-        working-directory: app/android
+        working-directory: apps/android
         run: chmod +x gradlew
 
       - name: Run Code Linting Verification
-        working-directory: app/android
+        working-directory: apps/android
         run: ./gradlew lintDebug
       - name: Upload Lint Report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: lint-report
-          path: app/android/app/build/reports/lint-results-debug.html
+          path: apps/android/app/build/reports/lint-results-debug.html
       - name: Run Local Unit Tests
-        working-directory: app/android
+        working-directory: apps/android
         run: ./gradlew testDebugUnitTest
 
       - name: Build Debug Verification APK
-        working-directory: app/android
+        working-directory: apps/android
         run: ./gradlew assembleDebug
 
       # Stores the compiled debug APK as an artifact to download or inspect manually
@@ -58,5 +58,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-debug-apk
-          path: app/android/app/build/outputs/apk/debug/app-debug.apk
+          path: apps/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7

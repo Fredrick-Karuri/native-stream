@@ -1,12 +1,12 @@
 # ── Go ────────────────────────────────────────────────────────────────────────
-app/server/nativestream-server
-app/server/*.out
+apps/server/nativestream-server
+apps/server/*.out
 /bin/
 
 # ── Swift / Xcode ─────────────────────────────────────────────────────────────
-app/macos/NativeStream/NativeStream.xcodeproj/xcuserdata/
-app/macos/NativeStream/NativeStream.xcodeproj/project.xcworkspace/xcuserdata/
-app/macos/NativeStream/DerivedData/
+apps/macos/NativeStream/NativeStream.xcodeproj/xcuserdata/
+apps/macos/NativeStream/NativeStream.xcodeproj/project.xcworkspace/xcuserdata/
+apps/macos/NativeStream/DerivedData/
 **/*.xcuserstate
 **/*.xcsettings
 *.resolved
@@ -29,18 +29,25 @@ epg_cache.xml
 discovery_state.json
 
 # ── Android ──────────────────────────────────────────────────────────────────
-app/android/app/build/
-app/android/build/
-app/android/.gradle/
-app/android/local.properties
-app/android/**/*.hprof
-app/android/.gradle/
-app/android/.idea/
-app/android/keystore.jks 
-app/android/.kotlin/
+apps/android/app/build/
+apps/android/build/
+apps/android/.gradle/
+apps/android/local.properties
+apps/android/**/*.hprof
+apps/android/.gradle/
+apps/android/.idea/
+apps/android/keystore.jks 
+apps/android/.kotlin/
 
 # Private local script — never commit
 crawlers/*.py
 *.local.py
 
 *.jks
+
+packages/sdk-gen/kotlin/build/
+packages/sdk-gen/kotlin/.gradle/
+packages/sdk-gen/swift/.build/
+packages/sdk-gen/swift/.swiftpm/packages/sdk-gen/kotlin/bin/
+packages/sdk-gen/kotlin/bin/
+packages/sdk-gen/swift/.swiftpm/

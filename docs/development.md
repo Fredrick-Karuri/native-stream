@@ -18,51 +18,51 @@ A `Makefile` with equivalent targets also exists at the repo root (e.g. `make bu
 
 ### Server (`ordo server:*` / `make *-server`)
 
-| ordo | make | Does |
-|---|---|---|
-| `server:dev` | `server-dev` | Run with `~/.config/nativestream/config.dev.yaml`, port 8889 |
-| `server:build` | `build-server` | `go build -o nativestream-server ./cmd/` |
-| `server:run` | `run-server` | Build, then start on `127.0.0.1:8888` |
-| `server:test` | `test-server` | `go test -race -v ./...` |
-| `server:vet` | `vet-server` | `go vet ./...` |
-| — | `lint-server` | `golangci-lint run --timeout 5m` |
+| ordo             | make             | Does                                                              |
+| ---------------- | ---------------- | ----------------------------------------------------------------- |
+| `server:dev`     | `server-dev`     | Run with `~/.config/nativestream/config.dev.yaml`, port 8889      |
+| `server:build`   | `build-server`   | `go build -o nativestream-server ./cmd/`                          |
+| `server:run`     | `run-server`     | Build, then start on `127.0.0.1:8888`                             |
+| `server:test`    | `test-server`    | `go test -race -v ./...`                                          |
+| `server:vet`     | `vet-server`     | `go vet ./...`                                                    |
+| —                | `lint-server`    | `golangci-lint run --timeout 5m`                                  |
 | `server:restart` | `restart-server` | Kill anything on :8888, rebuild, restart in background, tail logs |
-| `server:logs` | `logs` | Tail `/tmp/nativestream.log` and `/tmp/nativestream-error.log` |
+| `server:logs`    | `logs`           | Tail `/tmp/nativestream.log` and `/tmp/nativestream-error.log`    |
 
 ### Mac (`ordo mac:*` / `make *-app`)
 
-| ordo | make | Does |
-|---|---|---|
-| `mac:build` | `build-app` | `xcodebuild` Release, then strips extended attributes (`xattr -cr`) so the app runs without a Gatekeeper quarantine prompt on the build machine |
-| `mac:run` | `run-app` | `xcodebuild` Debug, then `open`s the built app |
-| `mac:lint` | `lint-client` | `swiftlint lint --path app/macos/NativeStream` |
+| ordo        | make          | Does                                                                                                                                            |
+| ----------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mac:build` | `build-app`   | `xcodebuild` Release, then strips extended attributes (`xattr -cr`) so the app runs without a Gatekeeper quarantine prompt on the build machine |
+| `mac:run`   | `run-app`     | `xcodebuild` Debug, then `open`s the built app                                                                                                  |
+| `mac:lint`  | `lint-client` | `swiftlint lint --path apps/macos/NativeStream`                                                                                                 |
 
 ### Android (`ordo android:*` / `make *-android`)
 
-| ordo | make | Does |
-|---|---|---|
-| `android:test-unit` | `test-android-unit` | `./gradlew testDebugUnitTest` |
-| `android:test-ui` | `test-android-ui` | `./gradlew connectedDebugAndroidTest` — requires an emulator or device |
-| `android:test-all` | `test-android-all` | Both of the above |
-| `android:lint` | `lint-android` | `./gradlew lint` |
+| ordo                | make                | Does                                                                   |
+| ------------------- | ------------------- | ---------------------------------------------------------------------- |
+| `android:test-unit` | `test-android-unit` | `./gradlew testDebugUnitTest`                                          |
+| `android:test-ui`   | `test-android-ui`   | `./gradlew connectedDebugAndroidTest` — requires an emulator or device |
+| `android:test-all`  | `test-android-all`  | Both of the above                                                      |
+| `android:lint`      | `lint-android`      | `./gradlew lint`                                                       |
 
 ### Combined dev environment
 
-| ordo | make | Does |
-|---|---|---|
+| ordo        | make  | Does                                                                             |
+| ----------- | ----- | -------------------------------------------------------------------------------- |
 | `dev:start` | `dev` | Build + background-start the server, then build + launch the Mac app Debug build |
 
 ### Service management (macOS)
 
-| ordo | make | Does |
-|---|---|---|
-| `service:install` | `install-service` | Build, copy binary to `/usr/local/bin`, install as a launchd service (starts on login) |
-| `service:uninstall` | `uninstall-service` | Reverse of the above |
+| ordo                | make                | Does                                                                                   |
+| ------------------- | ------------------- | -------------------------------------------------------------------------------------- |
+| `service:install`   | `install-service`   | Build, copy binary to `/usr/local/bin`, install as a launchd service (starts on login) |
+| `service:uninstall` | `uninstall-service` | Reverse of the above                                                                   |
 
 ### Cleanup
 
-| ordo | make | Does |
-|---|---|---|
+| ordo        | make    | Does                                             |
+| ----------- | ------- | ------------------------------------------------ |
 | `clean:all` | `clean` | Remove the server binary and Xcode `DerivedData` |
 
 ---

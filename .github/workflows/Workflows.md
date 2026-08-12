@@ -25,13 +25,13 @@ This directory contains the GitHub Actions automation workflows for the NativeSt
 These workflows run automatically on `push` and `pull_request` triggers matching changes to specific sub-directories.
 
 * **Server CI (`ci-server.yml`)**
-  * Trigger: Changes inside `app/server/**`
+  * Trigger: Changes inside `apps/server/**`
   * Execution: Runs formatting checks (`go vet`), executes unit tests with race detection, tracks code coverage statistics, and runs non-production compilation checks.
 * **macOS CI (`ci-macos.yml`)**
-  * Trigger: Changes inside `app/macos/**`
-  * Execution: Executes on a macOS runner, selects the targeted Xcode toolchain version, compiles the application schema inside `app/macos/NativeStream/` in `Release` configuration, and executes the XCTest suite.
+  * Trigger: Changes inside `apps/macos/**`
+  * Execution: Executes on a macOS runner, selects the targeted Xcode toolchain version, compiles the application schema inside `apps/macos/NativeStream/` in `Release` configuration, and executes the XCTest suite.
 * **Android CI (`ci-android.yml`)**
-  * Trigger: Changes inside `app/android/**`
+  * Trigger: Changes inside `apps/android/**`
   * Execution: Boots an environment with JDK 17, initializes aggressive dependency caching via the Gradle action tool, executes code analysis/linting rules, runs local unit tests, and archives the compiled debug verification APK.
 
 ### 2. Distribution Pipelines (Release)
@@ -73,7 +73,7 @@ Increments the internal project build integer (`CURRENT_PROJECT_VERSION`), incre
 ```
 
 #### 💾 Deploying a Server Update
-Bumps the flat `app/server/VERSION` configuration file by an increment layer and triggers the respective delivery flow pipelines:
+Bumps the flat `apps/server/VERSION` configuration file by an increment layer and triggers the respective delivery flow pipelines:
 ```bash
 ./release.sh server patch
 ```

@@ -4,12 +4,12 @@ on:
   push:
     branches: [main, "develop", "feat/*"]
     paths:
-      - "app/server/**"
+      - "apps/server/**"
       - ".github/workflows/ci-server.yml"
   pull_request:
     branches: [main]
     paths:
-      - "app/server/**"
+      - "apps/server/**"
 
 jobs:
   test:
@@ -22,26 +22,26 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: app/server/go.mod
-          cache-dependency-path: app/server/go.sum
+          go-version-file: apps/server/go.mod
+          cache-dependency-path: apps/server/go.sum
 
       - name: Vet
-        working-directory: app/server
+        working-directory: apps/server
         run: go vet ./...
 
       - name: Test (with race detector)
-        working-directory: app/server
+        working-directory: apps/server
         run: go test -race -timeout 120s -coverprofile=coverage.out ./...
 
       - name: Coverage report
-        working-directory: app/server
+        working-directory: apps/server
         run: go tool cover -func=coverage.out
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
         with:
           name: server-coverage
-          path: app/server/coverage.out
+          path: apps/server/coverage.out
 
   build:
     name: Build
@@ -54,29 +54,29 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: app/server/go.mod
-          cache-dependency-path: app/server/go.sum
+          go-version-file: apps/server/go.mod
+          cache-dependency-path: apps/server/go.sum
 
       - name: Read version
         id: version
-        run: echo "version=$(cat app/server/VERSION)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(cat apps/server/VERSION)" >> "$GITHUB_OUTPUT"
 
       - name: Build linux/amd64
-        working-directory: app/server
+        working-directory: apps/server
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
             -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" \
             -o ../../dist/nativestream-server-linux-amd64 ./cmd/
 
       - name: Build darwin/arm64
-        working-directory: app/server
+        working-directory: apps/server
         run: |
           CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build \
             -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" \
             -o ../../dist/nativestream-server-darwin-arm64 ./cmd/
 
       - name: Build darwin/amd64
-        working-directory: app/server
+        working-directory: apps/server
         run: |
           CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build \
             -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" \

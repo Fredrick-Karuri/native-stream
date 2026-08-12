@@ -1,0 +1,374 @@
+// validator/validator.go
+// Link validator: scores stream URLs and promotes/quarantines based on health.
+
+package validator
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/fredrick-karuri/nativestream/server/store"
+)
+
+// ── Config ────────────────────────────────────────────────────────────────────
+
+type Config struct {
+	Interval        time.Duration
+	Timeout         time.Duration
+	Concurrency     int
+	MinScoreActive  float64
+	MinScorePromote float64
+}
+
+func DefaultConfig() Config {
+	return Config{
+		Interval:        10 * time.Minute,
+		Timeout:         5 * time.Second,
+		Concurrency:     20,
+		MinScoreActive:  0.3,
+		MinScorePromote: 0.5,
+	}
+}
+
+// ── Candidate (from discovery) ────────────────────────────────────────────────
+
+type Candidate struct {
+	URL       string
+	ChannelID string
+	SourceURL string
+	Headers   map[string]string
+}
+
+// ── Validator ─────────────────────────────────────────────────────────────────
+
+type Validator struct {
+	cfg       Config
+	store     *store.Store
+	queue     chan Candidate
+	client    *http.Client
+	mu        sync.Mutex
+	lastProbe time.Time
+	referer   string
+	userAgent string
+	origin    string
+	runCtx    context.Context
+}
+
+func New(cfg Config, s *store.Store, referer, userAgent string, origin string) *Validator {
+	return &Validator{
+		cfg:       cfg,
+		store:     s,
+		queue:     make(chan Candidate, 500),
+		referer:   referer,
+		userAgent: userAgent,
+		origin:    origin,
+		client: &http.Client{
+			Timeout: cfg.Timeout,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				if len(via) >= 3 {
+					return fmt.Errorf("too many redirects")
+				}
+				return nil
+			},
+		},
+	}
+}
+
+// Submit queues a candidate link for immediate probing.
+func (v *Validator) Submit(c Candidate) {
+	select {
+	case v.queue <- c:
+	default:
+		// Queue full — drop (non-blocking)
+	}
+}
+
+// RunProber runs the validator worker pool and periodic probe loop.
+func (v *Validator) RunProber(ctx context.Context) {
+	v.mu.Lock()
+	v.runCtx = ctx
+	v.mu.Unlock()
+
+	// Worker pool — drains the queue
+	var wg sync.WaitGroup
+	for i := 0; i < v.cfg.Concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case c := <-v.queue:
+					v.probeCandidate(ctx, c)
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+	}
+
+	// Periodic probe of all stored active links
+	ticker := time.NewTicker(v.cfg.Interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			v.probeAll(ctx)
+		case <-ctx.Done():
+			wg.Wait()
+			return
+		}
+	}
+}
+
+// TriggerProbeAll triggers an immediate out-of-schedule probe of all links.
+// Uses the validator's long-lived run context (from RunProber), not the
+// caller's context, so the probe outlives a single HTTP request.
+func (v *Validator) TriggerProbeAll(ctx context.Context) {
+	v.mu.Lock()
+	runCtx := v.runCtx
+	v.mu.Unlock()
+	if runCtx == nil {
+		runCtx = ctx // fallback if RunProber hasn't started yet
+	}
+	go v.probeAll(runCtx)
+}
+
+func (v *Validator) LastProbeTime() time.Time {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	return v.lastProbe
+}
+
+// ── Probing ───────────────────────────────────────────────────────────────────
+
+func (v *Validator) probeAll(ctx context.Context) {
+	channels := v.store.All()
+	for _, ch := range channels {
+		if ch.ActiveLink != nil {
+			probeCtx, cancel := context.WithTimeout(ctx, v.cfg.Timeout)
+			go func(link *store.LinkScore) {
+				defer cancel()
+				v.probeAndUpdate(probeCtx, link)
+			}(ch.ActiveLink)
+		}
+		for _, c := range ch.Candidates {
+			probeCtx, cancel := context.WithTimeout(ctx, v.cfg.Timeout)
+			go func(link *store.LinkScore) {
+				defer cancel()
+				v.probeAndUpdate(probeCtx, link)
+			}(c)
+		}
+	}
+	v.mu.Lock()
+	v.lastProbe = time.Now()
+	v.mu.Unlock()
+}
+
+func (v *Validator) probeCandidate(ctx context.Context, c Candidate) {
+	link := &store.LinkScore{
+		URL:          c.URL,
+		ChannelID:    c.ChannelID,
+		SourceURL:    c.SourceURL,
+		Headers:      c.Headers,
+		DiscoveredAt: time.Now(),
+	}
+	probeCtx, cancel := context.WithTimeout(ctx, v.cfg.Timeout)
+	defer cancel()
+	v.probeAndUpdate(probeCtx, link)
+}
+
+func (v *Validator) probeAndUpdate(ctx context.Context, link *store.LinkScore) {
+	scored := v.measure(ctx, link.URL, link.Headers)
+	scored.ChannelID = link.ChannelID
+	scored.SourceURL = link.SourceURL
+	scored.Headers = link.Headers
+	scored.DiscoveredAt = link.DiscoveredAt
+	scored.URL = link.URL
+
+	// NS-114: self-healing — if score is good enough, try to promote
+	if scored.Score >= v.cfg.MinScorePromote {
+		v.store.PromoteIfBetter(scored)
+	} else {
+		v.store.UpdateScore(link.URL, scored)
+	}
+}
+
+// measure performs the actual HTTP probe and returns a scored LinkScore.
+func (v *Validator) measure(
+	ctx context.Context,
+	url string,
+	headers map[string]string) *store.LinkScore {
+	link := &store.LinkScore{
+		URL:         url,
+		LastChecked: time.Now(),
+	}
+
+	start := time.Now()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		link.Score = 0
+		link.FailureReason = store.FailureReasonBadContent
+		return link
+	}
+
+	req.Header.Set("Range", "bytes=0-1023")
+	req.Header.Set("User-Agent", v.userAgent)
+	if v.referer != "" {
+		req.Header.Set("Referer", v.referer)
+	}
+	if v.origin != "" {
+		req.Header.Set("Origin", v.origin)
+	}
+	for k, val := range headers {
+		req.Header.Set(k, val)
+	}
+
+	resp, err := v.client.Do(req)
+	latency := time.Since(start)
+	link.LatencyMS = latency.Milliseconds()
+
+	if err != nil {
+		errStr := err.Error()
+		switch {
+		case strings.Contains(errStr, "deadline") || strings.Contains(errStr, "timeout"):
+			link.FailureReason = store.FailureReasonTimeout
+		default:
+			link.FailureReason = store.FailureReasonUnreachable
+		}
+		link.Score = computeScore(0, latency, 0)
+		link.FailCount++
+		return link
+	}
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("validator: close probe body", "url", url, "err", cerr)
+		}
+	}()
+	if _, err := io.Copy(io.Discard, resp.Body); err != nil {
+		slog.Debug("validator: drain probe body failed", "url", url, "err", err)
+	}
+
+	link.FailureReason = classifyHTTPFailure(resp.StatusCode)
+	reachability := reachabilityScore(resp.StatusCode)
+
+	bitrate := 0
+	if reachability > 0 {
+		bitrate = v.estimateBitrate(ctx, url, headers)
+	}
+
+	link.EstBitrateKbps = bitrate
+	link.Score = computeScore(reachability, latency, bitrate)
+	if reachability == 0 {
+		link.FailCount++
+	} else {
+		link.FailureReason = store.FailureReasonNone
+	}
+	return link
+}
+
+func classifyHTTPFailure(statusCode int) store.FailureReason {
+	switch {
+	case statusCode == 401 || statusCode == 403:
+		return store.FailureReasonForbidden
+	case statusCode >= 400 && statusCode < 500:
+		return store.FailureReasonBadContent
+	case statusCode >= 500:
+		return store.FailureReasonUnreachable
+	default:
+		return store.FailureReasonNone
+	}
+}
+
+func (v *Validator) estimateBitrate(ctx context.Context, url string, headers map[string]string) int {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0
+	}
+	req.Header.Set("Range", "bytes=0-10239") // First 10KB
+
+	req.Header.Set("User-Agent", v.userAgent)
+	if v.referer != "" {
+		req.Header.Set("Referer", v.referer)
+	}
+
+	if v.origin != "" {
+		req.Header.Set("Origin", v.origin)
+	}
+	for k, val := range headers {
+		req.Header.Set(k, val)
+	}
+
+	start := time.Now()
+	resp, err := v.client.Do(req)
+	if err != nil {
+		return 0
+	}
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			slog.Debug("validator: close bitrate probe body", "url", url, "err", cerr)
+		}
+	}()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 10240))
+	elapsed := time.Since(start)
+	if err != nil || elapsed == 0 {
+		return 0
+	}
+
+	// Estimate kbps: bytes / seconds * 8 / 1000
+	kbps := int(float64(len(body)) / elapsed.Seconds() * 8 / 1000)
+	return kbps
+}
+
+// ── Scoring formula (NS-111) ──────────────────────────────────────────────────
+
+func computeScore(reachability float64, latency time.Duration, bitrateKbps int) float64 {
+	return latencyScore(latency)*0.4 + reachability*0.4 + bitrateScore(bitrateKbps)*0.2
+}
+
+func latencyScore(d time.Duration) float64 {
+	ms := d.Milliseconds()
+	switch {
+	case ms < 300:
+		return 1.0
+	case ms < 800:
+		return 0.7
+	case ms < 2000:
+		return 0.4
+	default:
+		return 0.1
+	}
+}
+
+func reachabilityScore(statusCode int) float64 {
+	switch {
+	case statusCode == 200 || statusCode == 206:
+		return 1.0
+	case statusCode >= 300 && statusCode < 400:
+		return 0.6
+	default:
+		return 0.0
+	}
+}
+
+func bitrateScore(kbps int) float64 {
+	switch {
+	case kbps == 0:
+		return 0.5 // unknown — assume mid
+	case kbps > 3000:
+		return 1.0
+	case kbps > 1000:
+		return 0.7
+	case kbps > 500:
+		return 0.4
+	default:
+		return 0.2
+	}
+}

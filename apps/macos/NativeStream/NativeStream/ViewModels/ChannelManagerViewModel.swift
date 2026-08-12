@@ -1,0 +1,134 @@
+// ChannelManagerViewModel.swift
+// Exposes server channel management (add, update, delete, probe, discovery)
+// to the UI via APIClient. Used by SettingsScreenV4 and future admin views.
+
+import Foundation
+import Observation
+import SdkGenSwift
+
+@Observable
+@MainActor
+final class ChannelManagerViewModel {
+
+    var channels: [Stream_V1_ChannelResponse] = []
+    var discoveryStatus: Stream_V1_DiscoveryStatusResponse?
+    var unmatched: [Stream_V1_UnmatchedLink] = []
+    var isLoading = false
+    var error: String?
+
+    // MARK: - Channels
+
+    func loadChannels() async {
+        isLoading = true
+        error = nil
+        defer { isLoading = false }
+        do {
+            channels = try await APIClient.shared.listChannels()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func addChannel(
+        name: String,
+        groupTitle: String,
+        tvgID: String = "",
+        logoURL: String = "",
+        streamURL: String,
+        keywords: [String]
+    ) async -> Channel? {
+        isLoading = true
+        defer { isLoading = false }
+        var req = Stream_V1_CreateChannelRequest()
+        req.name = name
+        req.groupTitle = groupTitle
+        req.tvgID = tvgID
+        req.logoURL = logoURL
+        req.streamURL = streamURL
+        req.keywords = keywords
+
+        do {
+            let response = try await APIClient.shared.createChannel(req)
+            let resolvedURL = URL(string: streamURL)!
+            return Channel(
+                tvgId: response.tvgID,
+                name: response.name,
+                groupTitle: response.groupTitle,
+                logoURL: URL(string: response.logoURL),
+                streamURL: resolvedURL
+            )
+        } catch {
+            self.error = error.localizedDescription
+            return nil
+        }
+
+    }
+
+    func updateStreamURL(channelID: String, url: String) async {
+        do {
+            var req = Stream_V1_UpdateChannelRequest()
+            req.streamURL = url
+            try await APIClient.shared.updateChannel(id: channelID, req)
+            await loadChannels()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func deleteChannel(id: String) async {
+        do {
+            try await APIClient.shared.deleteChannel(id: id)
+            channels.removeAll { $0.id == id }
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    // MARK: - Probe
+
+    func triggerProbe() async {
+        do {
+            try await APIClient.shared.triggerProbe()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    // MARK: - Discovery
+
+    func loadDiscoveryStatus() async {
+        do {
+            discoveryStatus = try await APIClient.shared.discoveryStatus()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func triggerDiscovery() async {
+        do {
+            try await APIClient.shared.triggerDiscovery()
+            await loadDiscoveryStatus()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func loadUnmatched() async {
+        do {
+            let response = try await APIClient.shared.unmatchedLinks()
+            unmatched = response.unmatched
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func assignUnmatched(url: String, toChannelID channelID: String) async {
+        do {
+            try await APIClient.shared.assignUnmatchedLink(channelID: channelID, url: url)
+            unmatched.removeAll { $0.url == url }
+            await loadChannels()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+}
