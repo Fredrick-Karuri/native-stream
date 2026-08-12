@@ -209,6 +209,7 @@ func Load() (Config, error) {
 	// Docker: bind all interfaces.
 	if os.Getenv("NATIVESTREAM_DOCKER") == "1" {
 		cfg.Server.Host = "0.0.0.0"
+		cfg.Server.Port = 8888
 	}
 
 	home, _ := os.UserHomeDir()
