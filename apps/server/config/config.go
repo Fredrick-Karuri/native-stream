@@ -174,7 +174,7 @@ func Defaults() Config {
 		// Loopback-only is the safe-by-default bind. Anything wider must be
 		// an explicit operator choice in config.yaml (see IsExposed/guard
 		// in Load), not something a fresh install can end up with by accident.
-		Server: ServerConfig{Host: LoopbackHost, Port: 8889},
+		Server: ServerConfig{Host: LoopbackHost, Port: 8888},
 		Store: StoreConfig{
 			SnapshotPath:     filepath.Join(base, "channels.json"),
 			SnapshotInterval: 5 * time.Minute,
@@ -231,7 +231,7 @@ func Load() (Config, error) {
 		cfg.Server.Host = "0.0.0.0"
 		cfg.Server.Port = 8888
 	}
-	
+
 	if host := os.Getenv("NATIVESTREAM_SERVER_HOST"); host != "" {
 		cfg.Server.Host = host
 	}

@@ -50,8 +50,8 @@ func TestLoadFile_MissingFile_ReturnsDefaultsUnchanged(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error for missing file, got: %v", err)
 	}
-	if cfg.Server.Port != 8889 {
-		t.Errorf("expected default port 8889 when file is missing, got %d", cfg.Server.Port)
+	if cfg.Server.Port != 8888 {
+		t.Errorf("expected default port 8888 when file is missing, got %d", cfg.Server.Port)
 	}
 }
 
