@@ -13,6 +13,8 @@ import (
 	"net/url"
 )
 
+var lookupIPAddr = net.DefaultResolver.LookupIPAddr
+
 // validateUpstreamURL rejects URLs that could be used to reach internal
 // or link-local network resources (SSRF). It resolves the hostname and
 // checks every resulting IP, so DNS rebinding to a private address is
@@ -32,7 +34,7 @@ func validateUpstreamURL(ctx context.Context, rawURL string) error {
 		return fmt.Errorf("missing host")
 	}
 
-	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	addrs, err := lookupIPAddr(ctx, host)
 	if err != nil {
 		return fmt.Errorf("could not resolve host: %w", err)
 	}

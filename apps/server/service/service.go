@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"text/template"
 	"time"
 )
@@ -39,9 +40,31 @@ const plistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 </plist>
 `
 
+// plistPathIn returns the LaunchAgents plist path under the given home
+// directory. Pure function of its input — plistPath() below wraps it with
+// the real $HOME so production callers are unaffected.
+func plistPathIn(home string) string {
+	return filepath.Join(home, "Library", "LaunchAgents", plistLabel+".plist")
+}
+
 func plistPath() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, "Library", "LaunchAgents", plistLabel+".plist")
+	return plistPathIn(home)
+}
+
+// renderPlist builds the plist XML as a string. Pure: no filesystem, no
+// network, deterministic output for a given (label, binaryPath).
+func renderPlist(label, binaryPath string) (string, error) {
+	data := struct {
+		Label      string
+		BinaryPath string
+	}{label, binaryPath}
+
+	var buf strings.Builder
+	if err := template.Must(template.New("plist").Parse(plistTemplate)).Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("render plist: %w", err)
+	}
+	return buf.String(), nil
 }
 
 func Install(binaryPath string) error {
@@ -53,10 +76,10 @@ func Install(binaryPath string) error {
 		}
 	}
 
-	data := struct {
-		Label      string
-		BinaryPath string
-	}{plistLabel, binaryPath}
+	rendered, err := renderPlist(plistLabel, binaryPath)
+	if err != nil {
+		return err
+	}
 
 	path := plistPath()
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
@@ -75,7 +98,7 @@ func Install(binaryPath string) error {
 		}
 	}()
 
-	if err := template.Must(template.New("plist").Parse(plistTemplate)).Execute(f, data); err != nil {
+	if _, err := f.WriteString(rendered); err != nil {
 		return fmt.Errorf("write plist: %w", err)
 	}
 
