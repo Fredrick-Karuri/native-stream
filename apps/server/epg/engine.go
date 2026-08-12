@@ -291,12 +291,13 @@ func (e *Engine) saveCacheToDisk(data []byte) {
 // Matches against homeTeam, awayTeam, and competition name.
 func (e *Engine) assignChannels(matches []Match) []Match {
 	channels := e.store.All()
-	for i, m := range matches {
+	for i := range matches {
+		m := &matches[i]
 		searchText := strings.ToLower(m.HomeTeam + " " + m.AwayTeam + " " + m.Competition + " " + m.Sport)
 		for _, ch := range channels {
 			for _, kw := range ch.Keywords {
 				if strings.Contains(searchText, strings.ToLower(kw)) {
-					matches[i].ChannelIDs = append(matches[i].ChannelIDs, ch.ID)
+					m.ChannelIDs = append(m.ChannelIDs, ch.ID)
 					break
 				}
 			}

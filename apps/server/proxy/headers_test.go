@@ -7,6 +7,7 @@
 package proxy
 
 import (
+	"context"
 	"net/http"
 	"testing"
 )
@@ -142,9 +143,9 @@ func TestInjectFromMap_EmptyMapIsNoOp(t *testing.T) {
 
 func mustRequest(t *testing.T) *http.Request {
 	t.Helper()
-	req, err := http.NewRequest(http.MethodGet, "http://example.invalid/x", nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://example.invalid/x", nil)
 	if err != nil {
-		t.Fatalf("http.NewRequest() error = %v", err)
+		t.Fatalf("http.NewRequestWithContext() error = %v", err)
 	}
 	return req
 }

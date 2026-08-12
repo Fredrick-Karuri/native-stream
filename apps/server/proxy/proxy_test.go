@@ -28,6 +28,11 @@ import (
 	"github.com/fredrick-karuri/nativestream/server/store"
 )
 
+func newTestRequest(t *testing.T, method, target string) *http.Request {
+	t.Helper()
+	return httptest.NewRequestWithContext(context.Background(), method, target, nil)
+}
+
 func newTestStoreWithChannel(t *testing.T, channelID, activeLinkURL string, headers map[string]string) *store.Store {
 	t.Helper()
 	s := store.New(t.TempDir()+"/snapshot.json", 0.5)
@@ -57,7 +62,7 @@ func TestServeHTTP_OriginalPlaylist_ProxiesAndRewritesM3U8(t *testing.T) {
 	s := newTestStoreWithChannel(t, "chan1", upstream.URL+"/live.m3u8", nil)
 	p := New(Config{}, s)
 
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/live.m3u8", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/live.m3u8")
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -77,7 +82,7 @@ func TestServeHTTP_OriginalPlaylist_ReturnsNotFoundForUnknownChannel(t *testing.
 	s := newTestStoreWithChannel(t, "chan1", "http://example.invalid/live.m3u8", nil)
 	p := New(Config{}, s)
 
-	req := httptest.NewRequest(http.MethodGet, "/stream/unknown-channel/live.m3u8", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/unknown-channel/live.m3u8")
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -92,7 +97,7 @@ func TestServeHTTP_OriginalPlaylist_ReturnsNotFoundWhenChannelHasNoActiveLink(t 
 	s.Add(&store.Channel{ID: "chan1", Name: "No Link Channel"}) // ActiveLink left nil
 	p := New(Config{}, s)
 
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/live.m3u8", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/live.m3u8")
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -108,7 +113,7 @@ func TestServeHTTP_OriginalPlaylist_ReturnsBadRequestForShortPath(t *testing.T) 
 
 	// /stream/chan1 alone has only 2 path segments after trimming — the
 	// handler requires at least 3 (empty, "stream", channelID, ...).
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1")
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -131,7 +136,7 @@ func TestServeHTTP_OriginalPlaylist_PassesThroughNonPlaylistContentUnmodified(t 
 	s := newTestStoreWithChannel(t, "chan1", upstream.URL+"/segment.ts", nil)
 	p := New(Config{}, s)
 
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/segment.ts", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/segment.ts")
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -148,7 +153,7 @@ func TestServeHTTP_OriginalPlaylist_ForwardsUpstreamErrorAsBadGateway(t *testing
 	s := newTestStoreWithChannel(t, "chan1", "http://127.0.0.1:1/live.m3u8", nil)
 	p := New(Config{}, s)
 
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/live.m3u8", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/live.m3u8")
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -170,7 +175,7 @@ func TestServeHTTP_OriginalPlaylist_InjectsPerLinkHeadersIntoUpstreamRequest(t *
 	s := newTestStoreWithChannel(t, "chan1", upstream.URL+"/segment.ts", map[string]string{"X-Stream-Auth": "secret-token"})
 	p := New(Config{}, s)
 
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/segment.ts", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/segment.ts")
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -193,7 +198,7 @@ func TestServeHTTP_Segment_ProxiesCachedSegmentSuccessfully(t *testing.T) {
 	p := New(Config{}, s)
 	p.cacheSegment("abc123", upstream.URL+"/seg.ts", nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/proxy/seg/abc123.ts", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy/seg/abc123.ts")
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -214,7 +219,7 @@ func TestServeHTTP_Segment_ReturnsGoneForUnknownSegmentID(t *testing.T) {
 	p := New(Config{}, s)
 	// No cacheSegment call — the ID below was never cached.
 
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/proxy/seg/never-cached.ts", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy/seg/never-cached.ts")
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -231,7 +236,7 @@ func TestServeHTTP_Segment_ReturnsBadRequestForMalformedSignature(t *testing.T) 
 	s := store.New(t.TempDir()+"/snapshot.json", 0.5)
 	p := New(Config{}, s)
 
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/proxy/seg/.ts", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy/seg/.ts")
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -256,7 +261,7 @@ func TestServeHTTP_Segment_ForwardsRangeHeaderAndReturnsPartialContent(t *testin
 	p := New(Config{}, s)
 	p.cacheSegment("range1", upstream.URL+"/seg.ts", nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/proxy/seg/range1.ts", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy/seg/range1.ts")
 	req.Header.Set("Range", "bytes=0-99")
 	rec := httptest.NewRecorder()
 
@@ -275,7 +280,7 @@ func TestServeHTTP_Segment_ForwardsUpstreamErrorAsBadGateway(t *testing.T) {
 	p := New(Config{}, s)
 	p.cacheSegment("dead1", "http://127.0.0.1:1/seg.ts", nil)
 
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/proxy/seg/dead1.ts", nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy/seg/dead1.ts")
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -318,7 +323,7 @@ func TestServeHTTP_VariantPlaylist_ProxiesAndRewritesWhenURLIsPublic(t *testing.
 	p := New(Config{}, s)
 
 	variantURL := url.QueryEscape(upstream.URL + "/variant.m3u8")
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/proxy?url="+variantURL, nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy?url="+variantURL)
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -340,7 +345,7 @@ func TestServeHTTP_VariantPlaylist_RejectsSSRFTargetWithForbidden(t *testing.T) 
 	p := New(Config{}, s)
 
 	variantURL := url.QueryEscape("http://127.0.0.1:9999/internal")
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/proxy?url="+variantURL, nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy?url="+variantURL)
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)
@@ -376,7 +381,7 @@ func TestServeHTTP_VariantPlaylist_UsesChannelHeadersFromPathNotQueryTarget(t *t
 	p := New(Config{}, s)
 
 	variantURL := url.QueryEscape(upstream.URL + "/variant.m3u8")
-	req := httptest.NewRequest(http.MethodGet, "/stream/chan1/proxy?url="+variantURL, nil)
+	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy?url="+variantURL)
 	rec := httptest.NewRecorder()
 
 	p.ServeHTTP(rec, req)

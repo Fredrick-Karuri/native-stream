@@ -36,7 +36,8 @@ func newTestServer(t *testing.T) *http.Server {
 	})
 	srv := &http.Server{Addr: "127.0.0.1:0", Handler: mux}
 
-	listener, err := net.Listen("tcp", srv.Addr)
+	var lc net.ListenConfig
+	listener, err := lc.Listen(context.Background(), "tcp", srv.Addr)
 	if err != nil {
 		t.Fatalf("failed to bind test listener: %v", err)
 	}

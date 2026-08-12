@@ -11,6 +11,7 @@ malformed JSON.
 package httpx
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -119,7 +120,7 @@ func TestWriteProtoJSON_NilMessageWritesEmptyObject(t *testing.T) {
 // decodes into the expected proto field values.
 func TestReadProtoJSON_DecodesRequestBody(t *testing.T) {
 	body := `{"type":"MESSAGE_TYPE_PING","from":"` + testDeviceFrom + `","to":"` + testDeviceTo + `"}`
-	req := httptest.NewRequest(http.MethodPost, "/envelope", strings.NewReader(body))
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/envelope", strings.NewReader(body))
 
 	var env streamv1.Envelope
 	if err := ReadProtoJSON(req, &env); err != nil {
@@ -139,7 +140,7 @@ func TestReadProtoJSON_DecodesRequestBody(t *testing.T) {
 // zero-value Envelope, which would be indistinguishable from a
 // legitimately empty-but-valid request.
 func TestReadProtoJSON_MalformedBodyReturnsError(t *testing.T) {
-	req := httptest.NewRequest(http.MethodPost, "/envelope", strings.NewReader(`{not valid json`))
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/envelope", strings.NewReader(`{not valid json`))
 
 	var env streamv1.Envelope
 	if err := ReadProtoJSON(req, &env); err == nil {
@@ -153,7 +154,7 @@ func TestReadProtoJSON_MalformedBodyReturnsError(t *testing.T) {
 // early instead of at runtime three layers deeper.
 func TestReadProtoJSON_UnknownFieldReturnsError(t *testing.T) {
 	body := `{"from":"` + testDeviceFrom + `","not_a_real_field":true}`
-	req := httptest.NewRequest(http.MethodPost, "/envelope", strings.NewReader(body))
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/envelope", strings.NewReader(body))
 
 	var env streamv1.Envelope
 	if err := ReadProtoJSON(req, &env); err == nil {

@@ -51,7 +51,7 @@ func TestNewProtoEnvelope_WithPayload_RoundTripsThroughDecode(t *testing.T) {
 	if decoded.ChannelId != original.ChannelId ||
 		decoded.ChannelName != original.ChannelName ||
 		decoded.StreamUrl != original.StreamUrl {
-		t.Errorf("round-trip mismatch: got %+v, want fields matching %+v", decoded, original)
+		t.Errorf("round-trip mismatch: got %+v, want fields matching %+v", &decoded, original)
 	}
 }
 

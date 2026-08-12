@@ -204,9 +204,9 @@ func TestValidateUpstreamURL_RejectsWhenAnyResolvedAddressIsPrivate(t *testing.T
 			t.Fatalf("unexpected host passed to resolver: %q", host)
 		}
 		return []net.IPAddr{
-			{IP: net.ParseIP("8.8.8.8")},    // public
-			{IP: net.ParseIP("10.0.0.1")},   // private — should trigger rejection
-			{IP: net.ParseIP("1.1.1.1")},    // public
+			{IP: net.ParseIP("8.8.8.8")},  // public
+			{IP: net.ParseIP("10.0.0.1")}, // private — should trigger rejection
+			{IP: net.ParseIP("1.1.1.1")},  // public
 		}, nil
 	})
 
