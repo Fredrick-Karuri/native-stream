@@ -3,9 +3,6 @@ FROM golang:1.26-alpine AS builder
 
 WORKDIR /build
 
-# Copy VERSION for use in ldflags
-COPY VERSION ./VERSION
-
 # Copy the local module referenced by the go.mod replace directive
 COPY packages/sdk-gen/go ./packages/sdk-gen/go
 
@@ -15,12 +12,11 @@ COPY apps/server/go.mod apps/server/go.sum ./apps/server/
 WORKDIR /build/apps/server
 RUN go mod download
 
-# Source
 COPY apps/server/ ./
 
 # Build static binary
 RUN CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags="-s -w -X main.version=$(cat /build/VERSION 2>/dev/null || echo dev)" \
+    -ldflags="-s -w -X main.version=$(cat VERSION 2>/dev/null || echo dev)" \
     -o nativestream-server ./cmd/
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
