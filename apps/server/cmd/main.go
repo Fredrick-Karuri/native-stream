@@ -158,8 +158,15 @@ func main() {
 	h.RegisterRoutes(mux)
 	discEngine.RegisterRoutes(mux)
 
+	// /ws (Local Media Connect) is carved out of the auth-wrapped mux and
+	// mounted separately, unauthenticated — it's LAN-only by design and
+	// casting devices don't hold an API token (see HOST-003).
+	rootMux := http.NewServeMux()
+	rootMux.HandleFunc("GET /ws", h.RegisterWebSocketRoute)
+	rootMux.Handle("/", api.AuthMiddleware(cfg.Server.APIToken)(mux))
+
 	// Apply middleware stack
-	handler := api.LoggingMiddleware(api.RecoveryMiddleware(mux))
+	handler := api.LoggingMiddleware(api.RecoveryMiddleware(rootMux))
 
 	// ── Background workers ─────────────────────────────────────────────────────
 	go s.RunSnapshotter(ctx, cfg.Store.SnapshotInterval)

@@ -90,10 +90,17 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/proxy/config", h.handleGetProxyConfig)
 	mux.HandleFunc("PUT /api/proxy/config", h.handlePutProxyConfig)
 
-	// Local Media Connect
-	mux.HandleFunc("GET /ws", h.handleWebSocket)
+	// Local Media Connect — /ws itself is registered separately by main.go
+
 	mux.HandleFunc("GET /api/sessions", h.handleSessions)
 
+}
+
+// RegisterWebSocketRoute exposes handleWebSocket for mounting outside the
+// authenticated mux. /ws stays token-free — LAN-only casting clients don't
+// carry the hosted API token, and LMC auth is explicitly out of scope here.
+func (h *Handler) RegisterWebSocketRoute(w http.ResponseWriter, r *http.Request) {
+	h.handleWebSocket(w, r)
 }
 
 // ── Playlist ──────────────────────────────────────────────────────────────────

@@ -248,8 +248,7 @@ Graceful shutdown: `SIGTERM/SIGINT` → cancel context → all goroutines stop �
 | Concurrency        | goroutines, sync.RWMutex, buffered channels, context cancellation                                                                           |
 | Persistence        | `encoding/json` + atomic file writes                                                                                                        |
 | XML generation     | `encoding/xml` stdlib                                                                                                                       |
-| Process management | launchd (macOS)                                                                                                                             |
-| Distribution       | Homebrew tap + notarised binary                                                                                                             |
+| Process management | launchd (macOS)                                                                                                                             |                                                                                                            |
 
 **Zero runtime dependencies** beyond the Go standard library.
 

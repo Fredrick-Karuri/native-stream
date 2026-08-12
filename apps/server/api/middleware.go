@@ -5,10 +5,12 @@ package api
 
 import (
 	"bufio"
+	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -41,11 +43,34 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// LockedMiddleware rejects non-loopback requests — server is localhost only.
-func LockedMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-	})
+const bearerPrefix = "Bearer "
+
+// AuthMiddleware rejects requests lacking a valid bearer token when the
+// server has one configured. token is empty for loopback-only deployments
+// (see config.ServerConfig.IsExposed) — in that case every request passes
+// through unchanged, matching pre-hosting zero-trust-LAN behavior.
+func AuthMiddleware(token string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		if token == "" {
+			return next
+		}
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !hasValidBearerToken(r, token) {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func hasValidBearerToken(r *http.Request, expectedToken string) bool {
+	header := r.Header.Get("Authorization")
+	if !strings.HasPrefix(header, bearerPrefix) {
+		return false
+	}
+	suppliedToken := strings.TrimPrefix(header, bearerPrefix)
+	return subtle.ConstantTimeCompare([]byte(suppliedToken), []byte(expectedToken)) == 1
 }
 
 type responseWriter struct {
