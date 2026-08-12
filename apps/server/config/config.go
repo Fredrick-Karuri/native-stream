@@ -231,6 +231,13 @@ func Load() (Config, error) {
 		cfg.Server.Host = "0.0.0.0"
 		cfg.Server.Port = 8888
 	}
+	
+	if host := os.Getenv("NATIVESTREAM_SERVER_HOST"); host != "" {
+		cfg.Server.Host = host
+	}
+	if token := os.Getenv("NATIVESTREAM_API_TOKEN"); token != "" {
+		cfg.Server.APIToken = token
+	}
 
 	home, _ := os.UserHomeDir()
 	loaded, err := loadFile(cfg, filepath.Join(home, ".config", "nativestream", "config.yaml"))
