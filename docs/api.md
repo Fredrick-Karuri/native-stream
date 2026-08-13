@@ -1,6 +1,21 @@
 # API Reference
 
-All endpoints are served by the Go server at `http://localhost:8888` and are **localhost-only** — there is no authentication, since any process on the machine is trusted by design. This is a personal, single-user tool, not a multi-tenant service.
+All endpoints are served by the Go server at `http://localhost:8888` by default. Authentication depends on how the server is bound:
+
+- **Loopback (`127.0.0.1`, the default)** — no auth required. Any process on the machine is trusted, since nothing outside it can reach the server anyway.
+- **Exposed (`bind_addr` set to anything else, e.g. a hosted deployment)** — every endpoint below except `/ws` requires `Authorization: Bearer <api_token>`. The server refuses to start exposed without a token configured — see [configuration.md](configuration.md#server).
+
+This is still a personal, single-user tool, not a multi-tenant service — the token is a single shared secret, not per-user accounts.
+
+## Auth Requirements
+
+| Endpoint group | Auth required when exposed |
+|---|---|
+| `/api/*` | Yes |
+| `/playlist.m3u` | Yes |
+| `/epg.xml` | Yes |
+| `/stream/:id/proxy` | Yes |
+| `/ws` (Local Media Connect) | **No** — stays open, LAN-only by design; casting devices don't hold the API token |
 
 ## Response Formats
 
