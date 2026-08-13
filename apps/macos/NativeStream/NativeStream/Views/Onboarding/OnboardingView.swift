@@ -27,7 +27,7 @@ struct OnboardingView: View {
                 switch step {
                 case .splash:
                     SplashStep(onComplete: {
-                        urlInput = settings.serverURLString
+                        urlInput = settings.serverURLString ?? ""
                         withAnimation { step = .server }
                     })
 

@@ -9,6 +9,7 @@ enum ServerStatus {
     case unknown
     case connected(channels: Int, healthy: Int)
     case unreachable
+    case authFailed
 }
 
 @Observable
@@ -45,6 +46,8 @@ final class ServerHealthViewModel {
         do {
             let health = try await APIClient.shared.health()
             status = .connected(channels: Int(health.channels), healthy: Int(health.healthy))
+        } catch APIError.httpError(401, _) {
+            status = .authFailed
         } catch {
             status = .unreachable
         }
@@ -65,8 +68,12 @@ final class ServerHealthViewModel {
     // MARK: - Helpers
 
     var isConnected: Bool {
-        if case .connected = status { return true }
+            if case .connected = status { return true }
+            return false
+        }
+
+    var isAuthFailed: Bool {
+        if case .authFailed = status { return true }
         return false
     }
-
 }

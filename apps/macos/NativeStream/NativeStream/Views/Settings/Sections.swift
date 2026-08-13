@@ -228,6 +228,7 @@ struct PlaybackSection: View {
 
 struct ServerSection: View {
     @Environment(SettingsStore.self) private var settings
+    @State private var tokenInput: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
@@ -235,12 +236,28 @@ struct ServerSection: View {
             VStack(alignment: .leading, spacing: NS.Spacing.sm) {
                 Text("Server URL").font(NS.Font.caption).foregroundStyle(NS.text3)
                 NSTextField(
-                    placeholder: "http://localhost:8888",
-                    text: Binding(get: { settings.serverURLString }, set: { settings.serverURLString = $0 })
+                    placeholder: ServerURLResolver.hostedDefaultURL,
+                    text: Binding(
+                        get: { settings.serverURLString ?? "" },
+                        set: { settings.serverURLString = $0.isEmpty ? nil : $0 }
+                    )
                 )
-                Text("Default: http://localhost:8888 — change only if running the server remotely.")
+                Text("Blank uses the hosted default. Set this only for a self-hosted server on your LAN.")
                     .font(NS.Font.monoSm).foregroundStyle(NS.text3)
             }
+            VStack(alignment: .leading, spacing: NS.Spacing.sm) {
+                Text("API Token").font(NS.Font.caption).foregroundStyle(NS.text3)
+                NSTextField(placeholder: "Required for hosted servers", text: $tokenInput)
+                Text("Leave blank for a self-hosted server on your local network.")
+                    .font(NS.Font.monoSm).foregroundStyle(NS.text3)
+                Button("Save Token") {
+                    guard !tokenInput.isEmpty else { return }
+                    settings.setAPIToken(tokenInput)
+                }
+                .buttonStyle(.bordered)
+                .disabled(tokenInput.isEmpty)
+            }
+            .onAppear { tokenInput = settings.apiToken ?? "" }
         }
     }
 }
