@@ -6,10 +6,9 @@
 //   3. Baked-in hosted default
 //
 
-
 import Foundation
 
-enum ServerURLSource {
+enum ServerURLSource: Equatable {
     case manualOverride
     case lanDiscovered
     case hostedDefault
