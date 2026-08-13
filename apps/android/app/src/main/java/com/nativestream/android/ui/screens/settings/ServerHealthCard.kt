@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.nativestream.android.data.remote.ServerUrlSource
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
@@ -25,6 +26,7 @@ import com.nativestream.android.ui.theme.NSType
 fun ServerHealthCard(
     serverUrl: String,
     serverReachable: Boolean,
+    urlSource: ServerUrlSource = ServerUrlSource.MANUAL_OVERRIDE,
     onScan: () -> Unit = {},
 ) {
     val dimens = NSDimens.current
@@ -52,6 +54,19 @@ fun ServerHealthCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            when (urlSource) {
+                ServerUrlSource.HOSTED_DEFAULT -> Text(
+                    text  = "Using hosted default",
+                    style = NSType.caption(),
+                    color = NSColors.text3,
+                )
+                ServerUrlSource.LAN_DISCOVERED -> Text(
+                    text  = "Discovered on local network",
+                    style = NSType.caption(),
+                    color = NSColors.text3,
+                )
+                ServerUrlSource.MANUAL_OVERRIDE -> {}
+            }
         }
         if (!serverReachable) {
             Text(

@@ -33,7 +33,7 @@ object AppModule {
     ): ApiClient {
         val client = ApiClient(context as Application)
         val url = runBlocking { settingsDataStore.serverUrl.first() }
-        client.setBaseUrl(url)
+        url?.let{client.setBaseUrl(url)}
         return client
     }
     @Provides @Singleton

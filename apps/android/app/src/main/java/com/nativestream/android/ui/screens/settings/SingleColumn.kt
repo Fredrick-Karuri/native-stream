@@ -71,7 +71,8 @@ fun SettingsSingleColumn(
     hwDecode: Boolean,
 ) {
     val dimens       = NSDimens.current
-    val serverUrl    by settingsViewModel.serverUrl.collectAsState()
+    val resolvedServerUrl by settingsViewModel.resolvedServerUrl.collectAsState()
+    val serverUrl    = resolvedServerUrl.url
     val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
     val sources      by sourceViewModel.sources.collectAsState()
     val serverReachable by settingsViewModel.serverReachable.collectAsState()
@@ -89,6 +90,7 @@ fun SettingsSingleColumn(
             ServerHealthCard(
                 serverUrl       = serverUrl,
                 serverReachable = serverReachable,
+                urlSource       = resolvedServerUrl.source,
                 onScan          = { settingsViewModel.startDiscovery() },
             )
         }
