@@ -96,7 +96,10 @@ final class ControlSession {
                 case .failure(let error):
                     self.connected = false
                     print("[ControlSession] receive failed: \(error)")
-                    if !self.explicitDisconnect { self.scheduleReconnect() }
+                    let isCertError = (error as? URLError).map {
+                        $0.code == .serverCertificateUntrusted || $0.code == .secureConnectionFailed
+                    } ?? false
+                    if !self.explicitDisconnect && !isCertError { self.scheduleReconnect() }
                 }
             }
         }
@@ -120,7 +123,7 @@ final class ControlSession {
 
     func makeWebSocketURL(from httpURL: URL) -> URL? {
         var components = URLComponents(url: httpURL, resolvingAgainstBaseURL: false)
-        components?.scheme = "ws"
+        components?.scheme = httpURL.scheme == "https" ? "wss" : "ws"
         components?.path = "/ws"
         return components?.url
     }

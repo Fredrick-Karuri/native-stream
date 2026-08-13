@@ -10,6 +10,7 @@ enum ServerStatus {
     case connected(channels: Int, healthy: Int)
     case unreachable
     case authFailed
+    case certificateInvalid
 }
 
 @Observable
@@ -22,16 +23,27 @@ final class ServerHealthViewModel {
 
     func checkConnection(serverURL: URL) async {
         connectionState = .checking
-        async let healthTask   = try? APIClient.shared.health()
+        async let healthResult: Result<Stream_V1_HealthResponse, Error> = {
+            do { return .success(try await APIClient.shared.health()) }
+            catch { return .failure(error) }
+        }()
         async let playlistTask = try? APIClient.shared.playlistData()
         async let epgTask      = try? APIClient.shared.epgData()
 
-        let health   = await healthTask
-        let playlist = await playlistTask
-        let epg      = await epgTask
+        let healthOutcome = await healthResult
+        let playlist      = await playlistTask
+        let epg           = await epgTask
 
-        connectionState = ConnectionStateDecider.decide(health: health, playlist: playlist, epg: epg)
-    }
+        let health: Stream_V1_HealthResponse?
+        let healthError: Error?
+        switch healthOutcome {
+        case .success(let value): health = value; healthError = nil
+        case .failure(let error): health = nil; healthError = error
+        }
+
+        connectionState = ConnectionStateDecider.decide(
+            health: health, playlist: playlist, epg: epg, healthError: healthError
+        )    }
 
     func resetConnectionState() {
         connectionState = .idle
@@ -48,6 +60,10 @@ final class ServerHealthViewModel {
             status = .connected(channels: Int(health.channels), healthy: Int(health.healthy))
         } catch APIError.httpError(401, _) {
             status = .authFailed
+        } catch let error as URLError where error.code
+                    == .serverCertificateUntrusted
+                    || error.code == .secureConnectionFailed {
+            status = .certificateInvalid
         } catch {
             status = .unreachable
         }
@@ -58,6 +74,7 @@ final class ServerHealthViewModel {
         checkTask = Task {
             while !Task.isCancelled {
                 await check(serverURL: serverURL)
+                if case .certificateInvalid = status { return }
                 try? await Task.sleep(for: .seconds(interval))
             }
         }
@@ -74,6 +91,10 @@ final class ServerHealthViewModel {
 
     var isAuthFailed: Bool {
         if case .authFailed = status { return true }
+        return false
+    }
+    var isCertificateInvalid: Bool {
+        if case .certificateInvalid = status { return true }
         return false
     }
 }
