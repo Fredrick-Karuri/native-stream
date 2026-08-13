@@ -27,6 +27,7 @@ fun ServerHealthCard(
     serverUrl: String,
     serverReachable: Boolean,
     urlSource: ServerUrlSource = ServerUrlSource.MANUAL_OVERRIDE,
+    authFailed: Boolean = false,
     onScan: () -> Unit = {},
 ) {
     val dimens = NSDimens.current
@@ -66,6 +67,13 @@ fun ServerHealthCard(
                     color = NSColors.text3,
                 )
                 ServerUrlSource.MANUAL_OVERRIDE -> {}
+            }
+            if (authFailed) {
+                Text(
+                    text  = "Check your API token in Settings",
+                    style = NSType.caption(),
+                    color = NSColors.live,
+                )
             }
         }
         if (!serverReachable) {

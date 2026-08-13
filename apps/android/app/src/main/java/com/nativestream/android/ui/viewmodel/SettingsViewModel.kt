@@ -23,6 +23,7 @@ import com.nativestream.android.data.remote.ServerDiscoveryService
 import com.nativestream.android.ui.screens.onboarding.OnboardingConnectionState
 import com.nativestream.android.ui.screens.onboarding.FailureReason
 import com.nativestream.android.data.parser.M3uParser
+import com.nativestream.android.data.remote.ApiError
 import com.nativestream.android.data.remote.ResolvedServerUrl
 import com.nativestream.android.data.remote.ServerUrlResolver
 import com.nativestream.android.data.remote.ServerUrlSource
@@ -49,6 +50,7 @@ class SettingsViewModel @Inject constructor(
     fun setApiToken(token: String) {
         secureTokenStore.setApiToken(token)
         _apiToken.value = token
+        apiClient.setApiToken(token)
     }
 
     init {
@@ -56,6 +58,7 @@ class SettingsViewModel @Inject constructor(
             val discovered = discoveryService.discoveredUrl.first()
             val resolved = ServerUrlResolver.resolve(settingsDataStore.serverUrl.first(), discovered)
             apiClient.setBaseUrl(resolved.url)
+            apiClient.setApiToken(secureTokenStore.getApiToken())
         }
         viewModelScope.launch { syncProxyState() }
     }
@@ -139,6 +142,8 @@ class SettingsViewModel @Inject constructor(
     private val _serverReachable = MutableStateFlow<Boolean>(true)
     val serverReachable: StateFlow<Boolean> = _serverReachable
 
+    private val _authFailed = MutableStateFlow(false)
+    val authFailed: StateFlow<Boolean> = _authFailed
     private val _connectionState = MutableStateFlow<OnboardingConnectionState>(OnboardingConnectionState.Idle)
     val connectionState: StateFlow<OnboardingConnectionState> = _connectionState
 
@@ -197,9 +202,13 @@ class SettingsViewModel @Inject constructor(
 
     fun checkHealth() {
         viewModelScope.launch {
-            _serverReachable.value = runCatching {
-                withTimeout(5_000) { apiClient.health(); true }
-            }.getOrDefault(false)
+            _authFailed.value = false
+            val result = runCatching { withTimeout(5_000) { apiClient.health() } }
+            _serverReachable.value = result.isSuccess
+            val error = result.exceptionOrNull()
+            if (error is ApiError.HttpError && error.statusCode == 401) {
+                _authFailed.value = true
+            }
         }
     }
 

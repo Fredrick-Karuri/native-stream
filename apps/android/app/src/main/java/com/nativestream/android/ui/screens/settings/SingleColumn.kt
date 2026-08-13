@@ -76,6 +76,7 @@ fun SettingsSingleColumn(
     val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
     val sources      by sourceViewModel.sources.collectAsState()
     val serverReachable by settingsViewModel.serverReachable.collectAsState()
+    val authFailed by settingsViewModel.authFailed.collectAsState()
     val streamQuality    by settingsViewModel.streamQuality.collectAsState()
     var showResetConfirm by remember { mutableStateOf(false) }
 
@@ -91,6 +92,7 @@ fun SettingsSingleColumn(
                 serverUrl       = serverUrl,
                 serverReachable = serverReachable,
                 urlSource       = resolvedServerUrl.source,
+                authFailed      = authFailed,
                 onScan          = { settingsViewModel.startDiscovery() },
             )
         }
