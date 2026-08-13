@@ -228,36 +228,69 @@ struct PlaybackSection: View {
 
 struct ServerSection: View {
     @Environment(SettingsStore.self) private var settings
-    @State private var tokenInput: String = ""
+    @State private var showEditSheet = false
+    @State private var probeState: ProbeState = .idle
+
+    private enum ProbeState: Equatable {
+        case idle, running, succeeded, failed
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
             SectionTitle("StreamServer")
+
+            // #3/#4 fix: edit happens in a sheet, pre-filled with the
+            // resolved (effective) URL — see ServerURLSheet. This row is
+            // read-only display + entry point, mirroring the
+            // SettingsIconRow → dialog pattern used on Android and
+            // elsewhere in this file's sibling views.
             VStack(alignment: .leading, spacing: NS.Spacing.sm) {
                 Text("Server URL").font(NS.Font.caption).foregroundStyle(NS.text3)
-                NSTextField(
-                    placeholder: ServerURLResolver.hostedDefaultURL,
-                    text: Binding(
-                        get: { settings.serverURLString ?? "" },
-                        set: { settings.serverURLString = $0.isEmpty ? nil : $0 }
-                    )
-                )
-                Text("Blank uses the hosted default. Set this only for a self-hosted server on your LAN.")
-                    .font(NS.Font.monoSm).foregroundStyle(NS.text3)
+                Button(action: { showEditSheet = true }) {
+                    HStack {
+                        Text(settings.resolvedServerURL.url)
+                            .font(NS.Font.monoSm)
+                            .foregroundStyle(NS.text)
+                            .lineLimit(1)
+                        Spacer()
+                        Image(systemName: "pencil")
+                            .font(.system(size: 11))
+                            .foregroundStyle(NS.text3)
+                    }
+                    .padding(NS.Spacing.md)
+                    .background(NS.surface2)
+                    .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
+                }
+                .buttonStyle(.plain)
             }
-            VStack(alignment: .leading, spacing: NS.Spacing.sm) {
-                Text("API Token").font(NS.Font.caption).foregroundStyle(NS.text3)
-                NSTextField(placeholder: "Required for hosted servers", text: $tokenInput)
-                Text("Leave blank for a self-hosted server on your local network.")
-                    .font(NS.Font.monoSm).foregroundStyle(NS.text3)
-                Button("Save Token") {
-                    guard !tokenInput.isEmpty else { return }
-                    settings.setAPIToken(tokenInput)
+
+            // #1 fix: probe trigger, matching Android's "Trigger probe" row
+            // in SettingsSingleColumn — was missing entirely on Mac.
+            SettingsRow(title: "Trigger probe", subtitle: "Re-validate all stream links") {
+                Button(probeButtonLabel) {
+                    probeState = .running
+                    Task {
+                        let success = (try? await APIClient.shared.triggerProbe()) != nil
+                        probeState = success ? .succeeded : .failed
+                        try? await Task.sleep(for: .seconds(2))
+                        if probeState != .running { probeState = .idle }
+                    }
                 }
                 .buttonStyle(.bordered)
-                .disabled(tokenInput.isEmpty)
+                .disabled(probeState == .running)
             }
-            .onAppear { tokenInput = settings.apiToken ?? "" }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            ServerURLSheet(settings: settings)
+        }
+    }
+
+    private var probeButtonLabel: String {
+        switch probeState {
+        case .idle:      return "Trigger Probe"
+        case .running:   return "Probing…"
+        case .succeeded: return "Probe Started ✓"
+        case .failed:    return "Probe Failed"
         }
     }
 }

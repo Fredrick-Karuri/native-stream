@@ -36,6 +36,7 @@ struct SettingsScreen: View {
 
     @State private var selected: SettingsSection = .sources
     @State private var showResetConfirm = false
+    @State private var pendingDiscoveredURL: URL?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -88,6 +89,7 @@ struct SettingsScreen: View {
             }
             Spacer()
             serverHealthCard
+            discoveredURLPrompt
             if !controlVM.sessions.isEmpty {
                 controllerIndicator
             }
@@ -173,9 +175,35 @@ struct SettingsScreen: View {
         .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
         .overlay(RoundedRectangle(cornerRadius: NS.Radius.md).stroke(NS.border2, lineWidth: 0.5))
         .onChange(of: discovery.discoveredURL) { _, url in
-            guard let url else { return }
-            settings.confirmDiscoveredURL(url)
-            Task { await serverHealth.check(serverURL: url) }
+            pendingDiscoveredURL = url
+        }
+    }
+
+    @ViewBuilder
+    private var discoveredURLPrompt: some View {
+        if let url = pendingDiscoveredURL {
+            HStack(spacing: NS.Spacing.sm) {
+                Text("Server found at \(url.host ?? url.absoluteString)")
+                    .font(NS.Font.monoSm)
+                    .foregroundStyle(NS.text2)
+                    .lineLimit(1)
+                Spacer()
+                Button("Connect") {
+                    settings.confirmDiscoveredURL(url)
+                    pendingDiscoveredURL = nil
+                    Task { await serverHealth.check(serverURL: url) }
+                }
+                .buttonStyle(.plain)
+                .font(NS.Font.captionMed)
+                .foregroundStyle(NS.accent)
+                Button("Dismiss") { pendingDiscoveredURL = nil }
+                    .buttonStyle(.plain)
+                    .font(NS.Font.caption)
+                    .foregroundStyle(NS.text3)
+            }
+            .padding(NS.Spacing.sm)
+            .background(NS.surface2)
+            .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
         }
     }
 
