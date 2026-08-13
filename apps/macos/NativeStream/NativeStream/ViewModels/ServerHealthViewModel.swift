@@ -24,8 +24,11 @@ final class ServerHealthViewModel {
     func checkConnection(serverURL: URL) async {
         connectionState = .checking
         async let healthResult: Result<Stream_V1_HealthResponse, Error> = {
-            do { return .success(try await APIClient.shared.health()) }
-            catch { return .failure(error) }
+            do {
+                return .success(try await APIClient.shared.health())
+            } catch {
+                return .failure(error)
+            }
         }()
         async let playlistTask = try? APIClient.shared.playlistData()
         async let epgTask      = try? APIClient.shared.epgData()
