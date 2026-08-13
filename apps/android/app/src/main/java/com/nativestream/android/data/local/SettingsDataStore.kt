@@ -39,7 +39,6 @@ private object Keys {
 }
 
 private object Defaults {
-    const val SERVER_URL    = "http://192.168.1.42:8888"
     const val BUFFER_PRESET = "DEFAULT"
 }
 
@@ -51,8 +50,8 @@ class SettingsDataStore @Inject constructor(
 
     // ── Server ────────────────────────────────────────────────────────────────
 
-    val serverUrl: Flow<String> = store.data.map { prefs ->
-        prefs[Keys.SERVER_URL] ?: Defaults.SERVER_URL
+    val serverUrl: Flow<String?> = store.data.map { prefs ->
+        prefs[Keys.SERVER_URL]?.ifEmpty { null }
     }
     val selectedSourceId: Flow<String> = store.data.map { prefs ->
         prefs[Keys.SELECTED_SOURCE_ID] ?: ""
@@ -62,13 +61,8 @@ class SettingsDataStore @Inject constructor(
         store.edit { it[Keys.SERVER_URL] = url }
     }
 
-    suspend fun serverUrl(): String =
-        (store.data.map { it[Keys.SERVER_URL] ?: Defaults.SERVER_URL }
-            .let { flow ->
-                var result = Defaults.SERVER_URL
-                // Synchronous read via first() would need runBlocking — callers use Flow instead
-                result
-            })
+    suspend fun serverUrl(): String? =
+        store.data.map { it[Keys.SERVER_URL]?.ifEmpty { null } }.first()
 
     // ── EPG ───────────────────────────────────────────────────────────────────
 
