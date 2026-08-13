@@ -238,15 +238,11 @@ struct ServerSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
             SectionTitle("StreamServer")
-
-            // #3/#4 fix: edit happens in a sheet, pre-filled with the
-            // resolved (effective) URL — see ServerURLSheet. This row is
-            // read-only display + entry point, mirroring the
-            // SettingsIconRow → dialog pattern used on Android and
-            // elsewhere in this file's sibling views.
             VStack(alignment: .leading, spacing: NS.Spacing.sm) {
                 Text("Server URL").font(NS.Font.caption).foregroundStyle(NS.text3)
-                Button(action: { showEditSheet = true }) {
+                Button {
+                    showEditSheet = true
+                } label: {
                     HStack {
                         Text(settings.resolvedServerURL.url)
                             .font(NS.Font.monoSm)
