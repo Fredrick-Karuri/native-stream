@@ -23,7 +23,7 @@ data class ResolvedServerUrl(
 
 object ServerUrlResolver {
 
-    const val HOSTED_DEFAULT_URL = "https://vbccs6bncuo8pdgciav8ra4y.158.158.33.25.sslip.io"
+    const val HOSTED_DEFAULT_URL = "https://nativestream.duckdns.org"
 
     /**
      * Pure precedence resolution — no I/O, no Android types.

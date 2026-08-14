@@ -21,7 +21,7 @@ struct ResolvedServerURL {
 
 enum ServerURLResolver {
 
-    static let hostedDefaultURL = "https://vbccs6bncuo8pdgciav8ra4y.158.158.33.25.sslip.io"
+    static let hostedDefaultURL = "https://nativestream.duckdns.org"
 
     /// Pure precedence resolution — no I/O, no Foundation networking types
     /// beyond what's already imported for String handling.

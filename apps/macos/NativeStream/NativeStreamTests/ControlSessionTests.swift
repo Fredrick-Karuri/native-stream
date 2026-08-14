@@ -49,7 +49,6 @@ final class ControlSessionTests: XCTestCase {
             XCTAssertEqual(wsURL?.host, "stream.example.com")
         }
 
-
     func testMakeWebSocketURLReplacesExistingPathWithWs() {
         let urlWithPath = URL(string: "http://localhost:8888/some/other/path")!
 
