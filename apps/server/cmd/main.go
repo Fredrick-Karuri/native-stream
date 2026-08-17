@@ -12,6 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fredrick-karuri/nativestream/packages/mediaplane"
+	"github.com/fredrick-karuri/nativestream/packages/mediaplane/stub"
 	"github.com/fredrick-karuri/nativestream/server"
 	"github.com/fredrick-karuri/nativestream/server/api"
 	"github.com/fredrick-karuri/nativestream/server/config"
@@ -99,7 +101,6 @@ func main() {
 	credTotal, credActive := creds.Count()
 	slog.Info("credential store loaded", "total", credTotal, "active", credActive)
 
-
 	// ── Validator ──────────────────────────────────────────────────────────────
 	v := validator.New(validator.Config{
 		Interval:        cfg.Probe.Interval,
@@ -126,7 +127,7 @@ func main() {
 		UserAgent: cfg.Proxy.UserAgent,
 		Origin:    cfg.Proxy.Origin,
 	}
-	px := proxy.New(proxyCfg, s)
+	px := selectMediaPlaneProxy(cfg, proxyCfg, s)
 
 	// ── Discovery ──────────────────────────────────────────────────────────────
 	cb := discovery.NewCircuitBreaker(5, time.Hour)
@@ -273,19 +274,26 @@ func main() {
 		os.Exit(1)
 	}
 }
-
-	func revokeToken(label string) error {
-		cfg, err := config.Load()
-		if err != nil {
-			return fmt.Errorf("config: %w", err)
-		}
-		creds := store.NewCredentialStore(cfg.Store.CredentialsPath)
-		if err := creds.Load(); err != nil {
-			return fmt.Errorf("load credential store: %w", err)
-		}
-		if err := creds.Revoke(label); err != nil {
-			return err
-		}
-		fmt.Printf("revoked credential %q\n", label)
-		return nil
+func selectMediaPlaneProxy(cfg config.Config, proxyCfg proxy.Config, s *store.Store) mediaplane.StreamProxy {
+	if os.Getenv("NATIVESTREAM_MEDIA_PLANE") == "stub" {
+		slog.Info("media plane: using stub implementation", "reason", "NATIVESTREAM_MEDIA_PLANE=stub")
+		return stub.NewStreamProxy()
 	}
+	return proxy.New(proxyCfg, s)
+}
+
+func revokeToken(label string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
+	creds := store.NewCredentialStore(cfg.Store.CredentialsPath)
+	if err := creds.Load(); err != nil {
+		return fmt.Errorf("load credential store: %w", err)
+	}
+	if err := creds.Revoke(label); err != nil {
+		return err
+	}
+	fmt.Printf("revoked credential %q\n", label)
+	return nil
+}

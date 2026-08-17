@@ -49,6 +49,10 @@ func (p *Proxy) IsEnabled() bool {
 	return p.enabled.Load()
 }
 
+func (p *Proxy) PerformsSSRFFiltering() bool {
+	return true
+}
+
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
