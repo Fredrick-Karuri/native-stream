@@ -48,10 +48,10 @@ func (s ServerConfig) IsExposed() bool {
 }
 
 type StoreConfig struct {
-	SnapshotPath           string
-	SnapshotInterval       time.Duration
-	MinScoreHealthy        float64
-	CredentialsPath        string
+	SnapshotPath     string
+	SnapshotInterval time.Duration
+	MinScoreHealthy  float64
+	CredentialsPath  string
 }
 
 type ProbeConfig struct {

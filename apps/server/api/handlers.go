@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
-	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
 	"github.com/fredrick-karuri/nativestream/packages/mediaplane"
+	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
 	"github.com/fredrick-karuri/nativestream/server/control"
 	"github.com/fredrick-karuri/nativestream/server/epg"
 	"github.com/fredrick-karuri/nativestream/server/httpx"

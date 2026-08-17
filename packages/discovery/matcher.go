@@ -5,22 +5,20 @@ package discovery
 
 import (
 	"strings"
-
-	"github.com/fredrick-karuri/nativestream/server/store"
 )
 
 type ChannelMatcher struct {
-	store *store.Store
+	lookup ChannelLookup
 }
 
-func NewMatcher(s *store.Store) *ChannelMatcher {
-	return &ChannelMatcher{store: s}
+func NewMatcher(lookup ChannelLookup) *ChannelMatcher {
+	return &ChannelMatcher{lookup: lookup}
 }
 
 // Match attempts to assign a CandidateLink to a channel.
 // Returns the matched channel ID, or "" if no match.
 func (m *ChannelMatcher) Match(link *CandidateLink) string {
-	channels := m.store.All()
+	channels := m.lookup.All()
 	combined := strings.ToLower(link.URL + " " + link.ContextText)
 
 	for _, ch := range channels {
@@ -55,11 +53,11 @@ func (m *ChannelMatcher) AutoRegister(candidate DirectCandidate) string {
 	}
 
 	// Don't duplicate if already registered
-	if ch := m.store.Get(id); ch != nil {
+	if ch := m.lookup.Get(id); ch != nil {
 		return ch.ID
 	}
 
-	ch := &store.Channel{
+	ch := LookupChannel{
 		ID:         id,
 		Name:       candidate.ChannelName,
 		GroupTitle: candidate.GroupTitle,
@@ -67,7 +65,7 @@ func (m *ChannelMatcher) AutoRegister(candidate DirectCandidate) string {
 		LogoURL:    candidate.LogoURL,
 		Keywords:   []string{strings.ToLower(candidate.ChannelName)},
 	}
-	m.store.Add(ch)
+	m.lookup.Add(ch)
 	return id
 }
 

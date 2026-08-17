@@ -43,6 +43,7 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
 type credentialChecker interface {
 	IsValid(token string) bool
 }

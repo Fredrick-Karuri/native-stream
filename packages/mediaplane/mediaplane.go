@@ -1,20 +1,10 @@
 // packages/mediaplane/mediaplane.go
 //
-// Media plane interface contract (CPMP-005). Defines what the control
+// Media plane interface contract. Defines what the control
 // plane needs FROM a media plane implementation, expressed as Go
-// interfaces. This is the seam CPMP-006 wires the control plane to call
-// through, and CPMP-007 proves with a second implementation.
+// interfaces.
 //
-// Classification note: epg.Engine.assignChannels contradicts the design
-// doc's hypothesis table. It was hypothesized as pure "sourcing" (crosses
-// the boundary), but it reads store.Channel.Keywords — control-plane
-// channel state — to decide which channels a sourced match belongs to.
-// It cannot be pure sourcing (depends on server-owned data) and isn't
-// caching either. Resolution: MatchProvider returns matches with no
-// channel assignment; the control plane does the assignment itself,
-// after the interface call, using its own store. This keeps the
-// interface boundary honest — a media plane implementation never needs
-// to see control-plane channel state to satisfy this contract.
+
 package mediaplane
 
 import (
@@ -104,8 +94,7 @@ type Match struct {
 
 // MatchProvider is what the control plane needs from EPG sourcing: given
 // a lookahead window, return upcoming matches. Caching, XMLTV generation,
-// and channel assignment all stay server-side (see CPMP-005 classification
-// table) — this interface covers fetch/parse only.
+// and channel assignment all stay server-side.
 type MatchProvider interface {
 	// FindMatches returns matches with a kickoff within the given
 	// lookahead window of now.

@@ -12,14 +12,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fredrick-karuri/nativestream/packages/discovery"
+	"github.com/fredrick-karuri/nativestream/packages/discovery/crawlers"
 	"github.com/fredrick-karuri/nativestream/packages/mediaplane"
 	"github.com/fredrick-karuri/nativestream/packages/mediaplane/stub"
 	"github.com/fredrick-karuri/nativestream/server"
 	"github.com/fredrick-karuri/nativestream/server/api"
 	"github.com/fredrick-karuri/nativestream/server/config"
 	"github.com/fredrick-karuri/nativestream/server/control"
-	"github.com/fredrick-karuri/nativestream/server/discovery"
-	"github.com/fredrick-karuri/nativestream/server/discovery/crawlers"
+	serverdiscovery "github.com/fredrick-karuri/nativestream/server/discovery"
 	"github.com/fredrick-karuri/nativestream/server/epg"
 	"github.com/fredrick-karuri/nativestream/server/logging"
 	"github.com/fredrick-karuri/nativestream/server/netutil"
@@ -161,12 +162,14 @@ func main() {
 		slog.Info("direct fetcher enabled", "name", "local-script-crawler", "path", cfg.Discovery.LocalScriptPath)
 	}
 
-	matcher := discovery.NewMatcher(s)
+	channelLookup := serverdiscovery.NewStoreChannelLookup(s)
+	candidateSubmitter := serverdiscovery.NewValidatorSubmitter(v)
+	matcher := discovery.NewMatcher(channelLookup)
 	discEngine := discovery.NewEngine(discovery.Config{
 		Enabled:          cfg.Discovery.Enabled,
 		DefaultInterval:  cfg.Discovery.DefaultInterval,
 		PriorityInterval: cfg.Discovery.PriorityInterval,
-	}, crawlerList, matcher, v)
+	}, crawlerList, matcher, candidateSubmitter)
 
 	discEngine.WithDirectFetchers(directFetchers)
 
@@ -180,7 +183,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
-	discEngine.RegisterRoutes(mux)
+	serverdiscovery.NewHandler(discEngine).RegisterRoutes(mux)
 
 	// /ws (Local Media Connect) is carved out of the auth-wrapped mux and
 	// mounted separately, unauthenticated — it's LAN-only by design and

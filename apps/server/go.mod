@@ -4,6 +4,7 @@ go 1.26.5
 
 require (
 	github.com/coder/websocket v1.8.15
+	github.com/fredrick-karuri/nativestream/packages/discovery v0.0.0-00010101000000-000000000000
 	github.com/fredrick-karuri/nativestream/packages/mediaplane v0.0.0-00010101000000-000000000000
 	github.com/fredrick-karuri/nativestream/sdk-gen/go v0.0.0-00010101000000-000000000000
 	github.com/google/uuid v1.6.0
@@ -23,3 +24,5 @@ require (
 replace github.com/fredrick-karuri/nativestream/sdk-gen/go => ../../packages/sdk-gen/go
 
 replace github.com/fredrick-karuri/nativestream/packages/mediaplane => ../../packages/mediaplane
+
+replace github.com/fredrick-karuri/nativestream/packages/discovery => ../../packages/discovery
