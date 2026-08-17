@@ -5,7 +5,6 @@ package api
 
 import (
 	"bufio"
-	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"net"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"time"
 )
+
+const bearerPrefix = "Bearer "
 
 // LoggingMiddleware logs every request with method, path, status, and duration.
 func LoggingMiddleware(next http.Handler) http.Handler {
@@ -42,20 +43,17 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+type credentialChecker interface {
+	IsValid(token string) bool
+}
 
-const bearerPrefix = "Bearer "
-
-// AuthMiddleware rejects requests lacking a valid bearer token when the
-// server has one configured. token is empty for loopback-only deployments
-// (see config.ServerConfig.IsExposed) — in that case every request passes
-// through unchanged, matching pre-hosting zero-trust-LAN behavior.
-func AuthMiddleware(token string) func(http.Handler) http.Handler {
+func AuthMiddleware(creds credentialChecker) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		if token == "" {
+		if creds == nil {
 			return next
 		}
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !hasValidBearerToken(r, token) {
+			if !hasValidBearerToken(r, creds) {
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -64,13 +62,13 @@ func AuthMiddleware(token string) func(http.Handler) http.Handler {
 	}
 }
 
-func hasValidBearerToken(r *http.Request, expectedToken string) bool {
+func hasValidBearerToken(r *http.Request, creds credentialChecker) bool {
 	header := r.Header.Get("Authorization")
 	if !strings.HasPrefix(header, bearerPrefix) {
 		return false
 	}
 	suppliedToken := strings.TrimPrefix(header, bearerPrefix)
-	return subtle.ConstantTimeCompare([]byte(suppliedToken), []byte(expectedToken)) == 1
+	return creds.IsValid(suppliedToken)
 }
 
 type responseWriter struct {

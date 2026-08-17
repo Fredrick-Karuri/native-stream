@@ -48,11 +48,22 @@ func main() {
 				os.Exit(1)
 			}
 			return
+		case "--revoke-token":
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "usage: nativestream-server --revoke-token <label>")
+				os.Exit(1)
+			}
+			if err := revokeToken(os.Args[2]); err != nil {
+				fmt.Fprintf(os.Stderr, "revoke-token: %v\n", err)
+				os.Exit(1)
+			}
+			return
 		case "--help", "-h":
 			fmt.Println("NativeStream Server")
 			fmt.Println("  nativestream-server                     Start")
 			fmt.Println("  nativestream-server --install-service   Register launchd service")
 			fmt.Println("  nativestream-server --uninstall-service Remove launchd service")
+			fmt.Println("  nativestream-server --revoke-token <label> Revoke one credential")
 			return
 		}
 	}
@@ -76,6 +87,18 @@ func main() {
 	}
 	total, healthy := s.Count()
 	slog.Info("store loaded", "channels", total, "healthy", healthy)
+
+	// ── Credentials ───────────────────────────────────────────
+	creds := store.NewCredentialStore(cfg.Store.CredentialsPath)
+	if err := creds.Load(); err != nil {
+		slog.Warn("credential store load failed, starting fresh", "err", err)
+	}
+	if err := creds.MigrateLegacyToken(cfg.Server.APIToken); err != nil {
+		slog.Warn("legacy token migration failed", "err", err)
+	}
+	credTotal, credActive := creds.Count()
+	slog.Info("credential store loaded", "total", credTotal, "active", credActive)
+
 
 	// ── Validator ──────────────────────────────────────────────────────────────
 	v := validator.New(validator.Config{
@@ -163,8 +186,13 @@ func main() {
 	// casting devices don't hold an API token (see HOST-003).
 	rootMux := http.NewServeMux()
 	rootMux.HandleFunc("GET /ws", h.RegisterWebSocketRoute)
-	rootMux.Handle("/", api.AuthMiddleware(cfg.Server.APIToken)(mux))
-
+	var authGuard func(http.Handler) http.Handler
+	if credTotal > 0 {
+		authGuard = api.AuthMiddleware(creds)
+	} else {
+		authGuard = api.AuthMiddleware(nil)
+	}
+	rootMux.Handle("/", authGuard(mux))
 	// Apply middleware stack
 	handler := api.LoggingMiddleware(api.RecoveryMiddleware(rootMux))
 
@@ -245,3 +273,19 @@ func main() {
 		os.Exit(1)
 	}
 }
+
+	func revokeToken(label string) error {
+		cfg, err := config.Load()
+		if err != nil {
+			return fmt.Errorf("config: %w", err)
+		}
+		creds := store.NewCredentialStore(cfg.Store.CredentialsPath)
+		if err := creds.Load(); err != nil {
+			return fmt.Errorf("load credential store: %w", err)
+		}
+		if err := creds.Revoke(label); err != nil {
+			return err
+		}
+		fmt.Printf("revoked credential %q\n", label)
+		return nil
+	}
