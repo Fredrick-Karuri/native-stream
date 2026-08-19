@@ -24,7 +24,8 @@ import (
 	"github.com/fredrick-karuri/nativestream/server/epg"
 	"github.com/fredrick-karuri/nativestream/server/logging"
 	"github.com/fredrick-karuri/nativestream/server/netutil"
-	"github.com/fredrick-karuri/nativestream/server/proxy"
+	"github.com/fredrick-karuri/nativestream/packages/proxy"
+	serverproxy "github.com/fredrick-karuri/nativestream/server/proxy"
 	"github.com/fredrick-karuri/nativestream/server/service"
 	"github.com/fredrick-karuri/nativestream/server/shutdown"
 	"github.com/fredrick-karuri/nativestream/server/store"
@@ -282,7 +283,8 @@ func selectMediaPlaneProxy(cfg config.Config, proxyCfg proxy.Config, s *store.St
 		slog.Info("media plane: using stub implementation", "reason", "NATIVESTREAM_MEDIA_PLANE=stub")
 		return stub.NewStreamProxy()
 	}
-	return proxy.New(proxyCfg, s)
+	links := serverproxy.NewStoreActiveLinkSource(s)
+	return proxy.New(proxyCfg, links)
 }
 
 func revokeToken(label string) error {

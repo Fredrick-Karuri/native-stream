@@ -19,7 +19,7 @@ import (
 	"github.com/fredrick-karuri/nativestream/server/httpx"
 	"github.com/fredrick-karuri/nativestream/server/intsafe"
 	"github.com/fredrick-karuri/nativestream/server/playlist"
-	"github.com/fredrick-karuri/nativestream/server/proxy"
+	"github.com/fredrick-karuri/nativestream/packages/proxy"
 	"github.com/fredrick-karuri/nativestream/server/store"
 	"github.com/fredrick-karuri/nativestream/server/validator"
 	"github.com/google/uuid"
