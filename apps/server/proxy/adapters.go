@@ -4,7 +4,7 @@
 // packages/proxy's ActiveLinkSource interface (see
 // packages/proxy/ports.go). packages/proxy never imports server/store
 // directly — the server wires this adapter in at construction, in
-// cmd/main.go. Same pattern as server/discovery/adapters.go (CPMP-008).
+// cmd/main.go.
 package proxy
 
 import (
