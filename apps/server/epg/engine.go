@@ -7,15 +7,13 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"io"
-	"log/slog"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	epgsourcing "github.com/fredrick-karuri/nativestream/packages/epg-sourcing"
 	"github.com/fredrick-karuri/nativestream/server/store"
 )
 
@@ -78,14 +76,14 @@ type Engine struct {
 	cached    []byte
 	matches   []Match
 	lastFetch time.Time
-	client    *http.Client
+	sourcing  *epgsourcing.Client
 }
 
 func New(cfg Config, s *store.Store) *Engine {
 	return &Engine{
-		cfg:    cfg,
-		store:  s,
-		client: &http.Client{Timeout: 15 * time.Second},
+		cfg:      cfg,
+		store:    s,
+		sourcing: epgsourcing.NewClient(),
 	}
 }
 
@@ -162,15 +160,15 @@ func (e *Engine) refresh(ctx context.Context) {
 func (e *Engine) fetchMatches(ctx context.Context) []Match {
 	var all []Match
 	if e.cfg.ESPNEnabled {
-		if m, err := e.fetchESPN(ctx); err == nil {
-			all = append(all, m...)
+		if m, err := e.sourcing.FetchESPN(ctx); err == nil {
+			all = append(all, fromSourcingMatches(m)...)
 		} else {
 			fmt.Fprintf(os.Stderr, "[epg] ESPN fetch failed: %v\n", err)
 		}
 	}
 	if e.cfg.FootballDataKey != "" {
-		if m, err := e.fetchFootballData(ctx); err == nil {
-			all = append(all, m...)
+		if m, err := e.sourcing.FetchFootballData(ctx, e.cfg.FootballDataKey); err == nil {
+			all = append(all, fromSourcingMatches(m)...)
 		} else {
 			fmt.Fprintf(os.Stderr, "[epg] football-data fetch failed: %v\n", err)
 		}
@@ -178,46 +176,23 @@ func (e *Engine) fetchMatches(ctx context.Context) []Match {
 	return all
 }
 
-func (e *Engine) fetchESPN(ctx context.Context) ([]Match, error) {
-	// ESPN public scoreboard API — no key required
-	url := "https://site.api.espn.com/apis/site/v2/sports/soccer/all/scoreboard"
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := e.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if cerr := resp.Body.Close(); cerr != nil {
-			slog.Debug("epg: close ESPN response body", "err", cerr)
+// fromSourcingMatches converts packages/epg-sourcing's unassigned Match
+// values into the server's own Match type, which carries ChannelIDs —
+// assignment happens afterward in assignChannels, using this engine's
+// store (see CPMP-005's classification: assignment is control-plane-only).
+func fromSourcingMatches(src []epgsourcing.Match) []Match {
+	out := make([]Match, len(src))
+	for i, m := range src {
+		out[i] = Match{
+			HomeTeam:    m.HomeTeam,
+			AwayTeam:    m.AwayTeam,
+			Competition: m.Competition,
+			Sport:       m.Sport,
+			KickOff:     m.KickOff,
+			Duration:    m.Duration,
 		}
-	}()
-	body, _ := io.ReadAll(resp.Body)
-	return parseESPNResponse(body), nil
-}
-
-func (e *Engine) fetchFootballData(ctx context.Context) ([]Match, error) {
-	// football-data.org — requires free API key
-	today := time.Now().Format("2006-01-02")
-	url := fmt.Sprintf("https://api.football-data.org/v4/matches?dateFrom=%s&dateTo=%s", today, today)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
 	}
-	req.Header.Set("X-Auth-Token", e.cfg.FootballDataKey)
-	resp, err := e.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		if cerr := resp.Body.Close(); cerr != nil {
-			slog.Debug("epg: close football-data response body", "err", cerr)
-		}
-	}()
-	body, _ := io.ReadAll(resp.Body)
-	return parseFootballDataResponse(body), nil
+	return out
 }
 
 // ── XMLTV generation (NS-133) ─────────────────────────────────────────────────
