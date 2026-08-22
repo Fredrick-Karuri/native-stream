@@ -52,6 +52,22 @@ func main() {
 				os.Exit(1)
 			}
 			return
+		case "--create-token":
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "usage: nativestream-server --create-token <label>")
+				os.Exit(1)
+			}
+			if err := createToken(os.Args[2]); err != nil {
+				fmt.Fprintf(os.Stderr, "create-token: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		case "--list-tokens":
+			if err := listTokens(); err != nil {
+				fmt.Fprintf(os.Stderr, "list-tokens: %v\n", err)
+				os.Exit(1)
+			}
+			return
 		case "--revoke-token":
 			if len(os.Args) < 3 {
 				fmt.Fprintln(os.Stderr, "usage: nativestream-server --revoke-token <label>")
@@ -64,9 +80,11 @@ func main() {
 			return
 		case "--help", "-h":
 			fmt.Println("NativeStream Server")
-			fmt.Println("  nativestream-server                     Start")
-			fmt.Println("  nativestream-server --install-service   Register launchd service")
-			fmt.Println("  nativestream-server --uninstall-service Remove launchd service")
+			fmt.Println("  nativestream-server                        Start")
+			fmt.Println("  nativestream-server --install-service      Register launchd service")
+			fmt.Println("  nativestream-server --uninstall-service    Remove launchd service")
+			fmt.Println("  nativestream-server --create-token <label> Create a new credential")
+			fmt.Println("  nativestream-server --list-tokens          List all credentials")
 			fmt.Println("  nativestream-server --revoke-token <label> Revoke one credential")
 			return
 		}
@@ -300,5 +318,56 @@ func revokeToken(label string) error {
 		return err
 	}
 	fmt.Printf("revoked credential %q\n", label)
+	return nil
+}
+
+// createToken loads the credential store standalone (no server start),
+// creates a new credential labeled label, and prints the generated token
+// once. The token is never stored anywhere the operator can retrieve it
+// again later — same principle as a password: shown once at creation,
+// then only its label is visible via --list-tokens.
+func createToken(label string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
+	creds := store.NewCredentialStore(cfg.Store.CredentialsPath)
+	if err := creds.Load(); err != nil {
+		return fmt.Errorf("load credential store: %w", err)
+	}
+	cred, err := creds.Create(label)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("created credential %q\n", label)
+	fmt.Printf("token: %s\n", cred.Token)
+	fmt.Println("save this now — it will not be shown again")
+	return nil
+}
+
+// listTokens prints every credential's label, creation time, and
+// revocation status (never the token itself — --list-tokens is for seeing
+// what exists and what's still active, not for retrieving lost tokens).
+func listTokens() error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
+	creds := store.NewCredentialStore(cfg.Store.CredentialsPath)
+	if err := creds.Load(); err != nil {
+		return fmt.Errorf("load credential store: %w", err)
+	}
+	all := creds.All()
+	if len(all) == 0 {
+		fmt.Println("no credentials")
+		return nil
+	}
+	for _, cred := range all {
+		status := "active"
+		if cred.IsRevoked() {
+			status = "revoked at " + cred.RevokedAt.Format(time.RFC3339)
+		}
+		fmt.Printf("%-30s created %s  %s\n", cred.Label, cred.CreatedAt.Format(time.RFC3339), status)
+	}
 	return nil
 }

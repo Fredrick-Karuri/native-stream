@@ -55,6 +55,15 @@ func NewCredentialStore(path string) *CredentialStore {
 // Create generates a new unique token, stores a Credential for it under
 // label, persists the store, and returns the created row.
 func (cs *CredentialStore) Create(label string) (*Credential, error) {
+	cs.mu.RLock()
+	for _, existing := range cs.credentials {
+		if existing.Label == label && !existing.IsRevoked() {
+			cs.mu.RUnlock()
+			return nil, fmt.Errorf("credential store: an active credential labeled %q already exists — revoke it first or choose a different label", label)
+		}
+	}
+	cs.mu.RUnlock()
+
 	token, err := generateToken()
 	if err != nil {
 		return nil, fmt.Errorf("generate token: %w", err)
