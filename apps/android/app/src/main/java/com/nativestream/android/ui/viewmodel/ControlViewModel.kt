@@ -74,7 +74,7 @@ class ControlViewModel @Inject constructor(
 
     private suspend fun startSession() {
         deviceId          = resolveDeviceId()
-        val serverUrl     = settingsDataStore.serverUrl.first()
+        val serverUrl     = settingsDataStore.serverUrl.first() ?: return
         val deviceName    = android.os.Build.MODEL
         controlSession.connect(serverUrl, deviceId, deviceName)
     }
@@ -115,7 +115,7 @@ class ControlViewModel @Inject constructor(
 
     fun retryConnection() {
         viewModelScope.launch {
-            val serverUrl  = settingsDataStore.serverUrl.first()
+            val serverUrl  = settingsDataStore.serverUrl.first() ?: return@launch
             controlSession.retryNow(serverUrl, deviceId, android.os.Build.MODEL)
         }
     }

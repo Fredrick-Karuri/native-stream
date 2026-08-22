@@ -12,13 +12,14 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/fredrick-karuri/nativestream/packages/mediaplane"
+	"github.com/fredrick-karuri/nativestream/packages/proxy"
 	streamv1 "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1"
 	"github.com/fredrick-karuri/nativestream/server/control"
 	"github.com/fredrick-karuri/nativestream/server/epg"
 	"github.com/fredrick-karuri/nativestream/server/httpx"
 	"github.com/fredrick-karuri/nativestream/server/intsafe"
 	"github.com/fredrick-karuri/nativestream/server/playlist"
-	"github.com/fredrick-karuri/nativestream/server/proxy"
 	"github.com/fredrick-karuri/nativestream/server/store"
 	"github.com/fredrick-karuri/nativestream/server/validator"
 	"github.com/google/uuid"
@@ -30,7 +31,7 @@ import (
 type Handler struct {
 	store      *store.Store
 	epg        *epg.Engine
-	proxy      *proxy.Proxy
+	proxy      mediaplane.StreamProxy
 	validator  *validator.Validator
 	startTime  time.Time
 	proxyCfg   proxy.Config
@@ -43,7 +44,7 @@ type Handler struct {
 func New(
 	s *store.Store,
 	e *epg.Engine,
-	px *proxy.Proxy,
+	px mediaplane.StreamProxy,
 	v *validator.Validator,
 	proxyCfg proxy.Config,
 	serverAddr string,

@@ -1,6 +1,21 @@
 # API Reference
 
-All endpoints are served by the Go server at `http://localhost:8888` and are **localhost-only** — there is no authentication, since any process on the machine is trusted by design. This is a personal, single-user tool, not a multi-tenant service.
+All endpoints are served by the Go server at `http://localhost:8888` by default. Authentication depends on how the server is bound:
+
+- **Loopback (`127.0.0.1`, the default)** — no auth required. Any process on the machine is trusted, since nothing outside it can reach the server anyway.
+- **Exposed (`host` set to anything else, e.g. a hosted deployment)** — every endpoint below except `/ws` requires `Authorization: Bearer <token>`, where `<token>` is any non-revoked credential in the server's credential store. The server refuses to start exposed with no credentials configured — see [configuration.md](configuration.md#credentials).
+
+Each credential is independently revocable and carries no identity beyond an operator-facing label — this supports multiple trusted devices/people, not multi-tenant accounts. See [architecture.md — Credential Model](architecture.md#credential-model).
+
+## Auth Requirements
+
+| Endpoint group | Auth required when exposed |
+|---|---|
+| `/api/*` | Yes |
+| `/playlist.m3u` | Yes |
+| `/epg.xml` | Yes |
+| `/stream/:id/proxy` | Yes |
+| `/ws` (Local Media Connect) | **No** — stays open, LAN-only by design; casting devices don't hold a credential |
 
 ## Response Formats
 
@@ -40,8 +55,8 @@ All endpoints are served by the Go server at `http://localhost:8888` and are **l
   "channels": 142,
   "healthy": 138,
   "version": "4.0",
-  "server_name": "NativeStream @ Fredricks-MacBook-Pro.local",
-  "addr": "http://192.168.100.40:8888"
+  "server_name": "NativeStream @ hostname.local",
+  "addr": "http://192.168.1.10:8888"
 }
 ```
 
@@ -93,11 +108,11 @@ The first message after connecting must be a `register` envelope:
   "from": "device-uuid",
   "to": "server",
   "auth": null,
-  "payload": "{\"name\": \"Fredrick's Phone\", \"kind\": \"controller\"}"
+  "payload": "{\"name\": \"My Phone\", \"kind\": \"controller\"}"
 }
 ```
 
-Device kinds: `controller` (Android phone), `target` (Mac), `tv` (future).
+Device kinds: `controller` (phone), `target` (Mac), `tv` (future).
 
 ### Envelope shape
 

@@ -1,11 +1,11 @@
-// proxy/proxy_test.go
+// packages/proxy/proxy_test.go
 //
 // ServeHTTP is the impure shell: real HTTP round trips to an upstream via
 // p.client. Tests here use httptest.Server as a fake upstream (so no real
 // network call ever leaves the test) and httptest.NewRecorder as the
-// response writer. Where a test needs the client itself, we point
-// ch.ActiveLink.URL (or the segment cache's TargetURL) at the fake
-// server's URL rather than swapping p.client — that requires zero
+// response writer. Where a test needs the client itself, we point the
+// fake ActiveLinkSource's URL (or the segment cache's TargetURL) at the
+// fake server's URL rather than swapping p.client — that requires zero
 // production code changes.
 //
 // Assertions here focus on what ServeHTTP itself is responsible for:
@@ -24,8 +24,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/fredrick-karuri/nativestream/server/store"
 )
 
 func newTestRequest(t *testing.T, method, target string) *http.Request {
@@ -33,21 +31,27 @@ func newTestRequest(t *testing.T, method, target string) *http.Request {
 	return httptest.NewRequestWithContext(context.Background(), method, target, nil)
 }
 
-func newTestStoreWithChannel(t *testing.T, channelID, activeLinkURL string, headers map[string]string) *store.Store {
-	t.Helper()
-	s := store.New(t.TempDir()+"/snapshot.json", 0.5)
-	s.Add(&store.Channel{
-		ID:   channelID,
-		Name: "Test Channel",
-		ActiveLink: &store.LinkScore{
-			URL:       activeLinkURL,
-			ChannelID: channelID,
-			Score:     0.9,
-			State:     store.StateActive,
-			Headers:   headers,
-		},
-	})
-	return s
+// fakeActiveLinkSource is a minimal in-memory ActiveLinkSource.
+type fakeActiveLinkSource struct {
+	links map[string]*ActiveLink
+}
+
+func newFakeActiveLinkSource() *fakeActiveLinkSource {
+	return &fakeActiveLinkSource{links: make(map[string]*ActiveLink)}
+}
+
+func (f *fakeActiveLinkSource) ActiveLink(channelID string) *ActiveLink {
+	return f.links[channelID]
+}
+
+func (f *fakeActiveLinkSource) set(channelID, url string, headers map[string]string) {
+	f.links[channelID] = &ActiveLink{URL: url, Headers: headers}
+}
+
+func newLinksWithChannel(channelID, activeLinkURL string, headers map[string]string) *fakeActiveLinkSource {
+	f := newFakeActiveLinkSource()
+	f.set(channelID, activeLinkURL, headers)
+	return f
 }
 
 // ── Original playlist routing (/stream/{channelID}/...) ────────────────
@@ -59,8 +63,8 @@ func TestServeHTTP_OriginalPlaylist_ProxiesAndRewritesM3U8(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	s := newTestStoreWithChannel(t, "chan1", upstream.URL+"/live.m3u8", nil)
-	p := New(Config{}, s)
+	links := newLinksWithChannel("chan1", upstream.URL+"/live.m3u8", nil)
+	p := New(Config{}, links)
 
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/live.m3u8")
 	rec := httptest.NewRecorder()
@@ -79,8 +83,8 @@ func TestServeHTTP_OriginalPlaylist_ProxiesAndRewritesM3U8(t *testing.T) {
 }
 
 func TestServeHTTP_OriginalPlaylist_ReturnsNotFoundForUnknownChannel(t *testing.T) {
-	s := newTestStoreWithChannel(t, "chan1", "http://example.invalid/live.m3u8", nil)
-	p := New(Config{}, s)
+	links := newLinksWithChannel("chan1", "http://example.invalid/live.m3u8", nil)
+	p := New(Config{}, links)
 
 	req := newTestRequest(t, http.MethodGet, "/stream/unknown-channel/live.m3u8")
 	rec := httptest.NewRecorder()
@@ -93,9 +97,8 @@ func TestServeHTTP_OriginalPlaylist_ReturnsNotFoundForUnknownChannel(t *testing.
 }
 
 func TestServeHTTP_OriginalPlaylist_ReturnsNotFoundWhenChannelHasNoActiveLink(t *testing.T) {
-	s := store.New(t.TempDir()+"/snapshot.json", 0.5)
-	s.Add(&store.Channel{ID: "chan1", Name: "No Link Channel"}) // ActiveLink left nil
-	p := New(Config{}, s)
+	links := newFakeActiveLinkSource() // "chan1" never set — no active link
+	p := New(Config{}, links)
 
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/live.m3u8")
 	rec := httptest.NewRecorder()
@@ -108,8 +111,8 @@ func TestServeHTTP_OriginalPlaylist_ReturnsNotFoundWhenChannelHasNoActiveLink(t 
 }
 
 func TestServeHTTP_OriginalPlaylist_ReturnsBadRequestForShortPath(t *testing.T) {
-	s := newTestStoreWithChannel(t, "chan1", "http://example.invalid/live.m3u8", nil)
-	p := New(Config{}, s)
+	links := newLinksWithChannel("chan1", "http://example.invalid/live.m3u8", nil)
+	p := New(Config{}, links)
 
 	// /stream/chan1 alone has only 2 path segments after trimming — the
 	// handler requires at least 3 (empty, "stream", channelID, ...).
@@ -133,8 +136,8 @@ func TestServeHTTP_OriginalPlaylist_PassesThroughNonPlaylistContentUnmodified(t 
 	}))
 	defer upstream.Close()
 
-	s := newTestStoreWithChannel(t, "chan1", upstream.URL+"/segment.ts", nil)
-	p := New(Config{}, s)
+	links := newLinksWithChannel("chan1", upstream.URL+"/segment.ts", nil)
+	p := New(Config{}, links)
 
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/segment.ts")
 	rec := httptest.NewRecorder()
@@ -150,8 +153,8 @@ func TestServeHTTP_OriginalPlaylist_ForwardsUpstreamErrorAsBadGateway(t *testing
 	// Point at a URL nothing is listening on so the client.Do call itself
 	// fails, exercising the "upstream error" branch rather than a
 	// non-2xx status from a live server.
-	s := newTestStoreWithChannel(t, "chan1", "http://127.0.0.1:1/live.m3u8", nil)
-	p := New(Config{}, s)
+	links := newLinksWithChannel("chan1", "http://127.0.0.1:1/live.m3u8", nil)
+	p := New(Config{}, links)
 
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/live.m3u8")
 	rec := httptest.NewRecorder()
@@ -172,8 +175,8 @@ func TestServeHTTP_OriginalPlaylist_InjectsPerLinkHeadersIntoUpstreamRequest(t *
 	}))
 	defer upstream.Close()
 
-	s := newTestStoreWithChannel(t, "chan1", upstream.URL+"/segment.ts", map[string]string{"X-Stream-Auth": "secret-token"})
-	p := New(Config{}, s)
+	links := newLinksWithChannel("chan1", upstream.URL+"/segment.ts", map[string]string{"X-Stream-Auth": "secret-token"})
+	p := New(Config{}, links)
 
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/segment.ts")
 	rec := httptest.NewRecorder()
@@ -194,8 +197,8 @@ func TestServeHTTP_Segment_ProxiesCachedSegmentSuccessfully(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	s := store.New(t.TempDir()+"/snapshot.json", 0.5)
-	p := New(Config{}, s)
+	links := newFakeActiveLinkSource()
+	p := New(Config{}, links)
 	p.cacheSegment("abc123", upstream.URL+"/seg.ts", nil)
 
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy/seg/abc123.ts")
@@ -215,8 +218,8 @@ func TestServeHTTP_Segment_ProxiesCachedSegmentSuccessfully(t *testing.T) {
 }
 
 func TestServeHTTP_Segment_ReturnsGoneForUnknownSegmentID(t *testing.T) {
-	s := store.New(t.TempDir()+"/snapshot.json", 0.5)
-	p := New(Config{}, s)
+	links := newFakeActiveLinkSource()
+	p := New(Config{}, links)
 	// No cacheSegment call — the ID below was never cached.
 
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy/seg/never-cached.ts")
@@ -233,8 +236,8 @@ func TestServeHTTP_Segment_ReturnsBadRequestForMalformedSignature(t *testing.T) 
 	// startIdx >= endIdx: ".ts" appears before/at the same position as the
 	// content after "/proxy/seg/", i.e. the "id" portion is empty or the
 	// suffix is missing entirely.
-	s := store.New(t.TempDir()+"/snapshot.json", 0.5)
-	p := New(Config{}, s)
+	links := newFakeActiveLinkSource()
+	p := New(Config{}, links)
 
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy/seg/.ts")
 	rec := httptest.NewRecorder()
@@ -257,8 +260,8 @@ func TestServeHTTP_Segment_ForwardsRangeHeaderAndReturnsPartialContent(t *testin
 	}))
 	defer upstream.Close()
 
-	s := store.New(t.TempDir()+"/snapshot.json", 0.5)
-	p := New(Config{}, s)
+	links := newFakeActiveLinkSource()
+	p := New(Config{}, links)
 	p.cacheSegment("range1", upstream.URL+"/seg.ts", nil)
 
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy/seg/range1.ts")
@@ -276,8 +279,8 @@ func TestServeHTTP_Segment_ForwardsRangeHeaderAndReturnsPartialContent(t *testin
 }
 
 func TestServeHTTP_Segment_ForwardsUpstreamErrorAsBadGateway(t *testing.T) {
-	s := store.New(t.TempDir()+"/snapshot.json", 0.5)
-	p := New(Config{}, s)
+	links := newFakeActiveLinkSource()
+	p := New(Config{}, links)
 	p.cacheSegment("dead1", "http://127.0.0.1:1/seg.ts", nil)
 
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy/seg/dead1.ts")
@@ -319,8 +322,8 @@ func TestServeHTTP_VariantPlaylist_ProxiesAndRewritesWhenURLIsPublic(t *testing.
 	}))
 	defer upstream.Close()
 
-	s := newTestStoreWithChannel(t, "chan1", "http://example.invalid/unused.m3u8", nil)
-	p := New(Config{}, s)
+	links := newLinksWithChannel("chan1", "http://example.invalid/unused.m3u8", nil)
+	p := New(Config{}, links)
 
 	variantURL := url.QueryEscape(upstream.URL + "/variant.m3u8")
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy?url="+variantURL)
@@ -341,8 +344,8 @@ func TestServeHTTP_VariantPlaylist_RejectsSSRFTargetWithForbidden(t *testing.T) 
 	// live request path — a loopback/private target must be rejected
 	// before any upstream call is attempted. Uses the real resolver (no
 	// withPublicLoopback here) since 127.0.0.1 must genuinely be rejected.
-	s := newTestStoreWithChannel(t, "chan1", "http://example.invalid/unused.m3u8", nil)
-	p := New(Config{}, s)
+	links := newLinksWithChannel("chan1", "http://example.invalid/unused.m3u8", nil)
+	p := New(Config{}, links)
 
 	variantURL := url.QueryEscape("http://127.0.0.1:9999/internal")
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy?url="+variantURL)
@@ -377,8 +380,8 @@ func TestServeHTTP_VariantPlaylist_UsesChannelHeadersFromPathNotQueryTarget(t *t
 	}))
 	defer upstream.Close()
 
-	s := newTestStoreWithChannel(t, "chan1", "http://example.invalid/unused.m3u8", map[string]string{"X-Stream-Auth": "chan1-secret"})
-	p := New(Config{}, s)
+	links := newLinksWithChannel("chan1", "http://example.invalid/unused.m3u8", map[string]string{"X-Stream-Auth": "chan1-secret"})
+	p := New(Config{}, links)
 
 	variantURL := url.QueryEscape(upstream.URL + "/variant.m3u8")
 	req := newTestRequest(t, http.MethodGet, "/stream/chan1/proxy?url="+variantURL)
@@ -394,8 +397,8 @@ func TestServeHTTP_VariantPlaylist_UsesChannelHeadersFromPathNotQueryTarget(t *t
 // ── SetEnabled / IsEnabled ───────────────────────────────────────────────
 
 func TestSetEnabled_IsEnabled_RoundTrips(t *testing.T) {
-	s := store.New(t.TempDir()+"/snapshot.json", 0.5)
-	p := New(Config{Enabled: false}, s)
+	links := newFakeActiveLinkSource()
+	p := New(Config{Enabled: false}, links)
 
 	if p.IsEnabled() {
 		t.Fatal("IsEnabled() = true, want false from initial Config")
@@ -453,8 +456,8 @@ func TestCopyResponseHeaders_SkipsContentLengthCaseInsensitively(t *testing.T) {
 // Not a functional test — just keeps the suite honest about staying fast.
 func TestProxyTestSuite_DoesNotSleep(t *testing.T) {
 	start := time.Now()
-	s := store.New(t.TempDir()+"/snapshot.json", 0.5)
-	_ = New(Config{}, s)
+	links := newFakeActiveLinkSource()
+	_ = New(Config{}, links)
 	if time.Since(start) > 100*time.Millisecond {
 		t.Error("trivial setup took >100ms — unexpected blocking call")
 	}

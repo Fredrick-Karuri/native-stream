@@ -12,16 +12,20 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fredrick-karuri/nativestream/packages/discovery"
+	"github.com/fredrick-karuri/nativestream/packages/discovery/crawlers"
+	"github.com/fredrick-karuri/nativestream/packages/mediaplane"
+	"github.com/fredrick-karuri/nativestream/packages/mediaplane/stub"
+	"github.com/fredrick-karuri/nativestream/packages/proxy"
 	"github.com/fredrick-karuri/nativestream/server"
 	"github.com/fredrick-karuri/nativestream/server/api"
 	"github.com/fredrick-karuri/nativestream/server/config"
 	"github.com/fredrick-karuri/nativestream/server/control"
-	"github.com/fredrick-karuri/nativestream/server/discovery"
-	"github.com/fredrick-karuri/nativestream/server/discovery/crawlers"
+	serverdiscovery "github.com/fredrick-karuri/nativestream/server/discovery"
 	"github.com/fredrick-karuri/nativestream/server/epg"
 	"github.com/fredrick-karuri/nativestream/server/logging"
 	"github.com/fredrick-karuri/nativestream/server/netutil"
-	"github.com/fredrick-karuri/nativestream/server/proxy"
+	serverproxy "github.com/fredrick-karuri/nativestream/server/proxy"
 	"github.com/fredrick-karuri/nativestream/server/service"
 	"github.com/fredrick-karuri/nativestream/server/shutdown"
 	"github.com/fredrick-karuri/nativestream/server/store"
@@ -48,11 +52,40 @@ func main() {
 				os.Exit(1)
 			}
 			return
+		case "--create-token":
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "usage: nativestream-server --create-token <label>")
+				os.Exit(1)
+			}
+			if err := createToken(os.Args[2]); err != nil {
+				fmt.Fprintf(os.Stderr, "create-token: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		case "--list-tokens":
+			if err := listTokens(); err != nil {
+				fmt.Fprintf(os.Stderr, "list-tokens: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		case "--revoke-token":
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "usage: nativestream-server --revoke-token <label>")
+				os.Exit(1)
+			}
+			if err := revokeToken(os.Args[2]); err != nil {
+				fmt.Fprintf(os.Stderr, "revoke-token: %v\n", err)
+				os.Exit(1)
+			}
+			return
 		case "--help", "-h":
 			fmt.Println("NativeStream Server")
-			fmt.Println("  nativestream-server                     Start")
-			fmt.Println("  nativestream-server --install-service   Register launchd service")
-			fmt.Println("  nativestream-server --uninstall-service Remove launchd service")
+			fmt.Println("  nativestream-server                        Start")
+			fmt.Println("  nativestream-server --install-service      Register launchd service")
+			fmt.Println("  nativestream-server --uninstall-service    Remove launchd service")
+			fmt.Println("  nativestream-server --create-token <label> Create a new credential")
+			fmt.Println("  nativestream-server --list-tokens          List all credentials")
+			fmt.Println("  nativestream-server --revoke-token <label> Revoke one credential")
 			return
 		}
 	}
@@ -76,6 +109,17 @@ func main() {
 	}
 	total, healthy := s.Count()
 	slog.Info("store loaded", "channels", total, "healthy", healthy)
+
+	// ── Credentials ───────────────────────────────────────────
+	creds := store.NewCredentialStore(cfg.Store.CredentialsPath)
+	if err := creds.Load(); err != nil {
+		slog.Warn("credential store load failed, starting fresh", "err", err)
+	}
+	if err := creds.MigrateLegacyToken(cfg.Server.APIToken); err != nil {
+		slog.Warn("legacy token migration failed", "err", err)
+	}
+	credTotal, credActive := creds.Count()
+	slog.Info("credential store loaded", "total", credTotal, "active", credActive)
 
 	// ── Validator ──────────────────────────────────────────────────────────────
 	v := validator.New(validator.Config{
@@ -103,7 +147,7 @@ func main() {
 		UserAgent: cfg.Proxy.UserAgent,
 		Origin:    cfg.Proxy.Origin,
 	}
-	px := proxy.New(proxyCfg, s)
+	px := selectMediaPlaneProxy(cfg, proxyCfg, s)
 
 	// ── Discovery ──────────────────────────────────────────────────────────────
 	cb := discovery.NewCircuitBreaker(5, time.Hour)
@@ -137,12 +181,14 @@ func main() {
 		slog.Info("direct fetcher enabled", "name", "local-script-crawler", "path", cfg.Discovery.LocalScriptPath)
 	}
 
-	matcher := discovery.NewMatcher(s)
+	channelLookup := serverdiscovery.NewStoreChannelLookup(s)
+	candidateSubmitter := serverdiscovery.NewValidatorSubmitter(v)
+	matcher := discovery.NewMatcher(channelLookup)
 	discEngine := discovery.NewEngine(discovery.Config{
 		Enabled:          cfg.Discovery.Enabled,
 		DefaultInterval:  cfg.Discovery.DefaultInterval,
 		PriorityInterval: cfg.Discovery.PriorityInterval,
-	}, crawlerList, matcher, v)
+	}, crawlerList, matcher, candidateSubmitter)
 
 	discEngine.WithDirectFetchers(directFetchers)
 
@@ -156,15 +202,20 @@ func main() {
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
-	discEngine.RegisterRoutes(mux)
+	serverdiscovery.NewHandler(discEngine).RegisterRoutes(mux)
 
 	// /ws (Local Media Connect) is carved out of the auth-wrapped mux and
 	// mounted separately, unauthenticated — it's LAN-only by design and
 	// casting devices don't hold an API token (see HOST-003).
 	rootMux := http.NewServeMux()
 	rootMux.HandleFunc("GET /ws", h.RegisterWebSocketRoute)
-	rootMux.Handle("/", api.AuthMiddleware(cfg.Server.APIToken)(mux))
-
+	var authGuard func(http.Handler) http.Handler
+	if credTotal > 0 {
+		authGuard = api.AuthMiddleware(creds)
+	} else {
+		authGuard = api.AuthMiddleware(nil)
+	}
+	rootMux.Handle("/", authGuard(mux))
 	// Apply middleware stack
 	handler := api.LoggingMiddleware(api.RecoveryMiddleware(rootMux))
 
@@ -244,4 +295,79 @@ func main() {
 		slog.Error("server error", "err", err)
 		os.Exit(1)
 	}
+}
+func selectMediaPlaneProxy(cfg config.Config, proxyCfg proxy.Config, s *store.Store) mediaplane.StreamProxy {
+	if os.Getenv("NATIVESTREAM_MEDIA_PLANE") == "stub" {
+		slog.Info("media plane: using stub implementation", "reason", "NATIVESTREAM_MEDIA_PLANE=stub")
+		return stub.NewStreamProxy()
+	}
+	links := serverproxy.NewStoreActiveLinkSource(s)
+	return proxy.New(proxyCfg, links)
+}
+
+func revokeToken(label string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
+	creds := store.NewCredentialStore(cfg.Store.CredentialsPath)
+	if err := creds.Load(); err != nil {
+		return fmt.Errorf("load credential store: %w", err)
+	}
+	if err := creds.Revoke(label); err != nil {
+		return err
+	}
+	fmt.Printf("revoked credential %q\n", label)
+	return nil
+}
+
+// createToken loads the credential store standalone (no server start),
+// creates a new credential labeled label, and prints the generated token
+// once. The token is never stored anywhere the operator can retrieve it
+// again later — same principle as a password: shown once at creation,
+// then only its label is visible via --list-tokens.
+func createToken(label string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
+	creds := store.NewCredentialStore(cfg.Store.CredentialsPath)
+	if err := creds.Load(); err != nil {
+		return fmt.Errorf("load credential store: %w", err)
+	}
+	cred, err := creds.Create(label)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("created credential %q\n", label)
+	fmt.Printf("token: %s\n", cred.Token)
+	fmt.Println("save this now — it will not be shown again")
+	return nil
+}
+
+// listTokens prints every credential's label, creation time, and
+// revocation status (never the token itself — --list-tokens is for seeing
+// what exists and what's still active, not for retrieving lost tokens).
+func listTokens() error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
+	creds := store.NewCredentialStore(cfg.Store.CredentialsPath)
+	if err := creds.Load(); err != nil {
+		return fmt.Errorf("load credential store: %w", err)
+	}
+	all := creds.All()
+	if len(all) == 0 {
+		fmt.Println("no credentials")
+		return nil
+	}
+	for _, cred := range all {
+		status := "active"
+		if cred.IsRevoked() {
+			status = "revoked at " + cred.RevokedAt.Format(time.RFC3339)
+		}
+		fmt.Printf("%-30s created %s  %s\n", cred.Label, cred.CreatedAt.Format(time.RFC3339), status)
+	}
+	return nil
 }

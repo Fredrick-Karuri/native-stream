@@ -12,8 +12,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/fredrick-karuri/nativestream/server/store"
 )
 
 type Config struct {
@@ -25,16 +23,18 @@ type Config struct {
 
 type Proxy struct {
 	cfg          Config
-	store        *store.Store
+	links        ActiveLinkSource
 	client       *http.Client
 	segmentCache sync.Map
 	enabled      atomic.Bool
 }
 
-func New(cfg Config, s *store.Store) *Proxy {
+// New takes an ActiveLinkSource (see ports.go), not a concrete store —
+// the server supplies an adapter over its real store.Store.
+func New(cfg Config, links ActiveLinkSource) *Proxy {
 	p := &Proxy{
 		cfg:    cfg,
-		store:  s,
+		links:  links,
 		client: newClient(),
 	}
 	p.enabled.Store(cfg.Enabled)
@@ -47,6 +47,10 @@ func (p *Proxy) SetEnabled(enabled bool) {
 
 func (p *Proxy) IsEnabled() bool {
 	return p.enabled.Load()
+}
+
+func (p *Proxy) PerformsSSRFFiltering() bool {
+	return true
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -126,10 +130,10 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		channelID := parts[1]
 
-		ch := p.store.Get(channelID)
+		link := p.links.ActiveLink(channelID)
 		headers := map[string]string{}
-		if ch != nil && ch.ActiveLink != nil {
-			headers = ch.ActiveLink.Headers
+		if link != nil {
+			headers = link.Headers
 		}
 
 		// decoded is validated by validateUpstreamURL above (rejects
@@ -175,16 +179,16 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	channelID := parts[1]
 
-	ch := p.store.Get(channelID)
-	if ch == nil || ch.ActiveLink == nil {
+	link := p.links.ActiveLink(channelID)
+	if link == nil {
 		http.Error(w, "channel not found or no active link", http.StatusNotFound)
 		return
 	}
 
-	targetURL := ch.ActiveLink.URL
+	targetURL := link.URL
 
-	// targetURL comes from ch.ActiveLink.URL (server-stored channel config,
-	// set via admin channel-creation API), not directly from this request.
+	// targetURL comes from link.URL (server-stored channel config, set via
+	// admin channel-creation API), not directly from this request.
 	// TODO: apply validateUpstreamURL at channel create/update time once
 	// the server is publicly hosted, to close this path too.
 	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, targetURL, nil) // #nosec G704
@@ -194,7 +198,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	injectHeaders(req, r, p.cfg)
-	InjectFromMap(req, ch.ActiveLink.Headers)
+	InjectFromMap(req, link.Headers)
 	slog.Debug("proxy upstream request", "url", targetURL, "headers", req.Header)
 
 	resp, err := p.client.Do(req) // #nosec G704
@@ -230,8 +234,9 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if isPlaylist {
 		body, _ := io.ReadAll(resp.Body)
 
-		rewritten := p.rewritePlaylist(string(body), targetURL, channelID, ch.ActiveLink.Headers)
-		if _, err := w.Write([]byte(rewritten)); err != nil { // #nosec G705 -- Content-Type is forced above with nosniff, so this cannot be sniffed/rendered as HTML
+		rewritten := p.rewritePlaylist(string(body), targetURL, channelID, link.Headers)
+		if _, err := w.Write([]byte(rewritten)); err != nil { 
+			// #nosec G705 -- Content-Type is forced above with nosniff, so this cannot be sniffed/rendered as HTML
 			slog.Debug("proxy: write playlist failed", "err", err)
 		}
 	} else {

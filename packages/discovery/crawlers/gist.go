@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fredrick-karuri/nativestream/server/discovery"
+	"github.com/fredrick-karuri/nativestream/packages/discovery"
 )
 
 type GistCrawler struct {

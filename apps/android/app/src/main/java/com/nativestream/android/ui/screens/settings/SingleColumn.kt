@@ -71,10 +71,12 @@ fun SettingsSingleColumn(
     hwDecode: Boolean,
 ) {
     val dimens       = NSDimens.current
-    val serverUrl    by settingsViewModel.serverUrl.collectAsState()
+    val resolvedServerUrl by settingsViewModel.resolvedServerUrl.collectAsState()
+    val serverUrl    = resolvedServerUrl.url
     val bufferPreset by settingsViewModel.bufferPreset.collectAsState()
     val sources      by sourceViewModel.sources.collectAsState()
     val serverReachable by settingsViewModel.serverReachable.collectAsState()
+    val authFailed by settingsViewModel.authFailed.collectAsState()
     val streamQuality    by settingsViewModel.streamQuality.collectAsState()
     var showResetConfirm by remember { mutableStateOf(false) }
 
@@ -89,6 +91,8 @@ fun SettingsSingleColumn(
             ServerHealthCard(
                 serverUrl       = serverUrl,
                 serverReachable = serverReachable,
+                urlSource       = resolvedServerUrl.source,
+                authFailed      = authFailed,
                 onScan          = { settingsViewModel.startDiscovery() },
             )
         }

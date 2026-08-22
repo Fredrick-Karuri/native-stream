@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/fredrick-karuri/nativestream/server/discovery"
+	"github.com/fredrick-karuri/nativestream/packages/discovery"
 )
 
 var _ discovery.DirectFetcher = (*LocalScriptCrawler)(nil)

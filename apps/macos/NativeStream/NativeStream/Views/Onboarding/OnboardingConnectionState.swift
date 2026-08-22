@@ -36,5 +36,6 @@ enum OnboardingConnectionState: Equatable {
 enum FailureReason: Equatable {
     case unreachable
     case noPlaylist
+    case certificateInvalid
     case unknown
 }

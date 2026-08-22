@@ -24,9 +24,13 @@ final class SettingsStore {
         didSet { defaults.set(epgRefreshInterval.rawValue, forKey: Keys.epgRefreshInterval) }
     }
 
-    var serverURLString: String {
-        didSet { defaults.set(serverURLString, forKey: Keys.serverURL) }
+    var serverURLString: String? {
+        didSet {
+            defaults.set(serverURLString, forKey: Keys.serverURL)
+            recomputeResolvedURL(discoveredURL: lastKnownDiscoveredURL)
+        }
     }
+    private var lastKnownDiscoveredURL: URL?
 
     var onboardingComplete: Bool {
         didSet { defaults.set(onboardingComplete, forKey: Keys.onboardingComplete) }
@@ -43,14 +47,31 @@ final class SettingsStore {
     // MARK: - Init
 
     private let defaults: UserDefaults
+        private let tokenStore: SecureTokenStore
+        private(set) var apiToken: String?
 
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
+        func setAPIToken(_ token: String) {
+            tokenStore.setAPIToken(token)
+            apiToken = token
+            Task { await APIClient.shared.setAPIToken(token) }
+        }
+
+        init(defaults: UserDefaults = .standard, tokenStore: SecureTokenStore = SecureTokenStore()) {
+            self.defaults = defaults
+            self.tokenStore = tokenStore
+            let loadedToken = tokenStore.getAPIToken()
+            self.apiToken = loadedToken
+            if let loadedToken {
+                Task { await APIClient.shared.setAPIToken(loadedToken) }
+            }
+        
         let ud = defaults
-        bufferPreset       = BufferPreset(rawValue: ud.string(forKey: Keys.bufferPreset) ?? "") ?? .balanced
+        bufferPreset       = BufferPreset(
+            rawValue: ud.string(forKey: Keys.bufferPreset) ?? "") ?? .balanced
         epgURLString       = ud.string(forKey: Keys.epgURL) ?? ""
-        epgRefreshInterval = RefreshInterval(rawValue: ud.string(forKey: Keys.epgRefreshInterval) ?? "") ?? .sixHours
-        serverURLString    = ud.string(forKey: Keys.serverURL) ?? "http://localhost:8888"
+        epgRefreshInterval = RefreshInterval(
+            rawValue: ud.string(forKey: Keys.epgRefreshInterval) ?? "") ?? .sixHours
+        serverURLString    = ud.string(forKey: Keys.serverURL)
         onboardingComplete = ud.bool(forKey: Keys.onboardingComplete)
         proxyEnabled       = ud.bool(forKey: Keys.proxyEnabled)
 
@@ -66,13 +87,35 @@ final class SettingsStore {
     // MARK: - Computed
 
     var epgURL: URL? { URL(string: epgURLString) }
-    var serverURL: URL? { URL(string: serverURLString) }
+    private(set) var resolvedServerURL: ResolvedServerURL = .init(
+        url: ServerURLResolver.hostedDefaultURL,
+        source: .hostedDefault
+    )
+    var serverURL: URL? { URL(string: resolvedServerURL.url) }
+    
+    private func recomputeResolvedURL(discoveredURL: URL?) {
+        resolvedServerURL = ServerURLResolver.resolve(
+            manualOverride: serverURLString,
+            discoveredLANURL: discoveredURL?.absoluteString
+        )
+    }
 
     // MARK: - Discovery
 
     func confirmDiscoveredURL(_ url: URL) {
         serverURLString = url.absoluteString
         Task { await APIClient.shared.setBaseURL(url) }
+    }
+    func wireDiscovery(_ discovery: ServerDiscoveryService) {
+        func observe() {
+            withObservationTracking {
+                lastKnownDiscoveredURL = discovery.discoveredURL
+                recomputeResolvedURL(discoveredURL: discovery.discoveredURL)
+            } onChange: {
+                Task { @MainActor in observe() }
+            }
+        }
+        observe()
     }
 
     // MARK: - Keys
@@ -97,7 +140,7 @@ final class SettingsStore {
         bufferPreset       = .balanced
         epgURLString       = ""
         epgRefreshInterval = .sixHours
-        serverURLString    = "http://localhost:8888"
+        serverURLString    = nil
         onboardingComplete = false
         proxyEnabled       = false
     }

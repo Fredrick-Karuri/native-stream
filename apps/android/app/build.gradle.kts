@@ -93,6 +93,7 @@ dependencies {
     implementation(libs.androidx.window.layout)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.security.crypto)
 
     // Generated proto SDK
     implementation(project(":sdk-gen-kotlin"))

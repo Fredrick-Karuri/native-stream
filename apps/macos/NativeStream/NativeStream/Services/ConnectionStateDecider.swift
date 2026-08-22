@@ -13,8 +13,17 @@ enum ConnectionStateDecider {
     /// 1. No health response → .failure(.unreachable)
     /// 2. Health present but playlist missing/empty → .failure(.noPlaylist)
     /// 3. Both present → .success, with hasEpg true only if epg data is non-empty
-    static func decide(health: Stream_V1_HealthResponse?, playlist: Data?, epg: Data?) -> OnboardingConnectionState {
+    static func decide(
+        health: Stream_V1_HealthResponse?,
+        playlist: Data?,
+        epg: Data?,
+        healthError: Error? = nil
+    ) -> OnboardingConnectionState {
         guard let health else {
+            if let urlError = healthError as? URLError,
+               urlError.code == .serverCertificateUntrusted || urlError.code == .secureConnectionFailed {
+                return .failure(.certificateInvalid)
+            }
             return .failure(.unreachable)
         }
         guard let playlist, !playlist.isEmpty else {

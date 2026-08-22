@@ -1,12 +1,15 @@
-// epg/parsers_test.go
+// packages/epg-sourcing/sourcing_test.go
 //
-// Unit tests for parsers.go. Both parse functions are pure: []byte in,
-// []Match out, no store, no network. That makes them the cheapest tests
-// in the package — but the interesting behavior is all in the silent-skip
-// paths (bad JSON, bad dates, missing team data), not the happy path, so
-// most cases here target those.
+// Unit tests for the ESPN and football-data parsers. Both are pure:
+// []byte in, []Match out, no store, no network. That makes them the
+// cheapest tests in the package — but the interesting behavior is all in
+// the silent-skip paths (bad JSON, bad dates, missing team data), not the
+// happy path, so most cases here target those.
+//
+// Moved from epg/parsers_test.go — assertions unchanged, only
+// the package and (implicitly) import path changed.
 
-package epg
+package epgsourcing
 
 import (
 	"testing"
@@ -54,9 +57,6 @@ func TestParseESPNResponse_ValidEventProducesOneMatch(t *testing.T) {
 }
 
 func TestParseESPNResponse_MalformedJSONReturnsNilNotError(t *testing.T) {
-	// parseESPNResponse has no error return — callers only ever see nil.
-	// Pinning this so a future refactor to `([]Match, error)` is a
-	// deliberate choice, not an accident.
 	got := parseESPNResponse([]byte(`{not valid json`))
 
 	if got != nil {
@@ -118,9 +118,6 @@ func TestParseESPNResponse_SkipsEventWithNoCompetitions(t *testing.T) {
 }
 
 func TestParseESPNResponse_SkipsEventMissingAwayTeam(t *testing.T) {
-	// Only a "home" competitor present — awayHome/team never populated for
-	// "away", so home == "Chelsea" but away == "". Current code requires
-	// both to be non-empty.
 	body := `{
 		"events": [{
 			"date": "2026-08-12T15:00:00Z",
@@ -239,10 +236,6 @@ func TestParseFootballDataResponse_EmptyMatchesReturnsNil(t *testing.T) {
 }
 
 func TestParseFootballDataResponse_MissingTeamNamesYieldEmptyStringsNotSkip(t *testing.T) {
-	// Unlike the ESPN parser, football-data has no home/away non-empty
-	// check — a match with blank team names still produces a Match with
-	// empty HomeTeam/AwayTeam rather than being dropped. Pinning this
-	// asymmetry so it's a known behavior, not a surprise.
 	body := `{
 		"matches": [{
 			"utcDate": "2026-08-12T15:00:00Z",

@@ -14,6 +14,12 @@ actor APIClient {
 
     private var baseURL: URL
     private let session: URLSession
+    
+    private var apiToken: String?
+
+    func setAPIToken(_ token: String?) {
+        apiToken = (token?.isEmpty == true) ? nil : token
+    }
 
     private static let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
@@ -99,7 +105,7 @@ actor APIClient {
     func fetchRawURL(_ url: URL) async throws -> Data {
         var req = URLRequest(url: url)
         req.cachePolicy = .useProtocolCachePolicy
-        return try await execute(req)
+        return try await execute(req, authenticated: false)
     }
 
     func epgData() async throws -> Data {
@@ -278,9 +284,15 @@ actor APIClient {
         return try await execute(req)
     }
 
-    private func execute(_ request: URLRequest) async throws -> Data {
+    private func execute(
+        _ request: URLRequest, authenticated: Bool = true) async throws -> Data {
+        var request = request
+        if authenticated, let apiToken {
+            request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        }
         let data: Data
         let response: URLResponse
+            
         do {
             (data, response) = try await session.data(for: request)
         } catch {

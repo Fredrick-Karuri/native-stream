@@ -34,7 +34,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.bufferPreset, .balanced)
         XCTAssertEqual(store.epgURLString, "")
         XCTAssertEqual(store.epgRefreshInterval, .sixHours)
-        XCTAssertEqual(store.serverURLString, "http://localhost:8888")
+        XCTAssertNil(store.serverURLString)
         XCTAssertFalse(store.onboardingComplete)
         XCTAssertFalse(store.proxyEnabled)
     }
@@ -121,11 +121,10 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.epgURL?.absoluteString, "http://epg.example.com/guide.xml")
     }
 
-    func testServerURLParsesDefaultLocalhostString() {
+    func testServerURLFallsBackToHostedDefaultWhenUnset() {
         let store = SettingsStore(defaults: defaults)
 
-        XCTAssertEqual(store.serverURL?.host, "localhost")
-        XCTAssertEqual(store.serverURL?.port, 8888)
+        XCTAssertEqual(store.serverURL?.absoluteString, ServerURLResolver.hostedDefaultURL)
     }
 
     // MARK: resetAll
@@ -144,7 +143,7 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.bufferPreset, .balanced)
         XCTAssertEqual(store.epgURLString, "")
         XCTAssertEqual(store.epgRefreshInterval, .sixHours)
-        XCTAssertEqual(store.serverURLString, "http://localhost:8888")
+        XCTAssertNil(store.serverURLString)
         XCTAssertFalse(store.onboardingComplete)
         XCTAssertFalse(store.proxyEnabled)
     }

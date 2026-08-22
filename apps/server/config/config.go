@@ -51,6 +51,7 @@ type StoreConfig struct {
 	SnapshotPath     string
 	SnapshotInterval time.Duration
 	MinScoreHealthy  float64
+	CredentialsPath  string
 }
 
 type ProbeConfig struct {
@@ -105,6 +106,7 @@ type rawConfig struct {
 		SnapshotPath     string  `yaml:"snapshot_path"`
 		SnapshotInterval string  `yaml:"snapshot_interval"`
 		MinScoreHealthy  float64 `yaml:"min_score_healthy"`
+		CredentialsPath  string  `yaml:"credentials_path"`
 	} `yaml:"store"`
 	Probe struct {
 		Interval        string  `yaml:"interval"`
@@ -179,6 +181,7 @@ func Defaults() Config {
 			SnapshotPath:     filepath.Join(base, "channels.json"),
 			SnapshotInterval: 5 * time.Minute,
 			MinScoreHealthy:  0.3,
+			CredentialsPath:  filepath.Join(base, "credentials.json"),
 		},
 		Probe: ProbeConfig{
 			Interval:        10 * time.Minute,
@@ -313,6 +316,9 @@ func applyStore(cfg *Config, raw *rawConfig) {
 	applyString(&cfg.Store.SnapshotPath, expandHome(raw.Store.SnapshotPath))
 	applyDuration(&cfg.Store.SnapshotInterval, raw.Store.SnapshotInterval)
 	applyFloat(&cfg.Store.MinScoreHealthy, raw.Store.MinScoreHealthy)
+	if raw.Store.CredentialsPath != "" {
+		cfg.Store.CredentialsPath = expandHome(raw.Store.CredentialsPath)
+	}
 }
 
 func applyProbe(cfg *Config, raw *rawConfig) {

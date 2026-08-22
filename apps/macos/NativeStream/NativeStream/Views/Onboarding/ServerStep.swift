@@ -149,11 +149,14 @@ struct ServerStep: View {
                     "Server reached but no playlist found",
                     "Check StreamServer is running: make run-server"
                 ]
+                case .certificateInvalid: return [
+                    "The server's certificate isn't trusted",
+                    "Contact your server admin, or check the cert on your hosted instance"
+                ]
                 case .unknown: return [
                     "Something went wrong — check the server logs"
                 ]
-                }
-            }()
+                }            }()
 
             ForEach(suggestions, id: \.self) { suggestion in
                 Text("→ \(suggestion)")

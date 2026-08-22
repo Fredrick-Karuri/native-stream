@@ -40,15 +40,14 @@ final class ControlSessionTests: XCTestCase {
         XCTAssertEqual(wsURL?.path, "/ws")
     }
 
-    func testMakeWebSocketURLConvertsHTTPSToWS() {
-        // The implementation always sets scheme "ws", even for https input.
-        let httpsURL = URL(string: "https://stream.example.com")!
+    func testMakeWebSocketURLConvertsHTTPSToWSS() {
+            let httpsURL = URL(string: "https://stream.example.com")!
 
-        let wsURL = session.makeWebSocketURL(from: httpsURL)
+            let wsURL = session.makeWebSocketURL(from: httpsURL)
 
-        XCTAssertEqual(wsURL?.scheme, "ws")
-        XCTAssertEqual(wsURL?.host, "stream.example.com")
-    }
+            XCTAssertEqual(wsURL?.scheme, "wss")
+            XCTAssertEqual(wsURL?.host, "stream.example.com")
+        }
 
     func testMakeWebSocketURLReplacesExistingPathWithWs() {
         let urlWithPath = URL(string: "http://localhost:8888/some/other/path")!

@@ -38,6 +38,7 @@ import io.ktor.client.plugins.cache.storage.FileStorage
 import io.ktor.http.HttpHeaders
 import io.ktor.client.request.header
 import java.io.File
+import com.nativestream.android.data.remote.ServerUrlResolver
 
 private const val TAG = "ApiClient"
 private const val REQUEST_TIMEOUT_MS  = 10_000L
@@ -47,24 +48,28 @@ private const val UNMATCHED_DEFAULT_LIMIT = 50
 @Singleton
 class ApiClient  @Inject constructor(
     private val application: Application,
-    engine: HttpClientEngine = Android.create()
+    private val engine: HttpClientEngine = Android.create()
 ) {
 
-    // ── Base URL — set during onboarding / settings change ───────────────────
+// ── Base URL — set during onboarding / settings change ───────────────────
 
-    @Volatile private var baseUrl: String = "http://192.168.1.42:8888"
+    @Volatile private var baseUrl: String = ServerUrlResolver.HOSTED_DEFAULT_URL
+    @Volatile private var apiToken: String? = null
 
     fun setBaseUrl(url: String) {
         baseUrl = url.trimEnd('/')
     }
 
-    // ── Ktor HTTP client ──────────────────────────────────────────────────────
+    fun setApiToken(token: String?) {
+        apiToken = token?.ifBlank { null }
+    }
 
-    private val httpClient = HttpClient(engine) {
-        // 1. Install Persistent Disk Storage Cache Plugin
+    // ── Ktor HTTP clients ─────────────────────────────────────────────────────
+
+    private fun buildClient(withAuth: Boolean) = HttpClient(engine) {
         install(HttpCache) {
             val cacheDirectory = File(application.cacheDir, "ktor_network_cache")
-            publicStorage(FileStorage(cacheDirectory)) // Caches raw bytes directly to disk
+            publicStorage(FileStorage(cacheDirectory))
         }
 
         install(ContentNegotiation) {
@@ -81,14 +86,25 @@ class ApiClient  @Inject constructor(
             level = LogLevel.INFO
         }
 
+        if (withAuth) {
+            install(io.ktor.client.plugins.DefaultRequest) {
+                apiToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+            }
+        }
+
         engine {
-            //  Safely configure timeouts if the active runtime engine supports them
             if (this is io.ktor.client.engine.android.AndroidEngineConfig) {
                 connectTimeout = REQUEST_TIMEOUT_MS.toInt()
                 socketTimeout  = RESOURCE_TIMEOUT_MS.toInt()
             }
         }
     }
+
+    // Used by every method that talks to our own server (resolve(path)).
+    private val httpClient = buildClient(withAuth = true)
+
+    // Used only by fetchRawUrl() — never carries the API token.
+    private val externalHttpClient = buildClient(withAuth = false)
 
     // ── Health ────────────────────────────────────────────────────────────────
 
@@ -309,8 +325,7 @@ class ApiClient  @Inject constructor(
 
     suspend fun fetchRawUrl(url: String): ByteArray =
         wrapNetworkErrors(url) {
-            val response = httpClient.get(url) {
-                // Protects external playlist URLs with the same cache configuration guard
+            val response = externalHttpClient.get(url) {
                 header(HttpHeaders.CacheControl, "max-age=7200, public")
             }
             guardSuccess(response)

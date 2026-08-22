@@ -228,19 +228,65 @@ struct PlaybackSection: View {
 
 struct ServerSection: View {
     @Environment(SettingsStore.self) private var settings
+    @State private var showEditSheet = false
+    @State private var probeState: ProbeState = .idle
+
+    private enum ProbeState: Equatable {
+        case idle, running, succeeded, failed
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
             SectionTitle("StreamServer")
             VStack(alignment: .leading, spacing: NS.Spacing.sm) {
                 Text("Server URL").font(NS.Font.caption).foregroundStyle(NS.text3)
-                NSTextField(
-                    placeholder: "http://localhost:8888",
-                    text: Binding(get: { settings.serverURLString }, set: { settings.serverURLString = $0 })
-                )
-                Text("Default: http://localhost:8888 — change only if running the server remotely.")
-                    .font(NS.Font.monoSm).foregroundStyle(NS.text3)
+                Button {
+                    showEditSheet = true
+                } label: {
+                    HStack {
+                        Text(settings.resolvedServerURL.url)
+                            .font(NS.Font.monoSm)
+                            .foregroundStyle(NS.text)
+                            .lineLimit(1)
+                        Spacer()
+                        Image(systemName: "pencil")
+                            .font(.system(size: 11))
+                            .foregroundStyle(NS.text3)
+                    }
+                    .padding(NS.Spacing.md)
+                    .background(NS.surface2)
+                    .clipShape(RoundedRectangle(cornerRadius: NS.Radius.md))
+                }
+                .buttonStyle(.plain)
             }
+
+            // #1 fix: probe trigger, matching Android's "Trigger probe" row
+            // in SettingsSingleColumn — was missing entirely on Mac.
+            SettingsRow(title: "Trigger probe", subtitle: "Re-validate all stream links") {
+                Button(probeButtonLabel) {
+                    probeState = .running
+                    Task {
+                        let success = (try? await APIClient.shared.triggerProbe()) != nil
+                        probeState = success ? .succeeded : .failed
+                        try? await Task.sleep(for: .seconds(2))
+                        if probeState != .running { probeState = .idle }
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(probeState == .running)
+            }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            ServerURLSheet(settings: settings)
+        }
+    }
+
+    private var probeButtonLabel: String {
+        switch probeState {
+        case .idle:      return "Trigger Probe"
+        case .running:   return "Probing…"
+        case .succeeded: return "Probe Started ✓"
+        case .failed:    return "Probe Failed"
         }
     }
 }

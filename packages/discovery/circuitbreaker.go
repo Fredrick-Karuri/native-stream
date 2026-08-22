@@ -1,4 +1,4 @@
-// discovery/circuitbreaker.go — NS-300
+// discovery/circuitbreaker.go
 // Shared circuit breaker used by all crawlers.
 // After maxFailures consecutive failures, the source is suspended for suspendDuration.
 

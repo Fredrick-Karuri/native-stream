@@ -1,18 +1,16 @@
 // discovery/engine.go
+//
 // Orchestrates crawlers → extractor → matcher → validator pipeline.
 // Match-aware: escalates crawl priority for channels with imminent kickoffs.
-
+//
 package discovery
 
 import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 	"time"
-
-	"github.com/fredrick-karuri/nativestream/server/validator"
 )
 
 // EPGAdvisor is satisfied by epg.Engine — avoids circular import.
@@ -34,7 +32,7 @@ type Engine struct {
 	directFetchers []DirectFetcher
 	extractor      *LinkExtractor
 	matcher        *ChannelMatcher
-	validator      *validator.Validator
+	submitter      CandidateSubmitter
 
 	mu            sync.Mutex
 	sourceStates  map[string]*SourceState
@@ -51,14 +49,14 @@ func NewEngine(
 	cfg Config,
 	crawlers []Crawler,
 	matcher *ChannelMatcher,
-	v *validator.Validator,
+	submitter CandidateSubmitter,
 ) *Engine {
 	e := &Engine{
 		cfg:              cfg,
 		crawlers:         crawlers,
 		extractor:        NewExtractor(),
 		matcher:          matcher,
-		validator:        v,
+		submitter:        submitter,
 		sourceStates:     make(map[string]*SourceState),
 		priorityChannels: make(map[string]time.Time),
 	}
@@ -159,7 +157,6 @@ func (e *Engine) TriggerRun(ctx context.Context) {
 func (e *Engine) runCycle(ctx context.Context) {
 	e.mu.Lock()
 	e.lastRun = time.Now()
-	// Reset daily counters at midnight
 	e.mu.Unlock()
 
 	// 1. Fetch from all crawlers in parallel
@@ -178,21 +175,7 @@ func (e *Engine) runCycle(ctx context.Context) {
 
 	// 4. Match to channels and submit to validator
 	for i := range candidates {
-		var channelID string
-
-		// Express Lane Bypass [NS-305]: Identify if the item comes from your local script
-		if candidates[i].SourceURL == "/Users/fredrickkaruri/.config/nativestream/run_scraper.sh" {
-			// Auto-generate a clean, distinct database channel token key mapping on the fly
-			cleanName := candidates[i].ContextText
-			if cleanName == "" {
-				cleanName = "direct-stream-track"
-			}
-			cleanName = strNormalize(cleanName)
-			channelID = "direct-" + cleanName
-		} else {
-			// Default public loop fallback path
-			channelID = e.matcher.Match(&candidates[i])
-		}
+		channelID := e.matcher.Match(&candidates[i])
 
 		if channelID == "" {
 			e.mu.Lock()
@@ -206,12 +189,11 @@ func (e *Engine) runCycle(ctx context.Context) {
 
 		candidates[i].ChannelID = channelID
 
-		// Submit to the active Validator probers with your custom headers attached!
-		e.validator.Submit(validator.Candidate{
+		e.submitter.Submit(SubmittedCandidate{
 			URL:       candidates[i].URL,
 			ChannelID: channelID,
 			SourceURL: candidates[i].SourceURL,
-			Headers:   candidates[i].Headers, // FIX: Pass headers forward into validation engine context
+			Headers:   candidates[i].Headers,
 		})
 	}
 
@@ -239,7 +221,6 @@ func (e *Engine) runCycle(ctx context.Context) {
 				SourceURL:   direct[i].SourceURL,
 			})
 
-			// with this:
 			if channelID == "" {
 				if direct[i].ChannelName != "" {
 					newID := e.matcher.AutoRegister(direct[i])
@@ -248,7 +229,6 @@ func (e *Engine) runCycle(ctx context.Context) {
 					if newID != "" {
 						channelID = newID
 					} else {
-						// fallback: still track as unmatched
 						e.mu.Lock()
 						e.unmatched = append(e.unmatched, CandidateLink{
 							URL:         direct[i].URL,
@@ -266,7 +246,7 @@ func (e *Engine) runCycle(ctx context.Context) {
 				}
 			}
 			direct[i].ChannelID = channelID
-			e.validator.Submit(validator.Candidate{
+			e.submitter.Submit(SubmittedCandidate{
 				URL:       direct[i].URL,
 				ChannelID: channelID,
 				SourceURL: direct[i].SourceURL,
@@ -274,7 +254,6 @@ func (e *Engine) runCycle(ctx context.Context) {
 			})
 		}
 	}
-
 }
 
 func (e *Engine) fetchAll(ctx context.Context) []RawItem {
@@ -310,7 +289,6 @@ func (e *Engine) fetchAll(ctx context.Context) []RawItem {
 				mu.Unlock()
 			}
 		}(crawler)
-
 	}
 
 	wg.Wait()
@@ -327,29 +305,4 @@ func deduplicate(links []CandidateLink) []CandidateLink {
 		}
 	}
 	return out
-}
-
-func strNormalize(s string) string {
-	s = jsonNormalizeLower(s)
-	var out []rune
-	for _, r := range s {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
-			out = append(out, r)
-		} else if r == ' ' || r == '|' || r == '_' {
-			out = append(out, '-')
-		}
-	}
-	return string(out)
-}
-
-func jsonNormalizeLower(s string) string {
-	var sb strings.Builder
-	for _, r := range s {
-		if r >= 'A' && r <= 'Z' {
-			sb.WriteRune(r + 32)
-		} else {
-			sb.WriteRune(r)
-		}
-	}
-	return sb.String()
 }

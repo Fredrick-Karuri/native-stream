@@ -1,4 +1,4 @@
-// discovery/crawlers/direct_m3u.go — NS-214
+// discovery/crawlers/direct_m3u.go
 // Fetches stable M3U playlist URLs and returns their full content for extraction.
 // Uses ETag/Last-Modified for conditional fetches.
 
@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fredrick-karuri/nativestream/server/discovery"
+	"github.com/fredrick-karuri/nativestream/packages/discovery"
 )
 
 type DirectM3UCrawler struct {

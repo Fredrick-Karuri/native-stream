@@ -377,6 +377,7 @@ func TestPriorityChannelIDs_EmptyWhenNoMatchesInWindow(t *testing.T) {
 // to the real hosts in New(), overridable only from within the package —
 // see the debugging skill for the current/replace diff format if this gets
 // picked up as a follow-up ticket.
+
 func TestFetchers_NotUnitTestable(t *testing.T) {
 	t.Skip("fetchESPN/fetchFootballData hit hardcoded hostnames with no injectable base URL — see comment above this test")
 }

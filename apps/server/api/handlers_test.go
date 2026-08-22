@@ -8,10 +8,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/fredrick-karuri/nativestream/packages/proxy"
 	"github.com/fredrick-karuri/nativestream/server"
 	"github.com/fredrick-karuri/nativestream/server/control"
 	"github.com/fredrick-karuri/nativestream/server/epg"
-	"github.com/fredrick-karuri/nativestream/server/proxy"
+	serverproxy "github.com/fredrick-karuri/nativestream/server/proxy"
 	"github.com/fredrick-karuri/nativestream/server/store"
 	"github.com/fredrick-karuri/nativestream/server/validator"
 )
@@ -19,7 +20,7 @@ import (
 func newTestHandler() *Handler {
 	s := store.New("", 0.3)
 	e := epg.New(epg.Config{}, s)
-	px := proxy.New(proxy.Config{}, s)
+	px := proxy.New(proxy.Config{}, serverproxy.NewStoreActiveLinkSource(s))
 	v := validator.New(validator.DefaultConfig(), s, "", "", "")
 	hub := control.NewHub()
 

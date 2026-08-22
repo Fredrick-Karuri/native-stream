@@ -9,6 +9,7 @@ package com.nativestream.android.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nativestream.android.data.local.BufferPreset
+import com.nativestream.android.data.local.SecureTokenStore
 import com.nativestream.android.data.local.SettingsDataStore
 import com.nativestream.android.data.local.StreamQuality
 import com.nativestream.android.data.remote.ApiClient
@@ -22,8 +23,13 @@ import com.nativestream.android.data.remote.ServerDiscoveryService
 import com.nativestream.android.ui.screens.onboarding.OnboardingConnectionState
 import com.nativestream.android.ui.screens.onboarding.FailureReason
 import com.nativestream.android.data.parser.M3uParser
+import com.nativestream.android.data.remote.ApiError
+import com.nativestream.android.data.remote.ResolvedServerUrl
+import com.nativestream.android.data.remote.ServerUrlResolver
+import com.nativestream.android.data.remote.ServerUrlSource
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -34,18 +40,45 @@ class SettingsViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
     private val apiClient: ApiClient,
     private val discoveryService: ServerDiscoveryService,
+    private val secureTokenStore: SecureTokenStore,
 ) : ViewModel() {
+
+    // ── API token ─────────────────────────────────────────────────
+    private val _apiToken = MutableStateFlow(secureTokenStore.getApiToken())
+    val apiToken: StateFlow<String?> = _apiToken
+
+    fun setApiToken(token: String) {
+        secureTokenStore.setApiToken(token)
+        _apiToken.value = token
+        apiClient.setApiToken(token)
+    }
 
     init {
         viewModelScope.launch {
-            settingsDataStore.serverUrl.first().let { apiClient.setBaseUrl(it) }
+            val discovered = discoveryService.discoveredUrl.first()
+            val resolved = ServerUrlResolver.resolve(settingsDataStore.serverUrl.first(), discovered)
+            apiClient.setBaseUrl(resolved.url)
+            apiClient.setApiToken(secureTokenStore.getApiToken())
         }
         viewModelScope.launch { syncProxyState() }
     }
 
-    val serverUrl: StateFlow<String> = settingsDataStore.serverUrl
-        .stateIn(viewModelScope, SharingStarted.Eagerly, "http://192.168.1.42:8888")
+    val resolvedServerUrl: StateFlow<ResolvedServerUrl> = combine(
+        settingsDataStore.serverUrl,
+        discoveryService.discoveredUrl,
+    ) { manualOverride, discovered ->
+        ServerUrlResolver.resolve(manualOverride, discovered)
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.Eagerly,
+        ResolvedServerUrl(ServerUrlResolver.HOSTED_DEFAULT_URL, ServerUrlSource.HOSTED_DEFAULT),
+    )
 
+    // Plain URL string for call sites that don't need the source (API
+    // client base URL, playlist fetch, etc.) — most existing callers.
+    val serverUrl: StateFlow<String> = resolvedServerUrl
+        .map { it.url }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, ServerUrlResolver.HOSTED_DEFAULT_URL)
     val epgUrl: StateFlow<String?> = settingsDataStore.epgUrl
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
@@ -109,6 +142,8 @@ class SettingsViewModel @Inject constructor(
     private val _serverReachable = MutableStateFlow<Boolean>(true)
     val serverReachable: StateFlow<Boolean> = _serverReachable
 
+    private val _authFailed = MutableStateFlow(false)
+    val authFailed: StateFlow<Boolean> = _authFailed
     private val _connectionState = MutableStateFlow<OnboardingConnectionState>(OnboardingConnectionState.Idle)
     val connectionState: StateFlow<OnboardingConnectionState> = _connectionState
 
@@ -167,9 +202,13 @@ class SettingsViewModel @Inject constructor(
 
     fun checkHealth() {
         viewModelScope.launch {
-            _serverReachable.value = runCatching {
-                withTimeout(5_000) { apiClient.health(); true }
-            }.getOrDefault(false)
+            _authFailed.value = false
+            val result = runCatching { withTimeout(5_000) { apiClient.health() } }
+            _serverReachable.value = result.isSuccess
+            val error = result.exceptionOrNull()
+            if (error is ApiError.HttpError && error.statusCode == 401) {
+                _authFailed.value = true
+            }
         }
     }
 
