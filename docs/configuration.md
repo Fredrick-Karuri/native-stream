@@ -13,11 +13,14 @@ Format: flat `key: value`, parsed by a small stdlib-only parser (no YAML library
 ```yaml
 # Server host: 127.0.0.1
 port: 8888
-api_token: ""                  # required if host is set to anything other than 127.0.0.1
+# api_token is deprecated as a live auth mechanism — see Credentials below.
+# Still accepted on first boot for one-time migration into the credential store.
+api_token: ""
 
 # Store
 snapshot_path: ~/.config/nativestream/channels.json
 snapshot_interval: 5m
+credentials_path: ~/.config/nativestream/credentials.json
 
 # Probe
 probe_interval: 10m
@@ -49,8 +52,9 @@ seed_m3u_path: ""
 
 | Key | Default | Notes |
 |---|---|---|
-| `host` | `127.0.0.1` | Loopback-only by default. Setting this to anything else (e.g. `0.0.0.0` for a hosted deployment) requires `api_token` to also be set — the server refuses to start otherwise. Every `/api/*`, `/playlist.m3u`, `/epg.xml`, and `/stream/:id/proxy` request then requires `Authorization: Bearer <api_token>`; `/ws` stays unauthenticated regardless. |
-| `api_token` | _(empty)_ | Bearer token required once `host` is exposed beyond loopback. Can also be set via the `NATIVESTREAM_API_TOKEN` env var (and `host` via `NATIVESTREAM_SERVER_HOST`) — the env vars are how the hosted deployment on Coolify is configured, since secrets belong in the platform's secret store rather than a file on disk. See [hosted deployment notes] below. |
+| `host` | `127.0.0.1` | Loopback-only by default. Setting this to anything else (e.g. `0.0.0.0` for a hosted deployment) requires at least one credential to exist — see [Credentials](#credentials) below. Every `/api/*`, `/playlist.m3u`, `/epg.xml`, and `/stream/:id/proxy` request then requires `Authorization: Bearer <token>`; `/ws` stays unauthenticated regardless. |
+| `api_token` | _(empty)_ | Legacy single-token config value. Read once on first boot and migrated into the credential store as one row labeled `"Migrated from single api_token"` — see [Credentials](#credentials). Not read again after migration. Can also be set via the `NATIVESTREAM_API_TOKEN` env var (and `host` via `NATIVESTREAM_SERVER_HOST`) for platforms where secrets belong in a secret store rather than a file on disk. |
+| `credentials_path` | `~/.config/nativestream/credentials.json` | Where the credential store persists. |
 | `port` | `8888` | Dev server runs on `8889` **only** when no config file/env override is present at all — this is `Defaults()`'s fallback, not a deliberate dev-vs-prod split |
 | `snapshot_interval` | `5m` | How often `channels.json` is written; also written on `SIGTERM` |
 | `probe_interval` | `10m` | Re-probe cadence for **active** links. Candidate links probe every 30m (not configurable) |
@@ -64,6 +68,39 @@ seed_m3u_path: ""
 
 Additional discovery source configuration (Gist IDs, subreddits, Telegram channels) is set per-channel via `keywords` on `POST /api/channels` rather than in `config.yaml` — see [api.md](api.md#create-a-channel).
 
+## Credentials
+
+Auth is a table of independently revocable credentials, not a single shared
+secret. Each row is `{token, label, created_at, revoked_at}` — `label` is a
+free-text operator note (e.g. `"Fredrick's Mac"`, `"Demo — Jane"`), not an
+identity system; there's no signup flow, email, or password attached to it.
+
+**Creating a credential:** no CLI command exists yet for creation — the
+first credential comes from migrating `api_token` on first boot. Additional
+credentials currently require direct manipulation of `credentials.json` or
+a future admin endpoint.
+
+**Revoking a credential:**
+
+```bash
+nativestream-server --revoke-token <label>
+```
+
+Revocation is immediate — no restart required — and affects only the named
+credential; every other credential keeps working. A revoked token returns
+the same `401 unauthorized` response as a token that never existed, so a
+client can't distinguish "your access was revoked" from "that token is
+wrong."
+
+See [architecture.md — Credential Model](architecture.md#credential-model)
+for the design rationale.
+
+## Media Plane Selection
+
+| Env var | Default | Notes |
+|---|---|---|
+| `NATIVESTREAM_MEDIA_PLANE` | _(unset — uses the default proxy implementation)_ | Set to `stub` to run the proof-of-boundary stub implementation instead (`packages/mediaplane/stub`) — not for production use. See [architecture.md — The interface boundary](architecture.md#the-interface-boundary). |
+
 ## Client-Side Settings
 
 Client settings (server URL, buffer preset, favourites, etc.) are not part of the server config — they're stored locally per client. See:
@@ -73,28 +110,35 @@ Client settings (server URL, buffer preset, favourites, etc.) are not part of th
 
 ## Hosted Deployment
 
-A hosted instance runs on Azure via Coolify (a self-hosted PaaS layer, chosen over Azure-specific tooling to avoid lock-in — the whole stack is portable to any VPS via Docker if the Azure student credit expires).
+A hosted instance runs on Azure via Coolify (a self-hosted PaaS layer,
+chosen to keep the stack portable to any VPS via Docker rather than tied to
+Azure-specific tooling).
 
-**Current hosted default:**
-nativestream.duckdns.org
+The public hostname is a DuckDNS subdomain (a genuinely owned domain, not
+shared infrastructure), with Coolify issuing a Let's Encrypt certificate
+against it. A cron job on the VM keeps the DNS A record synced to the VM's
+current public IP every 5 minutes, so the domain survives VM recreation
+without manual intervention.
 
-Originally deployed on a Coolify-generated `sslip.io` domain, which turned out to fail the actual requirement: `sslip.io`'s shared certificate infrastructure produced an invalid/untrusted TLS cert, breaking `wss://` connections (Local Media Connect) outright and requiring manual trust exceptions for HTTPS — unacceptable for a client that needs to "just work" with no customer-side cert configuration.
+**Publicly reachable:** the hostname on ports `80`/`443` only.
 
-Replaced with a free DuckDNS subdomain (`nativestream.duckdns.org`), pointed at the VM's public IP, with Coolify issuing a proper Let's Encrypt certificate against it. This is a genuine, owned domain (not borrowed shared infrastructure like sslip.io), which resolves the trust problem and — as a side effect — also reduces the IP-coupling risk: if the VM is recreated with a new IP, only the DuckDNS A record needs updating, not the domain itself or any client's baked-in default. A small cron job on the VM (`~/duckdns/update.sh`, every 5 min) keeps the DNS record synced to the VM's current IP automatically, so this survives VM recreation without manual intervention — a lingering risk from the original design doc, incidentally resolved by this fix rather than the fix's original purpose.
+**Admin access:** SSH (`22`) and the Coolify dashboard (`8000`) are not
+exposed to the public internet at all — they're reachable only over
+Tailscale, from devices enrolled in the tailnet.
 
-**Admin access note:** Coolify's dashboard (`:8000`) and SSH (`:22`) are no longer exposed to the public internet at all — see the Tailscale note in the operations/security section below. Only `nativestream.duckdns.org` on `80`/`443` is publicly reachable.
-
-Config is injected via environment variables, not a mounted `config.yaml` — `NATIVESTREAM_SERVER_HOST=0.0.0.0` and `NATIVESTREAM_API_TOKEN=<generated>`, set in Coolify's environment variable panel (Coolify's secret store, not plaintext on the VM disk).
-
-### Admin Access — Tailscale, not IP Allowlisting
-
-The VM's admin surfaces (SSH `:22`, Coolify dashboard `:8000`) are **not** exposed to the public internet. They were originally restricted via Azure NSG rules allowlisting a specific home IP — this broke the first time that IP rotated (ISP-assigned IPs aren't stable), causing a full lockout.
-
-Root cause: IP allowlisting was answering the wrong question. An IP address identifies a network location, not a device or a person — using it as an identity proxy breaks the moment the network location changes, which is normal and expected behavior for a home ISP connection.
-
-Fixed by installing Tailscale on both the VM and admin devices, then removing the public NSG rules for `22`/`8000` entirely:
-Internet → 80/443 → public app traffic
+```
+Internet  → 80/443 → public app traffic
 Tailscale → 22/8000 → admin access only
 Azure NSG → 80/443 open, everything else blocked
+```
 
-Same principle as the auth split in [api.md](api.md#auth-requirements) (`/ws` open, everything else gated) applied one layer down: the set of things that should be *reachable* should match the set of things that should be *trusted*, and a public IP was never the right proxy for "trusted."
+Config is injected via environment variables in Coolify's environment
+variable panel (Coolify's own secret store, not a file on the VM disk) —
+`NATIVESTREAM_SERVER_HOST=0.0.0.0` and `NATIVESTREAM_API_TOKEN=<generated>`
+for the first boot's credential migration.
+
+This mirrors the same principle as the auth split in
+[api.md](api.md#auth-requirements) (`/ws` open, everything else gated),
+applied one layer down: the set of things reachable from the public
+internet should match the set of things that are meant to be trusted from
+there.

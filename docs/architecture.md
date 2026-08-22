@@ -1,6 +1,6 @@
 # Architecture
 
-**Last updated:** 2026-05-09.
+**Last updated:** 2026-08-22.
 
 This is the cross-cutting view: how the pieces fit together and why. For internals specific to one platform, see:
 
@@ -14,6 +14,8 @@ This is the cross-cutting view: how the pieces fit together and why. For interna
 
 NativeStream is a two-process system per client platform. Each client is a thin, stateless-ish poller; all intelligence — discovery, validation, scoring, self-healing — lives in the server.
 
+The server itself splits into two logical halves: a **control plane** (identity, device/session coordination, config, channel state — centralized, one instance) and a **media plane** (discovery, proxying, EPG sourcing — pluggable, swappable per deployment). See [Control Plane / Media Plane Split](#control-plane--media-plane-split) below.
+
 ```
 ┌──────────────────────────────────────────────────┐
 │  NativeStream Mac (Swift)                        │
@@ -24,9 +26,11 @@ NativeStream is a two-process system per client platform. Each client is a thin,
 ┌────────────────────▼─────────────────────────────┐
 │  StreamServer (Go)                               │
 │  ├── Channel Store (in-memory + JSON snapshot)   │
+│  ├── Credential Store (per-person, revocable)    │
 │  ├── Link Validator (20-worker probe pool)       │
 │  ├── Discovery Engine (5 crawler types)          │
 │  ├── EPG Engine (XMLTV generator)                │
+│  ├── Proxy (HLS header injection + rewriting)    │
 │  └── HTTP API (REST + playlist + EPG endpoints)  │
 └────────────────────┬─────────────────────────────┘
                      │
@@ -77,6 +81,108 @@ The Mac and Android boxes connect to each other only through the server's WebSoc
 
 ---
 
+## Control Plane / Media Plane Split
+
+The server binary is one process, but its code is organized around a hard
+interface boundary between two roles:
+
+**Control plane** — identity, device/session coordination, config, and
+channel state. Centralized: one instance serves every customer. Cheap to
+run and needs to be trusted regardless of scale.
+
+**Media plane** — discovery (finding stream links), proxying (fetching and
+rewriting stream traffic), and EPG sourcing (fetching match schedules).
+Pluggable: a deployment can use the default implementation, a self-run
+implementation, or none at all (direct-URL-only playback needs no media
+plane).
+
+The split exists because the two roles have different centralization
+requirements. Identity and coordination only make sense with one source of
+truth. Discovery, proxying, and EPG sourcing carry cost and legal exposure
+that scale with usage, and a self-run deployment should be able to supply
+its own without touching control-plane code.
+
+```
+Control Plane (apps/server/, centralized)
+├── Identity — per-person credentials (store/credentials.go)
+├── Device/session coordination (control/)
+├── Config, bind/token guard (config/)
+└── Adapters — satisfy the media plane interfaces over store.Store
+    (server/discovery/adapters.go, server/proxy/adapters.go)
+
+Media Plane (packages/, pluggable)
+├── packages/mediaplane      — the interface contract
+├── packages/mediaplane/stub — proof implementation, no control-plane dependency
+├── packages/discovery       — crawlers, extractor, circuit breaker, matcher
+├── packages/proxy           — header injection, SSRF guard, rewriter
+└── packages/epg-sourcing    — ESPN / football-data fetch and parse
+```
+
+### The interface boundary
+
+`packages/mediaplane` defines what the control plane needs *from* a media
+plane, as Go interfaces (`DiscoveryProvider`, `StreamProxy`,
+`MatchProvider`). The control plane calls through these interfaces only —
+never against a concrete implementation directly.
+
+Every implementation declares whether it performs SSRF filtering on
+outbound requests via `PerformsSSRFFiltering() bool`. The control plane
+does not re-implement SSRF checks itself — that stays the media plane's
+job, since it protects the implementation's own outbound traffic — but it
+can refuse to route through an implementation that doesn't claim to
+filter.
+
+`packages/mediaplane/stub` is a second, independent implementation with no
+control-plane dependency, selectable via `NATIVESTREAM_MEDIA_PLANE=stub`
+with zero source changes elsewhere. It exists to prove the boundary is
+real, not for production use — if a future change ever breaks the stub
+build, that's a signal the interface has started leaking control-plane
+assumptions back in.
+
+### Extracted packages and their ports
+
+Two of the three extracted packages need a narrow slice of control-plane
+data (which channels exist, what a channel's active stream link is)
+without depending on control-plane storage directly. Each defines a small
+local interface — a "port" — for exactly that slice; the control plane
+supplies an adapter satisfying it over the real `store.Store`.
+
+| Package | Needs from control plane | Port | Adapter |
+|---|---|---|---|
+| `packages/discovery` | Read/register channels by keyword | `ChannelLookup` | `server/discovery/adapters.go` |
+| `packages/discovery` | Submit a matched candidate for scoring | `CandidateSubmitter` | `server/discovery/adapters.go` |
+| `packages/proxy` | Look up a channel's active stream link | `ActiveLinkSource` | `server/proxy/adapters.go` |
+| `packages/epg-sourcing` | None | — | — |
+
+`packages/epg-sourcing` needs no port — fetching and parsing match
+schedules touches no control-plane state.
+
+### Credential model
+
+The single shared `api_token` is replaced by a persisted table of
+independently revocable credentials. A row is `{token, label, created_at,
+revoked_at}` — no user profile, no email, no password. `AuthMiddleware`
+checks token membership against the non-revoked set, with a constant-time
+comparison per row so timing doesn't leak which stored token a supplied one
+is close to. Revoked and invalid tokens return the same 401 shape, so the
+response never reveals whether a given token ever existed. See
+[configuration.md](configuration.md#credentials) for the operator-facing
+side of this.
+
+### Known gaps
+
+- `packages/proxy` declares `PerformsSSRFFiltering() true`, accurate for
+  the variant-playlist routing path but not yet enforced at
+  channel-create/update time for the original-playlist path.
+- `packages/epg-sourcing`'s fetch methods hit hardcoded hostnames with no
+  injectable base URL, so only the parsers are unit tested, not the
+  fetchers themselves.
+- `packages/mediaplane/stub` has no ongoing runtime purpose beyond proving
+  the interface — a candidate for removal once a real second
+  implementation exists to serve as the live proof instead.
+
+---
+
 ## Data Flows
 
 These sequences are documented here rather than in a platform-specific file because each one crosses the client/server boundary.
@@ -86,6 +192,7 @@ These sequences are documented here rather than in a platform-specific file beca
 ```
 Server starts
   → store.Load() from channels.json
+  → credentialStore.Load() + migrate legacy api_token if present
   → epg.loadCacheFromDisk() → serve cached EPG immediately
   → validator.RunProber() starts worker pool
   → discEngine.Run() starts crawl loop
@@ -107,7 +214,7 @@ discEngine.Run() wakes (every 30min default)
   → LinkExtractor.Extract() → []CandidateLink
   → deduplicate
   → ChannelMatcher.Match() per candidate
-  → matched → validator.Submit()
+  → matched → submitter.Submit()
   → unmatched → unmatched pool
 
 validator.probe(candidate)
@@ -174,10 +281,16 @@ nativestream/
 ├── ordo.yaml · Makefile          ← two equivalent command runners, see development.md
 ├── Dockerfile · docker-compose.yml   ← server container build, unverified — see development.md
 ├── release.sh                    ← per-component version bump + tag + push, see releasing.md
-├── app/
-│   ├── server/     ← Go backend, see server-architecture.md
+├── apps/
+│   ├── server/     ← Go backend (control plane), see server-architecture.md
 │   ├── macos/      ← Swift Mac app, see mac-architecture.md
 │   └── android/    ← Kotlin Android app, see android-architecture.md
+├── packages/
+│   ├── mediaplane/     ← media plane interface contract + stub
+│   ├── discovery/      ← extracted discovery (crawlers, extractor, matcher)
+│   ├── proxy/           ← extracted proxy (headers, rewriter, SSRF guard)
+│   ├── epg-sourcing/    ← extracted EPG fetch/parse
+│   └── sdk-gen/          ← shared protobuf contract, generated per-language
 ├── docs/
 └── scripts/
     ├── install.sh
@@ -201,3 +314,9 @@ For per-platform package/module structure, see the responsibility tables in [ser
 | Snapshot strategy | Periodic + atomic rename | Write-through on every mutation | Bounds disk I/O; atomic rename avoids partial-write corruption |
 | Self-healing trigger | Score threshold (< 0.3) | Fixed failure count | Score already blends latency/reachability/bitrate — reusing it avoids a second signal to maintain |
 | Cross-device control | Server-brokered WebSocket, no P2P | Peer-to-peer WebRTC | Server already has complete session state; simpler than NAT traversal — see [local-media-connect.md](local-media-connect.md) |
+| Server centralization model | Split by role: control plane centralized, media plane pluggable | Fully centralized (media plane shared too) / fully self-hosted (whole stack per user) | Media plane cost/legal exposure scale with usage; fully self-hosted makes app-store review surface unbounded |
+| Auth model | Per-person revocable credentials, issuance UX deferred | Full accounts now / single shared token | Removes the actual ceiling (unrevoked shared access) without committing to an onboarding shape that isn't decided yet |
+| Media plane package boundary | Extract only what's genuinely swappable, behind an interface the control plane calls through | Config-flag pluggability on the existing monolith / full microservices split | A flag without a real interface is a fake seam. Microservices are premature at current scale |
+| Discovery matching / EPG channel assignment | Stay control-plane-side, behind narrow ports (`ChannelLookup`) | Extract alongside crawlers/parsers | Both read channel keyword state directly — genuinely control-plane data, not sourcing |
+| SSRF filtering | Declared by each media plane implementation, not enforced by the control plane | Control plane re-validates every implementation's outbound URLs | SSRF protection belongs to whoever's infrastructure makes the outbound request |
+| Proof of the media plane interface | A second implementation (`packages/mediaplane/stub`) that must compile and swap in with zero control-plane source changes | Trusting the interface definition alone | An interface can look decoupled while the only real implementation still assumes control-plane internals |
