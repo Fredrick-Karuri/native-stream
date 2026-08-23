@@ -23,8 +23,11 @@ func newTestHandler() *Handler {
 	px := proxy.New(proxy.Config{}, serverproxy.NewStoreActiveLinkSource(s))
 	v := validator.New(validator.DefaultConfig(), s, "", "", "")
 	hub := control.NewHub()
+	pairing := store.NewPairingSessionStore()
+	credentials := store.NewCredentialStore("")
 
-	return New(s, e, px, v, proxy.Config{}, "http://localhost:8889", hub, server.Version)
+	return New(
+		s, e, px, v, proxy.Config{}, "http://localhost:8889", hub, server.Version, pairing, credentials)
 }
 
 func TestHandleHealth(t *testing.T) {

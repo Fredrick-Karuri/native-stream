@@ -1,10 +1,10 @@
 // api/rate_limiter.go
 //
 // A minimal fixed-window, per-source-IP rate limiter, purpose-built for
-// the pairing endpoints, which are unauthenticated by construction and 
-// therefore need their own bound against brute-forceor session-exhaustion attempts. 
-// Not a general-purpose limiter — no token bucket, no burst allowance — deliberately 
-// the simplest thing that satisfies "a burst of requests from one IP must not be able 
+// the pairing endpoints, which are unauthenticated by construction and
+// therefore need their own bound against brute-forceor session-exhaustion attempts.
+// Not a general-purpose limiter — no token bucket, no burst allowance — deliberately
+// the simplest thing that satisfies "a burst of requests from one IP must not be able
 // to exhaust codes or create unbounded sessions."
 
 package api

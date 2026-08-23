@@ -41,6 +41,7 @@ type Handler struct {
 	version    string
 
 	pairing           *store.PairingSessionStore
+	credentials       *store.CredentialStore
 	pairStartLimiter  *ipRateLimiter
 	pairStatusLimiter *ipRateLimiter
 }
@@ -62,6 +63,7 @@ func New(
 	hub *control.Hub,
 	version string,
 	pairing *store.PairingSessionStore,
+	credentials *store.CredentialStore,
 ) *Handler {
 	return &Handler{
 		store:      s,
@@ -74,12 +76,14 @@ func New(
 		serverName: func() string { h, _ := os.Hostname(); return "NativeStream @ " + h }(),
 		hub:        hub,
 		version:    version,
- 
+
 		pairing:           pairing,
+		credentials:       credentials,
 		pairStartLimiter:  newIPRateLimiter(pairStartRateLimit, pairStartRateWindow),
 		pairStatusLimiter: newIPRateLimiter(pairStatusRateLimit, pairStatusRateWindow),
 	}
 }
+
 // Router registers all routes and returns the mux.
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Playlist & EPG
@@ -109,6 +113,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Local Media Connect — /ws itself is registered separately by main.go
 
 	mux.HandleFunc("GET /api/sessions", h.handleSessions)
+
+	// Pairing (admin) — authenticated
+	mux.HandleFunc("GET /api/pair/pending", h.handlePairPending)
+	mux.HandleFunc("POST /api/pair/approve/{session_id}", h.handlePairApprove)
+	mux.HandleFunc("POST /api/pair/deny/{session_id}", h.handlePairDeny)
 
 }
 

@@ -200,7 +200,7 @@ func main() {
 
 	// ── API ────────────────────────────────────────────────────────────────────
 	serverAddr := fmt.Sprintf("http://%s:%d", netutil.GetLANIP(), cfg.Server.Port)
-	h := api.New(s, e, px, v, proxyCfg, serverAddr, hub, server.Version, pairingStore)
+	h := api.New(s, e, px, v, proxyCfg, serverAddr, hub, server.Version, pairingStore, creds)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)

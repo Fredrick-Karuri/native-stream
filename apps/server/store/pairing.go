@@ -13,12 +13,15 @@ package store
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+var ErrPairingSessionNotFound = errors.New("pairing session store: session not found")
 
 const pairingCodeLength = 6
 
@@ -150,7 +153,7 @@ func (pss *PairingSessionStore) Approve(sessionID, resultToken string) (*Pairing
 
 	session, ok := pss.sessions[sessionID]
 	if !ok {
-		return nil, fmt.Errorf("pairing session store: no session %q", sessionID)
+		return nil, ErrPairingSessionNotFound
 	}
 
 	status := session.currentStatus(time.Now())
@@ -173,7 +176,7 @@ func (pss *PairingSessionStore) Deny(sessionID string) error {
 
 	session, ok := pss.sessions[sessionID]
 	if !ok {
-		return fmt.Errorf("pairing session store: no session %q", sessionID)
+		return ErrPairingSessionNotFound
 	}
 
 	status := session.currentStatus(time.Now())
