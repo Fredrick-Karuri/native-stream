@@ -121,6 +121,8 @@ func main() {
 	credTotal, credActive := creds.Count()
 	slog.Info("credential store loaded", "total", credTotal, "active", credActive)
 
+	pairingStore := store.NewPairingSessionStore()
+
 	// ── Validator ──────────────────────────────────────────────────────────────
 	v := validator.New(validator.Config{
 		Interval:        cfg.Probe.Interval,
@@ -198,7 +200,7 @@ func main() {
 
 	// ── API ────────────────────────────────────────────────────────────────────
 	serverAddr := fmt.Sprintf("http://%s:%d", netutil.GetLANIP(), cfg.Server.Port)
-	h := api.New(s, e, px, v, proxyCfg, serverAddr, hub, server.Version)
+	h := api.New(s, e, px, v, proxyCfg, serverAddr, hub, server.Version, pairingStore)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -206,9 +208,10 @@ func main() {
 
 	// /ws (Local Media Connect) is carved out of the auth-wrapped mux and
 	// mounted separately, unauthenticated — it's LAN-only by design and
-	// casting devices don't hold an API token (see HOST-003).
+	// casting devices don't hold an API token.
 	rootMux := http.NewServeMux()
 	rootMux.HandleFunc("GET /ws", h.RegisterWebSocketRoute)
+	h.RegisterPairingDeviceRoutes(rootMux)
 	var authGuard func(http.Handler) http.Handler
 	if credTotal > 0 {
 		authGuard = api.AuthMiddleware(creds)

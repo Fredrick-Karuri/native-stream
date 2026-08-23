@@ -39,7 +39,18 @@ type Handler struct {
 	serverName string
 	hub        *control.Hub
 	version    string
+
+	pairing           *store.PairingSessionStore
+	pairStartLimiter  *ipRateLimiter
+	pairStatusLimiter *ipRateLimiter
 }
+
+const (
+	pairStartRateLimit   = 10 // requests per window
+	pairStartRateWindow  = time.Minute
+	pairStatusRateLimit  = 60 // ~2s client poll interval → ~30/min per device, headroom for jitter
+	pairStatusRateWindow = time.Minute
+)
 
 func New(
 	s *store.Store,
@@ -50,6 +61,7 @@ func New(
 	serverAddr string,
 	hub *control.Hub,
 	version string,
+	pairing *store.PairingSessionStore,
 ) *Handler {
 	return &Handler{
 		store:      s,
@@ -62,9 +74,12 @@ func New(
 		serverName: func() string { h, _ := os.Hostname(); return "NativeStream @ " + h }(),
 		hub:        hub,
 		version:    version,
+ 
+		pairing:           pairing,
+		pairStartLimiter:  newIPRateLimiter(pairStartRateLimit, pairStartRateWindow),
+		pairStatusLimiter: newIPRateLimiter(pairStatusRateLimit, pairStatusRateWindow),
 	}
 }
-
 // Router registers all routes and returns the mux.
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Playlist & EPG
@@ -102,6 +117,15 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 // carry the hosted API token, and LMC auth is explicitly out of scope here.
 func (h *Handler) RegisterWebSocketRoute(w http.ResponseWriter, r *http.Request) {
 	h.handleWebSocket(w, r)
+}
+
+// RegisterPairingDeviceRoutes exposes the two device-facing pairing
+// endpoints for mounting outside the authenticated mux, alongside /ws.
+// Unauthenticated by design — a device with no credential
+// yet must be able to start and poll a pairing handshake.
+func (h *Handler) RegisterPairingDeviceRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /api/pair/start", h.handlePairStart)
+	mux.HandleFunc("GET /api/pair/status/{session_id}", h.handlePairStatus)
 }
 
 // ── Playlist ──────────────────────────────────────────────────────────────────
