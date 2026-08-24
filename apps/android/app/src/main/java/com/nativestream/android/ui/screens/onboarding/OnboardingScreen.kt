@@ -8,6 +8,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -17,13 +18,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nativestream.android.domain.model.PlaylistSource
+import com.nativestream.android.ui.viewmodel.PairingState
+import com.nativestream.android.ui.viewmodel.PairingViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
 import com.nativestream.android.ui.viewmodel.SourceViewModel
 import java.util.UUID
 
 private const val DEFAULT_REFRESH_HOURS = 6
-private enum class OnboardingStep { SPLASH, SERVER, PLAYLIST, EPG }
-
+private enum class OnboardingStep { SPLASH, SERVER, PAIRING, PLAYLIST, EPG }
 
 @Composable
 fun OnboardingScreen(
@@ -31,6 +33,7 @@ fun OnboardingScreen(
     modifier: Modifier = Modifier,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     sourceViewModel:   SourceViewModel   = hiltViewModel(),
+    pairingViewModel: PairingViewModel = hiltViewModel(),
 ) {
     var step by remember { mutableStateOf(OnboardingStep.SPLASH) }
 
@@ -38,11 +41,26 @@ fun OnboardingScreen(
     val discoveredUrl   by settingsViewModel.discoveredUrl.collectAsState()
     val scanning        by settingsViewModel.scanning.collectAsState()
     val serverUrl       by settingsViewModel.serverUrl.collectAsState()
+    val pairingState     by pairingViewModel.state.collectAsState()
 
     LaunchedEffect(connectionState) {
         if (connectionState is OnboardingConnectionState.Success) {
+            step = OnboardingStep.PAIRING
+            pairingViewModel.start()
+        }
+    }
+
+    // Advances past pairing the moment it resolves successfully — screen
+    // itself renders the waiting/retry states while Approved hasn't
+    // happened yet.
+    LaunchedEffect(pairingState) {
+        if (pairingState is PairingState.Approved) {
             step = OnboardingStep.PLAYLIST
         }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { pairingViewModel.stop() }
     }
 
     AnimatedContent(
@@ -92,6 +110,12 @@ fun OnboardingScreen(
                     onComplete()
                 },
             )
+
+            OnboardingStep.PAIRING -> PairingScreen(
+                pairingState = pairingState,
+                onRetry = { pairingViewModel.start() },
+            )
+
             OnboardingStep.PLAYLIST -> PlaylistScreen(
                 connectionState = connectionState,
                 onSourceAdded   = { url ->

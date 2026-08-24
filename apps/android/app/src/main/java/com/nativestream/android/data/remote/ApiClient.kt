@@ -106,6 +106,56 @@ class ApiClient  @Inject constructor(
     // Used only by fetchRawUrl() — never carries the API token.
     private val externalHttpClient = buildClient(withAuth = false)
 
+    // ── Pairing (unauthenticated — device has no token yet) ─────────────────
+
+    /**
+     * Starts a pairing session. Unauthenticated by construction: a device
+     * with no credential yet must be able to reach this endpoint.
+     * Uses externalHttpClient, same as fetchRawUrl — never attaches
+     * Authorization even if a stale token happens to be set.
+     */
+    suspend fun startPairing(platform: String): com.stream.v1.PairStartResponse {
+        val request = com.stream.v1.PairStartRequest.newBuilder()
+            .setPlatform(platform)
+            .build()
+        val json = JsonFormat.printer().preservingProtoFieldNames().print(request)
+        val bytes = wrapNetworkErrors("api/pair/start") {
+            val response = externalHttpClient.post(resolve("api/pair/start")) {
+                contentType(ContentType.Application.Json)
+                setBody(json)
+            }
+            guardSuccess(response)
+            response.body<ByteArray>()
+        }
+        val builder = com.stream.v1.PairStartResponse.newBuilder()
+        return try {
+            JsonFormat.parser().ignoringUnknownFields().merge(bytes.decodeToString(), builder)
+            builder.build()
+        } catch (cause: Exception) {
+            throw ApiError.DecodingFailed(cause)
+        }
+    }
+
+    /**
+     * Polls one pairing session's status. Unauthenticated, session-scoped.
+     * Callers are expected to poll this on an interval and
+     * stop once status is no longer "pending".
+     */
+    suspend fun pairingStatus(sessionId: String): com.stream.v1.PairStatusResponse {
+        val bytes = wrapNetworkErrors("api/pair/status/$sessionId") {
+            val response = externalHttpClient.get(resolve("api/pair/status/$sessionId"))
+            guardSuccess(response)
+            response.body<ByteArray>()
+        }
+        val builder = com.stream.v1.PairStatusResponse.newBuilder()
+        return try {
+            JsonFormat.parser().ignoringUnknownFields().merge(bytes.decodeToString(), builder)
+            builder.build()
+        } catch (cause: Exception) {
+            throw ApiError.DecodingFailed(cause)
+        }
+    }
+
     // ── Health ────────────────────────────────────────────────────────────────
 
     suspend fun health(): com.stream.v1.HealthResponse {
