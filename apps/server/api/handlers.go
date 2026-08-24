@@ -114,10 +114,17 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("GET /api/sessions", h.handleSessions)
 
-	// Pairing (admin) — authenticated
+	// Pairing (admin) — authenticated, same mux as everything above
 	mux.HandleFunc("GET /api/pair/pending", h.handlePairPending)
 	mux.HandleFunc("POST /api/pair/approve/{session_id}", h.handlePairApprove)
 	mux.HandleFunc("POST /api/pair/deny/{session_id}", h.handlePairDeny)
+
+	// Credentials (admin) — authenticated, same mux as everything above
+	mux.HandleFunc("GET /api/credentials", h.handleListCredentials)
+	mux.HandleFunc("POST /api/credentials/revoke", h.handleRevokeCredential)
+
+	// Web admin page itself — authenticated, single embedded HTML doc
+	mux.HandleFunc("GET /admin", h.handleAdminPage)
 
 }
 

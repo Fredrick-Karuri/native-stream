@@ -65,6 +65,21 @@ public final class PairingProto {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_stream_v1_PairDenyResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_stream_v1_CredentialSummary_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_stream_v1_CredentialSummary_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_stream_v1_CredentialListResponse_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_stream_v1_CredentialListResponse_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_stream_v1_RevokeCredentialRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_stream_v1_RevokeCredentialRequest_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -94,12 +109,20 @@ public final class PairingProto {
       "proveResponse\022\035\n\nsession_id\030\001 \001(\tR\tsessi" +
       "onId\022\026\n\006status\030\002 \001(\tR\006status\"I\n\020PairDeny" +
       "Response\022\035\n\nsession_id\030\001 \001(\tR\tsessionId\022" +
-      "\026\n\006status\030\002 \001(\tR\006statusB\251\001\n\rcom.stream.v" +
-      "1B\014PairingProtoP\001ZEgithub.com/fredrick-k" +
-      "aruri/nativestream/sdk-gen/go/stream/v1;" +
-      "streamv1\242\002\003SXX\252\002\tStream.V1\312\002\tStream\\V1\342\002" +
-      "\025Stream\\V1\\GPBMetadata\352\002\nStream::V1b\006pro" +
-      "to3"
+      "\026\n\006status\030\002 \001(\tR\006status\"\263\001\n\021CredentialSu" +
+      "mmary\022\024\n\005label\030\001 \001(\tR\005label\0229\n\ncreated_a" +
+      "t\030\002 \001(\0132\032.google.protobuf.TimestampR\tcre" +
+      "atedAt\022>\n\nrevoked_at\030\003 \001(\0132\032.google.prot" +
+      "obuf.TimestampH\000R\trevokedAt\210\001\001B\r\n\013_revok" +
+      "ed_at\"X\n\026CredentialListResponse\022>\n\013crede" +
+      "ntials\030\001 \003(\0132\034.stream.v1.CredentialSumma" +
+      "ryR\013credentials\"/\n\027RevokeCredentialReque" +
+      "st\022\024\n\005label\030\001 \001(\tR\005labelB\251\001\n\rcom.stream." +
+      "v1B\014PairingProtoP\001ZEgithub.com/fredrick-" +
+      "karuri/nativestream/sdk-gen/go/stream/v1" +
+      ";streamv1\242\002\003SXX\252\002\tStream.V1\312\002\tStream\\V1\342" +
+      "\002\025Stream\\V1\\GPBMetadata\352\002\nStream::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -154,6 +177,24 @@ public final class PairingProto {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_stream_v1_PairDenyResponse_descriptor,
         new java.lang.String[] { "SessionId", "Status", });
+    internal_static_stream_v1_CredentialSummary_descriptor =
+      getDescriptor().getMessageTypes().get(8);
+    internal_static_stream_v1_CredentialSummary_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_stream_v1_CredentialSummary_descriptor,
+        new java.lang.String[] { "Label", "CreatedAt", "RevokedAt", });
+    internal_static_stream_v1_CredentialListResponse_descriptor =
+      getDescriptor().getMessageTypes().get(9);
+    internal_static_stream_v1_CredentialListResponse_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_stream_v1_CredentialListResponse_descriptor,
+        new java.lang.String[] { "Credentials", });
+    internal_static_stream_v1_RevokeCredentialRequest_descriptor =
+      getDescriptor().getMessageTypes().get(10);
+    internal_static_stream_v1_RevokeCredentialRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_stream_v1_RevokeCredentialRequest_descriptor,
+        new java.lang.String[] { "Label", });
     descriptor.resolveAllFeaturesImmutable();
     com.google.protobuf.TimestampProto.getDescriptor();
   }

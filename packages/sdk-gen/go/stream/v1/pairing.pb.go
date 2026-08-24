@@ -452,6 +452,154 @@ func (x *PairDenyResponse) GetStatus() string {
 	return ""
 }
 
+type CredentialSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Label         string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	RevokedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=revoked_at,json=revokedAt,proto3,oneof" json:"revoked_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CredentialSummary) Reset() {
+	*x = CredentialSummary{}
+	mi := &file_stream_v1_pairing_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CredentialSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CredentialSummary) ProtoMessage() {}
+
+func (x *CredentialSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_stream_v1_pairing_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CredentialSummary.ProtoReflect.Descriptor instead.
+func (*CredentialSummary) Descriptor() ([]byte, []int) {
+	return file_stream_v1_pairing_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *CredentialSummary) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *CredentialSummary) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *CredentialSummary) GetRevokedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.RevokedAt
+	}
+	return nil
+}
+
+type CredentialListResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Credentials   []*CredentialSummary   `protobuf:"bytes,1,rep,name=credentials,proto3" json:"credentials,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CredentialListResponse) Reset() {
+	*x = CredentialListResponse{}
+	mi := &file_stream_v1_pairing_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CredentialListResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CredentialListResponse) ProtoMessage() {}
+
+func (x *CredentialListResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_stream_v1_pairing_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CredentialListResponse.ProtoReflect.Descriptor instead.
+func (*CredentialListResponse) Descriptor() ([]byte, []int) {
+	return file_stream_v1_pairing_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CredentialListResponse) GetCredentials() []*CredentialSummary {
+	if x != nil {
+		return x.Credentials
+	}
+	return nil
+}
+
+type RevokeCredentialRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Label         string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeCredentialRequest) Reset() {
+	*x = RevokeCredentialRequest{}
+	mi := &file_stream_v1_pairing_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeCredentialRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeCredentialRequest) ProtoMessage() {}
+
+func (x *RevokeCredentialRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_stream_v1_pairing_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeCredentialRequest.ProtoReflect.Descriptor instead.
+func (*RevokeCredentialRequest) Descriptor() ([]byte, []int) {
+	return file_stream_v1_pairing_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *RevokeCredentialRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
 var File_stream_v1_pairing_proto protoreflect.FileDescriptor
 
 const file_stream_v1_pairing_proto_rawDesc = "" +
@@ -488,7 +636,18 @@ const file_stream_v1_pairing_proto_rawDesc = "" +
 	"\x10PairDenyResponse\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06statusB\xa9\x01\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\"\xb3\x01\n" +
+	"\x11CredentialSummary\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\x129\n" +
+	"\n" +
+	"created_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12>\n" +
+	"\n" +
+	"revoked_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\trevokedAt\x88\x01\x01B\r\n" +
+	"\v_revoked_at\"X\n" +
+	"\x16CredentialListResponse\x12>\n" +
+	"\vcredentials\x18\x01 \x03(\v2\x1c.stream.v1.CredentialSummaryR\vcredentials\"/\n" +
+	"\x17RevokeCredentialRequest\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05labelB\xa9\x01\n" +
 	"\rcom.stream.v1B\fPairingProtoP\x01ZEgithub.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1;streamv1\xa2\x02\x03SXX\xaa\x02\tStream.V1\xca\x02\tStream\\V1\xe2\x02\x15Stream\\V1\\GPBMetadata\xea\x02\n" +
 	"Stream::V1b\x06proto3"
 
@@ -504,26 +663,32 @@ func file_stream_v1_pairing_proto_rawDescGZIP() []byte {
 	return file_stream_v1_pairing_proto_rawDescData
 }
 
-var file_stream_v1_pairing_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_stream_v1_pairing_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_stream_v1_pairing_proto_goTypes = []any{
-	(*PairStartRequest)(nil),      // 0: stream.v1.PairStartRequest
-	(*PairStartResponse)(nil),     // 1: stream.v1.PairStartResponse
-	(*PairStatusResponse)(nil),    // 2: stream.v1.PairStatusResponse
-	(*PairingSessionSummary)(nil), // 3: stream.v1.PairingSessionSummary
-	(*PairPendingResponse)(nil),   // 4: stream.v1.PairPendingResponse
-	(*PairApproveRequest)(nil),    // 5: stream.v1.PairApproveRequest
-	(*PairApproveResponse)(nil),   // 6: stream.v1.PairApproveResponse
-	(*PairDenyResponse)(nil),      // 7: stream.v1.PairDenyResponse
-	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
+	(*PairStartRequest)(nil),        // 0: stream.v1.PairStartRequest
+	(*PairStartResponse)(nil),       // 1: stream.v1.PairStartResponse
+	(*PairStatusResponse)(nil),      // 2: stream.v1.PairStatusResponse
+	(*PairingSessionSummary)(nil),   // 3: stream.v1.PairingSessionSummary
+	(*PairPendingResponse)(nil),     // 4: stream.v1.PairPendingResponse
+	(*PairApproveRequest)(nil),      // 5: stream.v1.PairApproveRequest
+	(*PairApproveResponse)(nil),     // 6: stream.v1.PairApproveResponse
+	(*PairDenyResponse)(nil),        // 7: stream.v1.PairDenyResponse
+	(*CredentialSummary)(nil),       // 8: stream.v1.CredentialSummary
+	(*CredentialListResponse)(nil),  // 9: stream.v1.CredentialListResponse
+	(*RevokeCredentialRequest)(nil), // 10: stream.v1.RevokeCredentialRequest
+	(*timestamppb.Timestamp)(nil),   // 11: google.protobuf.Timestamp
 }
 var file_stream_v1_pairing_proto_depIdxs = []int32{
-	8, // 0: stream.v1.PairingSessionSummary.requested_at:type_name -> google.protobuf.Timestamp
-	3, // 1: stream.v1.PairPendingResponse.sessions:type_name -> stream.v1.PairingSessionSummary
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	11, // 0: stream.v1.PairingSessionSummary.requested_at:type_name -> google.protobuf.Timestamp
+	3,  // 1: stream.v1.PairPendingResponse.sessions:type_name -> stream.v1.PairingSessionSummary
+	11, // 2: stream.v1.CredentialSummary.created_at:type_name -> google.protobuf.Timestamp
+	11, // 3: stream.v1.CredentialSummary.revoked_at:type_name -> google.protobuf.Timestamp
+	8,  // 4: stream.v1.CredentialListResponse.credentials:type_name -> stream.v1.CredentialSummary
+	5,  // [5:5] is the sub-list for method output_type
+	5,  // [5:5] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_stream_v1_pairing_proto_init() }
@@ -533,13 +698,14 @@ func file_stream_v1_pairing_proto_init() {
 	}
 	file_stream_v1_pairing_proto_msgTypes[2].OneofWrappers = []any{}
 	file_stream_v1_pairing_proto_msgTypes[3].OneofWrappers = []any{}
+	file_stream_v1_pairing_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_stream_v1_pairing_proto_rawDesc), len(file_stream_v1_pairing_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
