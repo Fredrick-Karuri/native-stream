@@ -123,9 +123,6 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/credentials", h.handleListCredentials)
 	mux.HandleFunc("POST /api/credentials/revoke", h.handleRevokeCredential)
 
-	// Web admin page itself — authenticated, single embedded HTML doc
-	mux.HandleFunc("GET /admin", h.handleAdminPage)
-
 }
 
 // RegisterWebSocketRoute exposes handleWebSocket for mounting outside the
@@ -142,6 +139,15 @@ func (h *Handler) RegisterWebSocketRoute(w http.ResponseWriter, r *http.Request)
 func (h *Handler) RegisterPairingDeviceRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/pair/start", h.handlePairStart)
 	mux.HandleFunc("GET /api/pair/status/{session_id}", h.handlePairStatus)
+}
+
+// RegisterAdminPageRoute exposes the admin page shell for mounting outside
+// the authenticated mux, alongside /ws and the pairing device routes. The
+// HTML itself is unauthenticated, but every API call it makes is not — the
+// token gate lives in the page's own JS, checked against real endpoints,
+// not against the page load.
+func (h *Handler) RegisterAdminPageRoute(mux *http.ServeMux) {
+	mux.HandleFunc("GET /admin", h.handleAdminPage)
 }
 
 // ── Playlist ──────────────────────────────────────────────────────────────────

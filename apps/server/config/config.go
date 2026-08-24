@@ -279,6 +279,10 @@ func loadFile(cfg Config, path string) (Config, error) {
 	if err != nil {
 		return cfg, fmt.Errorf("open config: %w", err)
 	}
+	if info, statErr := f.Stat(); statErr == nil && info.IsDir() {
+		_ = f.Close()
+		return cfg, nil
+	}
 	defer func() {
 		if cerr := f.Close(); cerr != nil {
 			slog.Warn("config: failed to close config file", "path", path, "err", cerr)

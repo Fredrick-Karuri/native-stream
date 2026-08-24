@@ -212,6 +212,7 @@ func main() {
 	rootMux := http.NewServeMux()
 	rootMux.HandleFunc("GET /ws", h.RegisterWebSocketRoute)
 	h.RegisterPairingDeviceRoutes(rootMux)
+	h.RegisterAdminPageRoute(rootMux)
 	var authGuard func(http.Handler) http.Handler
 	if credTotal > 0 {
 		authGuard = api.AuthMiddleware(creds)
