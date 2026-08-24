@@ -206,7 +206,7 @@ async function refreshPending() {
 }
 
 async function approveSession(sessionId) {
-  const label = prompt("Label for this device (e.g. 'Sarah\\'s iPhone'):");
+  const label = prompt("Label for this device (e.g. 'Sarah's iPhone'):");
   if (!label) return;
   try {
     await apiFetch(`/api/pair/approve/${sessionId}`, {
