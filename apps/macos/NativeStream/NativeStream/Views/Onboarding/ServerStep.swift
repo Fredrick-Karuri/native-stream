@@ -15,8 +15,6 @@ struct ServerStep: View {
     @State private var showPlaylist  = false
     @State private var showEpg       = false
     @State private var progressTask: Task<Void, Never>?
-    @State private var pairingVM: PairingViewModel?
-    @State private var pairingApproved = false
 
     var body: some View {
         VStack(spacing: NS.Spacing.xl) {
@@ -46,7 +44,6 @@ struct ServerStep: View {
         .onChange(of: connectionState) { _, state in
             if case .success(_, _, let hasEpg, _) = state {
                 progressTask?.cancel()
-                startPairingIfNeeded()
                 progressTask = Task {
                     withAnimation { showServer = true }
                     try? await Task.sleep(for: .milliseconds(300))
@@ -57,33 +54,10 @@ struct ServerStep: View {
                     if hasEpg { withAnimation { showEpg = true } }
                     try? await Task.sleep(for: .milliseconds(600))
                     guard !Task.isCancelled else { return }
-                    await waitForPairingThenAdvance()
+                    onAdvance()
                 }
             }
         }
-        .onDisappear {
-            pairingVM?.stop()
-        }
-    }
- 
-    private func startPairingIfNeeded() {
-        guard pairingVM == nil else { return }
-        let vm = PairingViewModel(onApproved: { _ in
-            pairingApproved = true
-        })
-        pairingVM = vm
-        vm.start()
-    }
- 
-    private func waitForPairingThenAdvance() async {
-        while !pairingApproved, !Task.isCancelled {
-            if case .expired = pairingVM?.state { return }
-            if case .denied = pairingVM?.state { return }
-            if case .failed = pairingVM?.state { return }
-            try? await Task.sleep(for: .milliseconds(200))
-        }
-        guard !Task.isCancelled, pairingApproved else { return }
-        onAdvance()
     }
  
     private var idleInput: some View {
@@ -154,65 +128,10 @@ struct ServerStep: View {
             if case .checking = connectionState {
                 ProgressView().controlSize(.small)
             }
-            if showPlaylist, let pairingVM {
-                pairingStatusView(for: pairingVM.state)
-                    .transition(.opacity)
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
  
-    @ViewBuilder
-    private func pairingStatusView(for state: PairingViewModel.PairingState) -> some View {
-        switch state {
-        case .idle, .starting:
-            HStack(spacing: NS.Spacing.sm) {
-                ProgressView().controlSize(.small)
-                Text("Preparing device pairing…")
-                    .font(NS.Font.captionMed)
-                    .foregroundStyle(NS.text3)
-            }
- 
-        case .waitingForApproval(let code):
-            VStack(alignment: .leading, spacing: NS.Spacing.xs) {
-                Text("Approve this device from your server's admin page")
-                    .font(NS.Font.captionMed)
-                    .foregroundStyle(NS.text3)
-                Text(code)
-                    .font(.system(.title2, design: .monospaced, weight: .bold))
-                    .foregroundStyle(NS.accent)
-                    .tracking(4)
-            }
- 
-        case .approved:
-            Text("✓ Device paired")
-                .font(NS.Font.captionMed)
-                .foregroundStyle(NS.accent)
- 
-        case .expired:
-            pairingRetryView(message: "Pairing code expired")
- 
-        case .denied:
-            pairingRetryView(message: "Pairing was denied")
- 
-        case .failed(let message):
-            pairingRetryView(message: message)
-        }
-    }
- 
-    private func pairingRetryView(message: String) -> some View {
-        HStack(spacing: NS.Spacing.sm) {
-            Text("✗ \(message)")
-                .font(NS.Font.captionMed)
-                .foregroundStyle(NS.red)
-            Button("Retry") {
-                pairingApproved = false
-                pairingVM?.start()
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-        }
-    }
     private func failureState(reason: FailureReason) -> some View {
         VStack(alignment: .leading, spacing: NS.Spacing.sm) {
             Text("✗ Couldn't reach \(urlInput)")
