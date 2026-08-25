@@ -103,51 +103,41 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/channels", h.handleDeleteAllChannels)
 
 	// Health & probe
-	mux.HandleFunc("GET /api/health", h.handleHealth)
 	mux.HandleFunc("POST /api/probe", h.handleProbe)
 
 	// Proxy config
 	mux.HandleFunc("GET /api/proxy/config", h.handleGetProxyConfig)
 	mux.HandleFunc("PUT /api/proxy/config", h.handlePutProxyConfig)
 
-	// Local Media Connect — /ws itself is registered separately by main.go
-
+	// Local Media Connect
 	mux.HandleFunc("GET /api/sessions", h.handleSessions)
 
-	// Pairing (admin) — authenticated, same mux as everything above
+	// Pairing (admin)
 	mux.HandleFunc("GET /api/pair/pending", h.handlePairPending)
 	mux.HandleFunc("POST /api/pair/approve/{session_id}", h.handlePairApprove)
 	mux.HandleFunc("POST /api/pair/deny/{session_id}", h.handlePairDeny)
 
-	// Credentials (admin) — authenticated, same mux as everything above
+	// Credentials (admin)
 	mux.HandleFunc("GET /api/credentials", h.handleListCredentials)
 	mux.HandleFunc("POST /api/credentials/revoke", h.handleRevokeCredential)
 
 }
 
-// RegisterWebSocketRoute exposes handleWebSocket for mounting outside the
-// authenticated mux. /ws stays token-free — LAN-only casting clients don't
-// carry the hosted API token, and LMC auth is explicitly out of scope here.
 func (h *Handler) RegisterWebSocketRoute(w http.ResponseWriter, r *http.Request) {
 	h.handleWebSocket(w, r)
 }
 
-// RegisterPairingDeviceRoutes exposes the two device-facing pairing
-// endpoints for mounting outside the authenticated mux, alongside /ws.
-// Unauthenticated by design — a device with no credential
-// yet must be able to start and poll a pairing handshake.
 func (h *Handler) RegisterPairingDeviceRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/pair/start", h.handlePairStart)
 	mux.HandleFunc("GET /api/pair/status/{session_id}", h.handlePairStatus)
 }
 
-// RegisterAdminPageRoute exposes the admin page shell for mounting outside
-// the authenticated mux, alongside /ws and the pairing device routes. The
-// HTML itself is unauthenticated, but every API call it makes is not — the
-// token gate lives in the page's own JS, checked against real endpoints,
-// not against the page load.
 func (h *Handler) RegisterAdminPageRoute(mux *http.ServeMux) {
 	mux.HandleFunc("GET /admin", h.handleAdminPage)
+}
+
+func (h *Handler) RegisterHealthRoute(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/health", h.handleHealth)
 }
 
 // ── Playlist ──────────────────────────────────────────────────────────────────

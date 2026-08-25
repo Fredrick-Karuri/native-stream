@@ -206,13 +206,11 @@ func main() {
 	h.RegisterRoutes(mux)
 	serverdiscovery.NewHandler(discEngine).RegisterRoutes(mux)
 
-	// /ws (Local Media Connect) is carved out of the auth-wrapped mux and
-	// mounted separately, unauthenticated — it's LAN-only by design and
-	// casting devices don't hold an API token.
 	rootMux := http.NewServeMux()
 	rootMux.HandleFunc("GET /ws", h.RegisterWebSocketRoute)
 	h.RegisterPairingDeviceRoutes(rootMux)
 	h.RegisterAdminPageRoute(rootMux)
+	h.RegisterHealthRoute(rootMux)
 	var authGuard func(http.Handler) http.Handler
 	if credTotal > 0 {
 		authGuard = api.AuthMiddleware(creds)
@@ -220,7 +218,6 @@ func main() {
 		authGuard = api.AuthMiddleware(nil)
 	}
 	rootMux.Handle("/", authGuard(mux))
-	// Apply middleware stack
 	handler := api.LoggingMiddleware(api.RecoveryMiddleware(rootMux))
 
 	// ── Background workers ─────────────────────────────────────────────────────
@@ -325,11 +322,6 @@ func revokeToken(label string) error {
 	return nil
 }
 
-// createToken loads the credential store standalone (no server start),
-// creates a new credential labeled label, and prints the generated token
-// once. The token is never stored anywhere the operator can retrieve it
-// again later — same principle as a password: shown once at creation,
-// then only its label is visible via --list-tokens.
 func createToken(label string) error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -349,9 +341,6 @@ func createToken(label string) error {
 	return nil
 }
 
-// listTokens prints every credential's label, creation time, and
-// revocation status (never the token itself — --list-tokens is for seeing
-// what exists and what's still active, not for retrieving lost tokens).
 func listTokens() error {
 	cfg, err := config.Load()
 	if err != nil {
