@@ -30,23 +30,41 @@ final class ServerHealthViewModel {
                 return .failure(error)
             }
         }()
-        async let playlistTask = try? APIClient.shared.playlistData()
-        async let epgTask      = try? APIClient.shared.epgData()
-
-        let healthOutcome = await healthResult
-        let playlist      = await playlistTask
-        let epg           = await epgTask
-
+        async let playlistResult: Result<Data, Error> = {
+            do {
+                return .success(try await APIClient.shared.playlistData())
+            } catch {
+                return .failure(error)
+            }
+        }()
+        async let epgTask = try? APIClient.shared.epgData()
+ 
+        let healthOutcome   = await healthResult
+        let playlistOutcome = await playlistResult
+        let epg             = await epgTask
+ 
         let health: Stream_V1_HealthResponse?
         let healthError: Error?
         switch healthOutcome {
         case .success(let value): health = value; healthError = nil
         case .failure(let error): health = nil; healthError = error
         }
-
+ 
+        let playlist: Data?
+        let playlistError: Error?
+        switch playlistOutcome {
+        case .success(let value): playlist = value; playlistError = nil
+        case .failure(let error): playlist = nil; playlistError = error
+        }
+ 
         connectionState = ConnectionStateDecider.decide(
-            health: health, playlist: playlist, epg: epg, healthError: healthError
-        )    }
+            health: health,
+            playlist: playlist,
+            epg: epg,
+            healthError: healthError,
+            playlistError: playlistError
+        )
+    }
 
     func resetConnectionState() {
         connectionState = .idle

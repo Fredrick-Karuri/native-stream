@@ -174,21 +174,24 @@ class SettingsViewModel @Inject constructor(
             val playlist = playlistDeferred.await()
             val epg      = epgDeferred.await()
 
-            val healthUnauthorized = isUnauthorized(health)
-
-            if (health.isFailure && !healthUnauthorized) {
+            if (health.isFailure) {
                 _connectionState.value = OnboardingConnectionState.Failure(FailureReason.UNREACHABLE)
                 return@launch
             }
 
-            // On a 401, playlist/epg will have failed too (same missing
-            // token) — that's expected on a fresh device and must not be
-            // reported as NO_PLAYLIST. Once pairing completes, ServerStep
-            // re-runs checkConnection with a real token and this branch
-            // won't be hit again.
-            if (!healthUnauthorized &&
-                (playlist.isFailure || playlist.getOrNull()?.isEmpty() == true)
-            ) {
+            val playlistUnauthorized = isUnauthorized(playlist)
+
+            if (playlistUnauthorized) {
+                _connectionState.value = OnboardingConnectionState.Success(
+                    channels        = health.getOrNull()?.channels ?: 0,
+                    healthy         = health.getOrNull()?.healthy ?: 0,
+                    hasEpg          = false,
+                    epgFromPlaylist = false,
+                )
+                return@launch
+            }
+
+            if (playlist.isFailure || playlist.getOrNull()?.isEmpty() == true) {
                 _connectionState.value = OnboardingConnectionState.Failure(FailureReason.NO_PLAYLIST)
                 return@launch
             }

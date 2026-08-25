@@ -13,18 +13,31 @@ enum ConnectionStateDecider {
         health: Stream_V1_HealthResponse?,
         playlist: Data?,
         epg: Data?,
-        healthError: Error? = nil
+        healthError: Error? = nil,
+        playlistError: Error? = nil
     ) -> OnboardingConnectionState {
         guard let health else {
-            if case .httpError(401, _) = healthError as? APIError {
-                return .success(channels: 0, healthy: 0, hasEpg: false, epgFromPlaylist: false)
-            }
             if let urlError = healthError as? URLError,
                urlError.code == .serverCertificateUntrusted || urlError.code == .secureConnectionFailed {
                 return .failure(.certificateInvalid)
             }
             return .failure(.unreachable)
         }
+ 
+        let playlistUnauthorized: Bool = {
+            if case .httpError(401, _) = playlistError as? APIError { return true }
+            return false
+        }()
+ 
+        if playlistUnauthorized {
+            return .success(
+                channels: Int(health.channels),
+                healthy: Int(health.healthy),
+                hasEpg: false,
+                epgFromPlaylist: false
+            )
+        }
+ 
         guard let playlist, !playlist.isEmpty else {
             return .failure(.noPlaylist)
         }
