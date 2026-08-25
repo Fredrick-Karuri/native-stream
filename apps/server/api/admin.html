@@ -36,7 +36,19 @@
   h1 { font-size: 20px; margin-bottom: 4px; }
   .subtitle { color: var(--text-dim); font-size: 13px; margin-bottom: 28px; }
   section { margin-bottom: 40px; }
-  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin-bottom: 12px; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-weight: 400;
+  }
+  .toggle-label input { cursor: pointer; }
   .card {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -120,7 +132,13 @@
   </section>
 
   <section>
-    <h2>Credentials</h2>
+    <h2>
+      Credentials
+      <label class="toggle-label">
+        <input type="checkbox" id="showRevokedToggle" onchange="refreshCredentials()">
+        Show revoked
+      </label>
+    </h2>
     <div id="credentialList"><div class="empty">Loading…</div></div>
   </section>
 </main>
@@ -198,15 +216,27 @@ async function refreshPending() {
         </div>
       </div>
       <div class="actions">
-        <button class="primary" onclick="approveSession('${s.session_id}')">Approve</button>
-        <button class="danger" onclick="denySession('${s.session_id}')">Deny</button>
+        <button class="primary" data-approve-session="${escapeHtml(s.session_id)}">Approve</button>
+        <button class="danger" data-deny-session="${escapeHtml(s.session_id)}">Deny</button>
       </div>
     </div>
   `).join('');
+
+  // Real event listeners, not inline onclick strings — see the note in
+  // refreshCredentials for why. session_id is server-generated (UUID) so
+  // it's low-risk in practice, but kept consistent with the credentials
+  // list rather than mixing two different button-wiring approaches in
+  // the same page.
+  el.querySelectorAll('[data-approve-session]').forEach(btn => {
+    btn.addEventListener('click', () => approveSession(btn.dataset.approveSession));
+  });
+  el.querySelectorAll('[data-deny-session]').forEach(btn => {
+    btn.addEventListener('click', () => denySession(btn.dataset.denySession));
+  });
 }
 
 async function approveSession(sessionId) {
-  const label = prompt("Label for this device (e.g. 'Sarah's iPhone'):");
+  const label = prompt("Label for this device (e.g. 'Sarah\\'s iPhone'):");
   if (!label) return;
   try {
     await apiFetch(`/api/pair/approve/${sessionId}`, {
@@ -240,9 +270,15 @@ async function refreshCredentials() {
     return;
   }
 
-  const creds = data.credentials || [];
+  const allCreds = data.credentials || [];
+  const showRevoked = document.getElementById('showRevokedToggle').checked;
+  const creds = showRevoked ? allCreds : allCreds.filter(c => !c.revoked_at);
+
   if (creds.length === 0) {
-    el.innerHTML = '<div class="empty">No credentials yet.</div>';
+    const revokedHiddenCount = allCreds.length - creds.length;
+    el.innerHTML = allCreds.length === 0
+      ? '<div class="empty">No credentials yet.</div>'
+      : `<div class="empty">No active credentials. ${revokedHiddenCount} revoked — check "Show revoked" above.</div>`;
     return;
   }
 
@@ -258,11 +294,22 @@ async function refreshCredentials() {
           </div>
         </div>
         <div class="actions">
-          ${revoked ? '' : `<button class="danger" onclick="revokeCredential('${escapeHtml(c.label)}')">Revoke</button>`}
+          ${revoked ? '' : `<button class="danger" data-revoke-label="${escapeHtml(c.label)}">Revoke</button>`}
         </div>
       </div>
     `;
   }).join('');
+
+  // Real event listeners with the label read from a data attribute, not
+  // interpolated into an inline onclick string — a label containing a
+  // single quote (e.g. "Sarah's iPhone", the exact example this page's
+  // own approve prompt suggests) broke onclick="revokeCredential('...')"
+  // by terminating the JS string literal early. The browser then failed
+  // to parse the attribute as valid JS and the button silently did
+  // nothing — no console error, no visible failure, just an inert button.
+  el.querySelectorAll('[data-revoke-label]').forEach(btn => {
+    btn.addEventListener('click', () => revokeCredential(btn.dataset.revokeLabel));
+  });
 }
 
 async function revokeCredential(label) {
