@@ -1,6 +1,4 @@
 # NativeStream Server — Example Configuration
-# Copy to ~/.config/nativestream/config.yaml and edit as needed.
-# All fields have defaults — you can start with an empty file.
 
 server:
   host: 127.0.0.1

@@ -71,9 +71,16 @@ jobs:
           docker build -t nativestream-server:test .
           docker run --rm -d \
             -e NATIVESTREAM_DOCKER=1 \
+            -e NATIVESTREAM_API_TOKEN=ci-test-token-not-a-real-secret \
             -p 8888:8888 \
             --name ns-test \
             nativestream-server:test
           sleep 3
+          if ! docker inspect -f '{{.State.Running}}' ns-test 2>/dev/null | grep -q true; then
+            echo "::error::Container ns-test exited before healthcheck — dumping logs"
+            docker logs ns-test 2>&1 || echo "(no logs available — container already removed)"
+            exit 1
+          fi
+ 
           curl -f http://localhost:8888/api/health || (docker logs ns-test && exit 1)
           docker stop ns-test
