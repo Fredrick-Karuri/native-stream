@@ -10,7 +10,7 @@ struct ServerStep: View {
     let onConnect: (String) -> Void
     let onAdvance: () -> Void
     let onSkip: () -> Void
-
+ 
     @State private var showServer    = false
     @State private var showPlaylist  = false
     @State private var showEpg       = false
@@ -59,7 +59,7 @@ struct ServerStep: View {
             }
         }
     }
-
+ 
     private var idleInput: some View {
         VStack(spacing: NS.Spacing.lg) {
             if discovery.isScanning && discovery.discoveredURL == nil {
@@ -131,7 +131,7 @@ struct ServerStep: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
-
+ 
     private func failureState(reason: FailureReason) -> some View {
         VStack(alignment: .leading, spacing: NS.Spacing.sm) {
             Text("✗ Couldn't reach \(urlInput)")

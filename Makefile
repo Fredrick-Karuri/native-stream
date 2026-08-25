@@ -177,6 +177,18 @@ release-macos-major:
 release-macos-current:
 	cd $(SCRIPTS_DIR) && ./release.sh macos current
 
+# ── Tokens ────────────────────────────────────────────────────────────
+create-token: build-server
+	@if [ -z "$(LABEL)" ]; then echo "usage: make create-token LABEL=<label>"; exit 1; fi
+	NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml $(SERVER_BIN) --create-token $(LABEL)
+
+list-tokens: build-server
+	NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml $(SERVER_BIN) --list-tokens
+
+revoke-token: build-server
+	@if [ -z "$(LABEL)" ]; then echo "usage: make revoke-token LABEL=<label>"; exit 1; fi
+	NATIVESTREAM_CONFIG=~/.config/nativestream/config.dev.yaml $(SERVER_BIN) --revoke-token $(LABEL)
+
 # ── Service (macOS) ───────────────────────────────────────────────────
 install-service: build-server
 	@echo "→ Installing launchd service..."

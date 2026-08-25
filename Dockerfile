@@ -5,9 +5,11 @@ WORKDIR /build
 
 # Copy the local module referenced by the go.mod replace directive
 COPY packages/sdk-gen/go ./packages/sdk-gen/go
+COPY packages/discovery ./packages/discovery
+COPY packages/mediaplane ./packages/mediaplane
+COPY packages/proxy ./packages/proxy
+COPY packages/epg-sourcing ./packages/epg-sourcing
 
-# Dependencies first (layer cache) — preserve repo-relative path so the
-# "../../packages/sdk-gen/go" replace directive still resolves
 COPY apps/server/go.mod apps/server/go.sum ./apps/server/
 WORKDIR /build/apps/server
 RUN go mod download

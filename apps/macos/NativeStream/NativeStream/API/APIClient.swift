@@ -20,7 +20,39 @@ actor APIClient {
     func setAPIToken(_ token: String?) {
         apiToken = (token?.isEmpty == true) ? nil : token
     }
-
+    
+    // MARK: - Pairing (unauthenticated — device has no token yet)
+ 
+    /// Starts a pairing session. Unauthenticated by construction: a device
+    /// with no credential yet must be able to reach this endpoint (PAIR-002).
+    func startPairing(platform: String) async throws -> Stream_V1_PairStartResponse {
+        var req = Stream_V1_PairStartRequest()
+        req.platform = platform
+        let data = try await rawProtoBody(
+            method: "POST", path: "api/pair/start", message: req, authenticated: false
+        )
+        do {
+            return try Stream_V1_PairStartResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
+    }
+ 
+    /// Polls one pairing session's status. Unauthenticated, session-scoped —
+    /// see PAIR-003. Callers are expected to poll this on an interval and
+    /// stop once status is no longer "pending".
+    func pairingStatus(sessionID: String) async throws -> Stream_V1_PairStatusResponse {
+        let url = try resolve("api/pair/status/\(sessionID)")
+        var req = URLRequest(url: url)
+        req.cachePolicy = .reloadIgnoringLocalCacheData
+        let data = try await execute(req, authenticated: false)
+        do {
+            return try Stream_V1_PairStatusResponse(jsonUTF8Data: data)
+        } catch {
+            throw APIError.decodingFailed(error)
+        }
+    }
+ 
     private static let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -34,7 +66,8 @@ actor APIClient {
     }()
 
     private func rawProtoBody(
-        method: String, path: String, message: any SwiftProtobuf.Message
+        method: String, path: String, message: any SwiftProtobuf.Message,
+        authenticated: Bool = true
     ) async throws -> Data {
         let url = try resolve(path)
         var req = URLRequest(url: url)
@@ -43,7 +76,7 @@ actor APIClient {
         var options = JSONEncodingOptions()
         options.preserveProtoFieldNames = true
         req.httpBody = try message.jsonUTF8Data(options: options)
-        return try await execute(req)
+        return try await execute(req, authenticated: authenticated)
     }
 
     init(

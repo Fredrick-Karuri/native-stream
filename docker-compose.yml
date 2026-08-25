@@ -6,7 +6,9 @@ services:
     container_name: nativestream-server
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8888:8888"   # localhost only — never expose externally
+      - "8888:8888" # Lan Reachable so other devices can manually enter this machine's IP
+                    # to pair. mDNS autodiscovery is not expected to work through Docker's 
+                    # default bridge network.
     volumes:
       - ./config/config.yaml:/config/config.yaml:ro
       - nativestream-data:/data

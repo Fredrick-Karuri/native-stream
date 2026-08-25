@@ -3,7 +3,7 @@
 import SwiftUI
 
 private enum OnboardingStep {
-    case splash, server, playlist, epg
+    case splash, server, pairing, playlist, epg
 }
 
 struct OnboardingView: View {
@@ -17,6 +17,7 @@ struct OnboardingView: View {
     @State private var step             = OnboardingStep.splash
     @State private var urlInput         = ""
     @State private var foundEpgURL: URL?
+    @State private var pairingVM: PairingViewModel?
 
     var onComplete: () -> Void
 
@@ -30,7 +31,6 @@ struct OnboardingView: View {
                         urlInput = settings.serverURLString ?? ""
                         withAnimation { step = .server }
                     })
-
                 case .server:
                     ServerStep(
                         urlInput: $urlInput,
@@ -44,7 +44,20 @@ struct OnboardingView: View {
                             }
                         },
                         onAdvance: {
-                            // auto-add server playlist
+                            let vm = PairingViewModel(onApproved: { _ in })
+                            pairingVM = vm
+                            vm.start()
+                            withAnimation { step = .pairing }
+                        },
+                        onSkip: {
+                            settings.onboardingComplete = true
+                            onComplete()
+                        }
+                    )
+                case .pairing:
+                    PairingStep(
+                        viewModel: pairingVM,
+                        onApproved: {
                             if sourceVM.sources.isEmpty {
                                 if let url = settings.serverURL {
                                     sourceVM.addSource(PlaylistSource(
@@ -55,13 +68,8 @@ struct OnboardingView: View {
                                 }
                             }
                             withAnimation { step = .playlist }
-                        },
-                        onSkip: {
-                            settings.onboardingComplete = true
-                            onComplete()
                         }
                     )
-
                 case .playlist:
                     PlaylistStep(
                         connectionState: serverHealth.connectionState,

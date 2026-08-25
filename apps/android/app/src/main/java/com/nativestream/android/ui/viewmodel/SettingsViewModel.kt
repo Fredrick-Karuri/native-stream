@@ -147,6 +147,21 @@ class SettingsViewModel @Inject constructor(
     private val _connectionState = MutableStateFlow<OnboardingConnectionState>(OnboardingConnectionState.Idle)
     val connectionState: StateFlow<OnboardingConnectionState> = _connectionState
 
+    /**
+     * A 401 from /api/health means the server was reached and is
+     * enforcing auth — that's a "needs pairing" outcome, not
+     * "unreachable". Everything else (timeout, connection refused, DNS
+     * failure, 5xx) is genuinely unreachable. Distinguishing these two
+     * matters because ServerStep/OnboardingScreen only starts the
+     * pairing flow once connectionState reaches Success — collapsing a
+     * 401 into Failure(UNREACHABLE) meant a fresh, never-paired device
+     * could never reach the pairing step in the first place.
+     */
+    private fun isUnauthorized(result: Result<*>): Boolean {
+        val error = result.exceptionOrNull()
+        return error is ApiError.HttpError && error.statusCode == 401
+    }
+
     fun checkConnection(serverUrl: String) {
         viewModelScope.launch {
             apiClient.setBaseUrl(serverUrl)
@@ -163,6 +178,19 @@ class SettingsViewModel @Inject constructor(
                 _connectionState.value = OnboardingConnectionState.Failure(FailureReason.UNREACHABLE)
                 return@launch
             }
+
+            val playlistUnauthorized = isUnauthorized(playlist)
+
+            if (playlistUnauthorized) {
+                _connectionState.value = OnboardingConnectionState.Success(
+                    channels        = health.getOrNull()?.channels ?: 0,
+                    healthy         = health.getOrNull()?.healthy ?: 0,
+                    hasEpg          = false,
+                    epgFromPlaylist = false,
+                )
+                return@launch
+            }
+
             if (playlist.isFailure || playlist.getOrNull()?.isEmpty() == true) {
                 _connectionState.value = OnboardingConnectionState.Failure(FailureReason.NO_PLAYLIST)
                 return@launch

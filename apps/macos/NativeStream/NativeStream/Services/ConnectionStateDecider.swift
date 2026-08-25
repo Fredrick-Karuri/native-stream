@@ -8,16 +8,13 @@ import Foundation
 import SdkGenSwift
 
 enum ConnectionStateDecider {
-
-    /// Mirrors checkConnection's branching exactly:
-    /// 1. No health response → .failure(.unreachable)
-    /// 2. Health present but playlist missing/empty → .failure(.noPlaylist)
-    /// 3. Both present → .success, with hasEpg true only if epg data is non-empty
+    
     static func decide(
         health: Stream_V1_HealthResponse?,
         playlist: Data?,
         epg: Data?,
-        healthError: Error? = nil
+        healthError: Error? = nil,
+        playlistError: Error? = nil
     ) -> OnboardingConnectionState {
         guard let health else {
             if let urlError = healthError as? URLError,
@@ -26,6 +23,21 @@ enum ConnectionStateDecider {
             }
             return .failure(.unreachable)
         }
+ 
+        let playlistUnauthorized: Bool = {
+            if case .httpError(401, _) = playlistError as? APIError { return true }
+            return false
+        }()
+ 
+        if playlistUnauthorized {
+            return .success(
+                channels: Int(health.channels),
+                healthy: Int(health.healthy),
+                hasEpg: false,
+                epgFromPlaylist: false
+            )
+        }
+ 
         guard let playlist, !playlist.isEmpty else {
             return .failure(.noPlaylist)
         }

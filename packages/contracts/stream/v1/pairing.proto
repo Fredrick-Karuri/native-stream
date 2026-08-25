@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package stream.v1;
+option go_package = "github.com/fredrick-karuri/nativestream/sdk-gen/go/stream/v1;streamv1";
+
+import "google/protobuf/timestamp.proto";
+
+// ── Pairing (device-facing) ──────────────────────────────────────────────────
+
+// PairStartRequest is the optional body for POST /api/pair/start. Platform
+// is free-text context (e.g. "macOS", "Android") shown to the operator
+// approving the request later — not validated or constrained to an enum,
+// since new client platforms shouldn't require a proto change to pair.
+message PairStartRequest {
+  string platform = 1;
+}
+
+message PairStartResponse {
+  string session_id = 1;
+  string code = 2;
+  int32 expires_in_seconds = 3;
+}
+
+// PairStatusResponse is returned to a device polling its own session.
+// token and label are populated only once status is "approved".
+message PairStatusResponse {
+  string status = 1;
+  optional string token = 2;
+  optional string label = 3;
+}
+
+// ── Pairing (admin-facing) ───────────────────────────────────────────────────
+
+message PairingSessionSummary {
+  string session_id = 1;
+  string code = 2;
+  google.protobuf.Timestamp requested_at = 3;
+  optional string platform = 4;
+}
+
+message PairPendingResponse {
+  repeated PairingSessionSummary sessions = 1;
+}
+
+message PairApproveRequest {
+  string label = 1;
+}
+
+message PairApproveResponse {
+  string session_id = 1;
+  string status = 2;
+}
+
+message PairDenyResponse {
+  string session_id = 1;
+  string status = 2;
+}
+
+// ── Credentials (admin-facing) ───────────────────────────────────────────────
+
+message CredentialSummary {
+  string label = 1;
+  google.protobuf.Timestamp created_at = 2;
+  optional google.protobuf.Timestamp revoked_at = 3;
+}
+
+message CredentialListResponse {
+  repeated CredentialSummary credentials = 1;
+}
+
+message RevokeCredentialRequest {
+  string label = 1;
+}

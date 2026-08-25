@@ -1,0 +1,347 @@
+<!-- api/admin.html -->
+<!--
+  Minimal web admin. No build step, no framework —
+  plain HTML + fetch calls to the existing authenticated JSON API. The
+  browser's own credential (bearer token, entered once and kept in
+  memory for this tab) authenticates every request; there is no separate
+  admin-auth system.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NativeStream Admin</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #14161a;
+    --panel: #1c1f26;
+    --border: #2a2e37;
+    --text: #e8eaed;
+    --text-dim: #9aa0ab;
+    --accent: #5b8def;
+    --danger: #e05252;
+    --ok: #4caf7d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 20px 80px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .subtitle { color: var(--text-dim); font-size: 13px; margin-bottom: 28px; }
+  section { margin-bottom: 40px; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-weight: 400;
+  }
+  .toggle-label input { cursor: pointer; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .card .info { flex: 1; min-width: 200px; }
+  .code {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+  .meta { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+  .actions { display: flex; gap: 8px; }
+  button {
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #0c1220; font-weight: 600; }
+  button.danger { color: var(--danger); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .empty { color: var(--text-dim); font-size: 13px; padding: 12px 0; }
+  .revoked { opacity: 0.55; }
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(224, 82, 82, 0.15);
+    color: var(--danger);
+    margin-left: 8px;
+  }
+  #tokenGate {
+    max-width: 420px;
+    margin: 80px auto;
+    text-align: center;
+  }
+  #tokenGate input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 14px;
+    margin: 16px 0;
+  }
+  #app { display: none; }
+</style>
+</head>
+<body>
+
+<div id="tokenGate">
+  <h1>NativeStream Admin</h1>
+  <p class="subtitle">Enter an existing credential to continue.</p>
+  <input id="tokenInput" type="password" placeholder="Bearer token" autocomplete="off">
+  <button class="primary" onclick="saveToken()">Continue</button>
+  <p class="meta" id="tokenError"></p>
+</div>
+
+<main id="app">
+  <h1>NativeStream Admin</h1>
+  <p class="subtitle">Pairing approvals and device credentials.</p>
+
+  <section>
+    <h2>Pending Pairing Requests</h2>
+    <div id="pendingList"><div class="empty">Loading…</div></div>
+  </section>
+
+  <section>
+    <h2>
+      Credentials
+      <label class="toggle-label">
+        <input type="checkbox" id="showRevokedToggle" onchange="refreshCredentials()">
+        Show revoked
+      </label>
+    </h2>
+    <div id="credentialList"><div class="empty">Loading…</div></div>
+  </section>
+</main>
+
+<script>
+const PENDING_POLL_MS = 3000;
+let authToken = localStorage.getItem('ns_admin_token') || '';
+
+function saveToken() {
+  const val = document.getElementById('tokenInput').value.trim();
+  if (!val) return;
+  authToken = val;
+  localStorage.setItem('ns_admin_token', val);
+  boot();
+}
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: {
+      'Authorization': 'Bearer ' + authToken,
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+  if (res.status === 401) {
+    document.getElementById('tokenGate').style.display = 'block';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('tokenError').textContent = 'That token was rejected — try again.';
+    throw new Error('unauthorized');
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`${res.status}: ${body}`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleString();
+}
+
+// ── Pending pairing ─────────────────────────────────────────────────────
+
+async function refreshPending() {
+  const el = document.getElementById('pendingList');
+  let data;
+  try {
+    data = await apiFetch('/api/pair/pending');
+  } catch (err) {
+    return; // 401 already handled by apiFetch; other errors: leave stale list rather than flash empty
+  }
+
+  const sessions = data.sessions || [];
+  if (sessions.length === 0) {
+    el.innerHTML = '<div class="empty">No pending pairing requests.</div>';
+    return;
+  }
+
+  el.innerHTML = sessions.map(s => `
+    <div class="card">
+      <div class="info">
+        <div class="code">${escapeHtml(s.code)}</div>
+        <div class="meta">
+          requested ${formatDate(s.requested_at)}
+          ${s.platform ? ' · ' + escapeHtml(s.platform) : ''}
+        </div>
+      </div>
+      <div class="actions">
+        <button class="primary" data-approve-session="${escapeHtml(s.session_id)}">Approve</button>
+        <button class="danger" data-deny-session="${escapeHtml(s.session_id)}">Deny</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Real event listeners, not inline onclick strings — see the note in
+  // refreshCredentials for why. session_id is server-generated (UUID) so
+  // it's low-risk in practice, but kept consistent with the credentials
+  // list rather than mixing two different button-wiring approaches in
+  // the same page.
+  el.querySelectorAll('[data-approve-session]').forEach(btn => {
+    btn.addEventListener('click', () => approveSession(btn.dataset.approveSession));
+  });
+  el.querySelectorAll('[data-deny-session]').forEach(btn => {
+    btn.addEventListener('click', () => denySession(btn.dataset.denySession));
+  });
+}
+
+async function approveSession(sessionId) {
+  const label = prompt("Label for this device (e.g. 'Sarah\\'s iPhone'):");
+  if (!label) return;
+  try {
+    await apiFetch(`/api/pair/approve/${sessionId}`, {
+      method: 'POST',
+      body: JSON.stringify({ label }),
+    });
+    await refreshPending();
+    await refreshCredentials();
+  } catch (err) {
+    alert('Could not approve: ' + err.message);
+  }
+}
+
+async function denySession(sessionId) {
+  try {
+    await apiFetch(`/api/pair/deny/${sessionId}`, { method: 'POST' });
+    await refreshPending();
+  } catch (err) {
+    alert('Could not deny: ' + err.message);
+  }
+}
+
+// ── Credentials ──────────────────────────────────────────────────────────
+
+async function refreshCredentials() {
+  const el = document.getElementById('credentialList');
+  let data;
+  try {
+    data = await apiFetch('/api/credentials');
+  } catch (err) {
+    return;
+  }
+
+  const allCreds = data.credentials || [];
+  const showRevoked = document.getElementById('showRevokedToggle').checked;
+  const creds = showRevoked ? allCreds : allCreds.filter(c => !c.revoked_at);
+
+  if (creds.length === 0) {
+    const revokedHiddenCount = allCreds.length - creds.length;
+    el.innerHTML = allCreds.length === 0
+      ? '<div class="empty">No credentials yet.</div>'
+      : `<div class="empty">No active credentials. ${revokedHiddenCount} revoked — check "Show revoked" above.</div>`;
+    return;
+  }
+
+  el.innerHTML = creds.map(c => {
+    const revoked = !!c.revoked_at;
+    return `
+      <div class="card ${revoked ? 'revoked' : ''}">
+        <div class="info">
+          <div>${escapeHtml(c.label)}${revoked ? '<span class="badge">revoked</span>' : ''}</div>
+          <div class="meta">
+            created ${formatDate(c.created_at)}
+            ${revoked ? ' · revoked ' + formatDate(c.revoked_at) : ''}
+          </div>
+        </div>
+        <div class="actions">
+          ${revoked ? '' : `<button class="danger" data-revoke-label="${escapeHtml(c.label)}">Revoke</button>`}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Real event listeners with the label read from a data attribute, not
+  // interpolated into an inline onclick string — a label containing a
+  // single quote (e.g. "Sarah's iPhone", the exact example this page's
+  // own approve prompt suggests) broke onclick="revokeCredential('...')"
+  // by terminating the JS string literal early. The browser then failed
+  // to parse the attribute as valid JS and the button silently did
+  // nothing — no console error, no visible failure, just an inert button.
+  el.querySelectorAll('[data-revoke-label]').forEach(btn => {
+    btn.addEventListener('click', () => revokeCredential(btn.dataset.revokeLabel));
+  });
+}
+
+async function revokeCredential(label) {
+  if (!confirm(`Revoke credential "${label}"? This device will lose access immediately.`)) return;
+  try {
+    await apiFetch('/api/credentials/revoke', {
+      method: 'POST',
+      body: JSON.stringify({ label }),
+    });
+    await refreshCredentials();
+  } catch (err) {
+    alert('Could not revoke: ' + err.message);
+  }
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────
+
+let pollHandle = null;
+
+function boot() {
+  document.getElementById('tokenGate').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  refreshPending();
+  refreshCredentials();
+  if (pollHandle) clearInterval(pollHandle);
+  pollHandle = setInterval(refreshPending, PENDING_POLL_MS);
+}
+
+if (authToken) {
+  boot();
+}
+</script>
+
+</body>
+</html>

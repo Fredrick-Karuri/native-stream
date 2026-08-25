@@ -39,7 +39,19 @@ type Handler struct {
 	serverName string
 	hub        *control.Hub
 	version    string
+
+	pairing           *store.PairingSessionStore
+	credentials       *store.CredentialStore
+	pairStartLimiter  *ipRateLimiter
+	pairStatusLimiter *ipRateLimiter
 }
+
+const (
+	pairStartRateLimit   = 10 // requests per window
+	pairStartRateWindow  = time.Minute
+	pairStatusRateLimit  = 60 // ~2s client poll interval → ~30/min per device, headroom for jitter
+	pairStatusRateWindow = time.Minute
+)
 
 func New(
 	s *store.Store,
@@ -50,6 +62,8 @@ func New(
 	serverAddr string,
 	hub *control.Hub,
 	version string,
+	pairing *store.PairingSessionStore,
+	credentials *store.CredentialStore,
 ) *Handler {
 	return &Handler{
 		store:      s,
@@ -62,6 +76,11 @@ func New(
 		serverName: func() string { h, _ := os.Hostname(); return "NativeStream @ " + h }(),
 		hub:        hub,
 		version:    version,
+
+		pairing:           pairing,
+		credentials:       credentials,
+		pairStartLimiter:  newIPRateLimiter(pairStartRateLimit, pairStartRateWindow),
+		pairStatusLimiter: newIPRateLimiter(pairStatusRateLimit, pairStatusRateWindow),
 	}
 }
 
@@ -84,24 +103,41 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/channels", h.handleDeleteAllChannels)
 
 	// Health & probe
-	mux.HandleFunc("GET /api/health", h.handleHealth)
 	mux.HandleFunc("POST /api/probe", h.handleProbe)
 
 	// Proxy config
 	mux.HandleFunc("GET /api/proxy/config", h.handleGetProxyConfig)
 	mux.HandleFunc("PUT /api/proxy/config", h.handlePutProxyConfig)
 
-	// Local Media Connect — /ws itself is registered separately by main.go
-
+	// Local Media Connect
 	mux.HandleFunc("GET /api/sessions", h.handleSessions)
+
+	// Pairing (admin)
+	mux.HandleFunc("GET /api/pair/pending", h.handlePairPending)
+	mux.HandleFunc("POST /api/pair/approve/{session_id}", h.handlePairApprove)
+	mux.HandleFunc("POST /api/pair/deny/{session_id}", h.handlePairDeny)
+
+	// Credentials (admin)
+	mux.HandleFunc("GET /api/credentials", h.handleListCredentials)
+	mux.HandleFunc("POST /api/credentials/revoke", h.handleRevokeCredential)
 
 }
 
-// RegisterWebSocketRoute exposes handleWebSocket for mounting outside the
-// authenticated mux. /ws stays token-free — LAN-only casting clients don't
-// carry the hosted API token, and LMC auth is explicitly out of scope here.
 func (h *Handler) RegisterWebSocketRoute(w http.ResponseWriter, r *http.Request) {
 	h.handleWebSocket(w, r)
+}
+
+func (h *Handler) RegisterPairingDeviceRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /api/pair/start", h.handlePairStart)
+	mux.HandleFunc("GET /api/pair/status/{session_id}", h.handlePairStatus)
+}
+
+func (h *Handler) RegisterAdminPageRoute(mux *http.ServeMux) {
+	mux.HandleFunc("GET /admin", h.handleAdminPage)
+}
+
+func (h *Handler) RegisterHealthRoute(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/health", h.handleHealth)
 }
 
 // ── Playlist ──────────────────────────────────────────────────────────────────
