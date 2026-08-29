@@ -81,6 +81,7 @@ struct ServerURLSheet: View {
         }
         .padding(NS.Spacing.xxl)
         .frame(width: 420)
+        .background(NS.surface)
     }
  
     private var clearOverrideExplanation: String {
