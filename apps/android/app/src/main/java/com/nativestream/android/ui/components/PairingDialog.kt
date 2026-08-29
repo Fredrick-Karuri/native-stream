@@ -21,6 +21,7 @@ import com.nativestream.android.ui.screens.onboarding.PairingScreen
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.viewmodel.PairingState
 import com.nativestream.android.ui.viewmodel.PairingViewModel
+import com.nativestream.android.ui.viewmodel.SettingsViewModel
 
 /**
  * Re-pairing entry point shown from Settings (Server section) — a compact
@@ -32,7 +33,9 @@ import com.nativestream.android.ui.viewmodel.PairingViewModel
 @Composable
 fun RepairDeviceDialog(onDismiss: () -> Unit) {
     val pairingViewModel: PairingViewModel = hiltViewModel()
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
     val pairingState by pairingViewModel.state.collectAsState()
+    val serverUrl by settingsViewModel.serverUrl.collectAsState()
 
     LaunchedEffect(Unit) { pairingViewModel.start() }
 
@@ -61,6 +64,7 @@ fun RepairDeviceDialog(onDismiss: () -> Unit) {
         ) {
             PairingScreen(
                 pairingState = pairingState,
+                serverUrl = serverUrl,
                 onRetry = { pairingViewModel.start() },
                 modifier = Modifier.fillMaxWidth(),
             )

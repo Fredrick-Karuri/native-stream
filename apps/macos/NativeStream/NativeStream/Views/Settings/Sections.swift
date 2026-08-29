@@ -303,6 +303,7 @@ struct ServerSection: View {
 }
  
 struct RepairSheet: View {
+    @Environment(SettingsStore.self) private var settings
     @Environment(\.dismiss) private var dismiss
     @State private var pairingVM = PairingViewModel(onApproved: { _ in })
  
@@ -316,6 +317,7 @@ struct RepairSheet: View {
             }
             PairingStep(
                 viewModel: pairingVM,
+                serverURLString: settings.resolvedServerURL.url,
                 onApproved: {
                     // Give the user a beat to see the "✓ Device paired"
                     // state before the sheet closes itself.

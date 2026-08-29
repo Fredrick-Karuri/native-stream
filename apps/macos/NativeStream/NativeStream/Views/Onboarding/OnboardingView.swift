@@ -57,6 +57,7 @@ struct OnboardingView: View {
                 case .pairing:
                     PairingStep(
                         viewModel: pairingVM,
+                        serverURLString: urlInput,
                         onApproved: {
                             if sourceVM.sources.isEmpty {
                                 if let url = settings.serverURL {
