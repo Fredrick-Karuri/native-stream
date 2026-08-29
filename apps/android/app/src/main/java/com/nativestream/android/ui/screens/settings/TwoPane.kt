@@ -46,11 +46,18 @@ import com.adamglin.phosphoricons.regular.FileLock
 import com.adamglin.phosphoricons.regular.GearSix
 import com.adamglin.phosphoricons.regular.Play
 import com.adamglin.phosphoricons.regular.VideoCamera
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.adamglin.phosphoricons.regular.Link
 import com.nativestream.android.ui.components.NSTextField
+import com.nativestream.android.ui.screens.onboarding.PairingScreen
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
+import com.nativestream.android.ui.viewmodel.PairingState
+import com.nativestream.android.ui.viewmodel.PairingViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
 import com.nativestream.android.ui.viewmodel.SourceViewModel
 import kotlinx.coroutines.launch
@@ -88,6 +95,7 @@ fun SettingsTwoPane(
 
     var selectedSection by rememberSaveable { mutableStateOf(SettingsSection.SERVER) }
     var showResetConfirm by remember { mutableStateOf(false) }
+    var showRepairDialog by remember { mutableStateOf(false) }
     val streamQuality by settingsViewModel.streamQuality.collectAsState()
 
     Row(modifier = Modifier.fillMaxSize()) {
@@ -175,6 +183,15 @@ fun SettingsTwoPane(
                                         }
                                     }
                                 },
+                            )
+                            SettingsDivider()
+                            SettingsIconRow(
+                                iconBackground = COLOR_BLUE,
+                                iconTint       = TINT_BLUE,
+                                icon           = PhosphorIcons.Regular.Link,
+                                title          = "Device pairing",
+                                subtitle       = "Re-pair this device if its credential was revoked or lost",
+                                onClick        = { showRepairDialog = true },
                             )
                         }
                     }
@@ -383,6 +400,10 @@ fun SettingsTwoPane(
                 }
             }
         )
+    }
+
+    if (showRepairDialog) {
+        RepairDeviceDialog(onDismiss = { showRepairDialog = false })
     }
 
     SettingsDialogs(
