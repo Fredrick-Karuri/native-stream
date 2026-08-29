@@ -6,9 +6,7 @@
 
 package com.nativestream.android.ui.screens.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -40,18 +38,13 @@ import com.adamglin.phosphoricons.regular.FileLock
 import com.adamglin.phosphoricons.regular.GearSix
 import com.adamglin.phosphoricons.regular.Play
 import com.adamglin.phosphoricons.regular.VideoCamera
-import androidx.compose.ui.window.Dialog
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.adamglin.phosphoricons.regular.Link
 import com.nativestream.android.ui.components.NSTextField
-import com.nativestream.android.ui.screens.onboarding.PairingScreen
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
-import androidx.compose.runtime.DisposableEffect
-import com.nativestream.android.ui.viewmodel.PairingState
-import com.nativestream.android.ui.viewmodel.PairingViewModel
+import com.nativestream.android.ui.components.RepairDeviceDialog
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
 import com.nativestream.android.ui.viewmodel.SourceViewModel
 import kotlinx.coroutines.launch
@@ -348,37 +341,5 @@ fun SettingsSingleColumn(
 
     if (showRepairDialog) {
         RepairDeviceDialog(onDismiss = { showRepairDialog = false })
-    }
-}
-
-@Composable
-internal fun RepairDeviceDialog(onDismiss: () -> Unit) {
-    val pairingViewModel: PairingViewModel = hiltViewModel()
-    val pairingState by pairingViewModel.state.collectAsState()
-
-    LaunchedEffect(Unit) { pairingViewModel.start() }
-
-    LaunchedEffect(pairingState) {
-        if (pairingState is PairingState.Approved) {
-            kotlinx.coroutines.delay(1000)
-            onDismiss()
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { pairingViewModel.stop() }
-    }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(NSColors.bg)
-        ) {
-            PairingScreen(
-                pairingState = pairingState,
-                onRetry = { pairingViewModel.start() },
-            )
-        }
     }
 }

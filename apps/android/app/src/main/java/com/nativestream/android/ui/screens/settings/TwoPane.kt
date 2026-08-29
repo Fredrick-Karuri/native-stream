@@ -51,6 +51,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.adamglin.phosphoricons.regular.Link
 import com.nativestream.android.ui.components.NSTextField
+import com.nativestream.android.ui.components.RepairDeviceDialog
 import com.nativestream.android.ui.screens.onboarding.PairingScreen
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
