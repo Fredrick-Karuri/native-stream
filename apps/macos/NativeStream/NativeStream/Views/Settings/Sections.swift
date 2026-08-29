@@ -66,7 +66,6 @@ struct SourceRow: View {
                 Spacer()
                 Text(isStale ? "Manual · stale" : "↻ \(source.refreshInterval.displayName)")
                     .font(NS.Font.monoSm).foregroundStyle(isStale ? NS.amber : NS.text3)
-                // EPG link toggle
                 Button(action: {
                     epgInput = source.epgURLString
                     withAnimation(.easeInOut(duration: 0.2)) { showEPG.toggle() }
@@ -229,12 +228,13 @@ struct PlaybackSection: View {
 struct ServerSection: View {
     @Environment(SettingsStore.self) private var settings
     @State private var showEditSheet = false
+    @State private var showPairingSheet = false
     @State private var probeState: ProbeState = .idle
-
+ 
     private enum ProbeState: Equatable {
         case idle, running, succeeded, failed
     }
-
+ 
     var body: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
             SectionTitle("StreamServer")
@@ -259,9 +259,17 @@ struct ServerSection: View {
                 }
                 .buttonStyle(.plain)
             }
-
-            // #1 fix: probe trigger, matching Android's "Trigger probe" row
-            // in SettingsSingleColumn — was missing entirely on Mac.
+ 
+            SettingsRow(
+                title: "Device pairing",
+                subtitle: "Re-pair this device if its credential was revoked or lost"
+            ) {
+                Button("Re-pair Device") {
+                    showPairingSheet = true
+                }
+                .buttonStyle(.bordered)
+            }
+ 
             SettingsRow(title: "Trigger probe", subtitle: "Re-validate all stream links") {
                 Button(probeButtonLabel) {
                     probeState = .running
@@ -279,8 +287,11 @@ struct ServerSection: View {
         .sheet(isPresented: $showEditSheet) {
             ServerURLSheet(settings: settings)
         }
+        .sheet(isPresented: $showPairingSheet) {
+            RepairSheet()
+        }
     }
-
+ 
     private var probeButtonLabel: String {
         switch probeState {
         case .idle:      return "Trigger Probe"
@@ -288,6 +299,35 @@ struct ServerSection: View {
         case .succeeded: return "Probe Started ✓"
         case .failed:    return "Probe Failed"
         }
+    }
+}
+ 
+struct RepairSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var pairingVM = PairingViewModel(onApproved: { _ in })
+ 
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button("Close") { dismiss() }
+                    .buttonStyle(.plain)
+                    .padding(NS.Spacing.md)
+            }
+            PairingStep(
+                viewModel: pairingVM,
+                onApproved: {
+                    // Give the user a beat to see the "✓ Device paired"
+                    // state before the sheet closes itself.
+                    Task {
+                        try? await Task.sleep(for: .seconds(1))
+                        dismiss()
+                    }
+                }
+            )
+        }
+        .frame(width: 480, height: 420)
+        .onAppear { pairingVM.start() }
     }
 }
 
