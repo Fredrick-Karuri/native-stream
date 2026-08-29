@@ -270,13 +270,13 @@ private fun FailureState(
         )
         val suggestions = when (reason) {
             FailureReason.UNREACHABLE -> listOf(
-                "Is the server running? Try: make run-server",
-                "Are you on the same WiFi network?",
-                "Check the IP in your server's terminal output",
+                "Make sure your NativeStream server is running",
+                "Are you on the same network as the server?",
+                "Double-check the address you entered",
             )
             FailureReason.NO_PLAYLIST -> listOf(
-                "Server reached but no playlist found",
-                "Check StreamServer is running: make run-server",
+                "Server reached, but no playlist was found",
+                "Check that your server is fully started and has channels configured",
             )
             FailureReason.UNKNOWN -> listOf(
                 "Something went wrong — check the server logs",

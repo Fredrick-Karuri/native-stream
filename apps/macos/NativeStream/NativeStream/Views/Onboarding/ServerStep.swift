@@ -141,13 +141,13 @@ struct ServerStep: View {
             let suggestions: [String] = {
                 switch reason {
                 case .unreachable: return [
-                    "Is the server running? Try: make run-server",
-                    "Are you on the same WiFi network?",
-                    "Check the IP in your server's terminal output"
+                    "Make sure your NativeStream server is running",
+                    "Are you on the same network as the server?",
+                    "Double-check the address you entered"
                 ]
                 case .noPlaylist: return [
-                    "Server reached but no playlist found",
-                    "Check StreamServer is running: make run-server"
+                    "Server reached, but no playlist was found",
+                    "Check that your server is fully started and has channels configured"
                 ]
                 case .certificateInvalid: return [
                     "The server's certificate isn't trusted",
