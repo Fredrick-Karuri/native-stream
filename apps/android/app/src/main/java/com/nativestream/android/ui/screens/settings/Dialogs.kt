@@ -60,9 +60,6 @@ fun SettingsDialogs(
     }
 
     if (showServerUrlDialog) {
-        val currentToken by settingsViewModel.apiToken.collectAsState()
-        var tokenInput by remember(currentToken) { mutableStateOf(currentToken ?: "") }
-
         AlertDialog(
             onDismissRequest = { onShowServerUrl(false) },
             containerColor   = NSColors.surface2,
@@ -76,18 +73,6 @@ fun SettingsDialogs(
                         placeholder   = "http://192.168.1.x:8888",
                         modifier      = settingsFieldModifier(),
                     )
-                    Text("API Token", style = NSType.caption(), color = NSColors.text3)
-                    NSTextField(
-                        value         = tokenInput,
-                        onValueChange = { tokenInput = it },
-                        placeholder   = "Required for hosted servers",
-                        modifier      = settingsFieldModifier(),
-                    )
-                    Text(
-                        "Leave blank for a self-hosted server on your local network.",
-                        style = NSType.caption(),
-                        color = NSColors.text3,
-                    )
                 }
             },
             confirmButton = {
@@ -98,9 +83,6 @@ fun SettingsDialogs(
                     modifier = Modifier
                         .clickable {
                             settingsViewModel.setServerUrl(urlInput)
-                            if (tokenInput.isNotBlank()) {
-                                settingsViewModel.setApiToken(tokenInput)
-                            }
                             onShowServerUrl(false)
                         }
                         .padding(8.dp),
