@@ -66,7 +66,6 @@ struct SourceRow: View {
                 Spacer()
                 Text(isStale ? "Manual · stale" : "↻ \(source.refreshInterval.displayName)")
                     .font(NS.Font.monoSm).foregroundStyle(isStale ? NS.amber : NS.text3)
-                // EPG link toggle
                 Button(action: {
                     epgInput = source.epgURLString
                     withAnimation(.easeInOut(duration: 0.2)) { showEPG.toggle() }
@@ -229,12 +228,13 @@ struct PlaybackSection: View {
 struct ServerSection: View {
     @Environment(SettingsStore.self) private var settings
     @State private var showEditSheet = false
+    @State private var showPairingSheet = false
     @State private var probeState: ProbeState = .idle
-
+ 
     private enum ProbeState: Equatable {
         case idle, running, succeeded, failed
     }
-
+ 
     var body: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
             SectionTitle("StreamServer")
@@ -259,9 +259,17 @@ struct ServerSection: View {
                 }
                 .buttonStyle(.plain)
             }
-
-            // #1 fix: probe trigger, matching Android's "Trigger probe" row
-            // in SettingsSingleColumn — was missing entirely on Mac.
+ 
+            SettingsRow(
+                title: "Device pairing",
+                subtitle: "Re-pair this device if its credential was revoked or lost"
+            ) {
+                Button("Re-pair Device") {
+                    showPairingSheet = true
+                }
+                .buttonStyle(.bordered)
+            }
+ 
             SettingsRow(title: "Trigger probe", subtitle: "Re-validate all stream links") {
                 Button(probeButtonLabel) {
                     probeState = .running
@@ -279,8 +287,11 @@ struct ServerSection: View {
         .sheet(isPresented: $showEditSheet) {
             ServerURLSheet(settings: settings)
         }
+        .sheet(isPresented: $showPairingSheet) {
+            RepairSheet()
+        }
     }
-
+ 
     private var probeButtonLabel: String {
         switch probeState {
         case .idle:      return "Trigger Probe"
@@ -290,48 +301,98 @@ struct ServerSection: View {
         }
     }
 }
+ 
+struct RepairSheet: View {
+    @Environment(SettingsStore.self) private var settings
+    @Environment(\.dismiss) private var dismiss
+    @State private var pairingVM = PairingViewModel(onApproved: { _ in })
+ 
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button("Close") { dismiss() }
+                    .buttonStyle(.plain)
+                    .padding(NS.Spacing.md)
+            }
+            PairingStep(
+                viewModel: pairingVM,
+                serverURLString: settings.resolvedServerURL.url,
+                onApproved: {
+                    // Give the user a beat to see the "✓ Device paired"
+                    // state before the sheet closes itself.
+                    Task {
+                        try? await Task.sleep(for: .seconds(1))
+                        dismiss()
+                    }
+                }
+            )
+        }
+        .frame(width: 480, height: 420)
+        .onAppear { pairingVM.start() }
+    }
+}
 
 // MARK: - Proxy section
 
 struct ProxySection: View {
     @Environment(SettingsStore.self) private var settings
-
+    @State private var showInfo = false
+ 
     var body: some View {
         VStack(alignment: .leading, spacing: NS.Spacing.xl) {
             SectionTitle("Fix Protected Streams")
-            SettingsRow(title: "Fix protected streams",
-                        subtitle: "Some streams block playback unless specific access headers are sent. " +
-                         "Enable this if channels show a blank screen or fail to load.") {
-                NSToggle(isOn: Binding(
-                    get: { settings.proxyEnabled },
-                    set: { enabled in
-                        settings.proxyEnabled = enabled
-                        Task { try? await APIClient.shared.setProxyEnabled(enabled) }
+            SettingsRow(title: "Fix protected streams", subtitle: proxyStatusLine) {
+                HStack(spacing: NS.Spacing.sm) {
+                    Button {
+                        showInfo = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .foregroundStyle(NS.text3)
                     }
-                ))
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showInfo, arrowEdge: .bottom) {
+                        proxyInfoPopover
+                    }
+ 
+                    NSToggle(isOn: Binding(
+                        get: { settings.proxyEnabled },
+                        set: { enabled in
+                            settings.proxyEnabled = enabled
+                            Task { try? await APIClient.shared.setProxyEnabled(enabled) }
+                        }
+                    ))
+                }
             }
-            proxyHint
         }
         .task {
-            // Sync from server on appear — handles server restart resetting to config default
             if let serverEnabled = try? await APIClient.shared.getProxyEnabled() {
                 settings.proxyEnabled = serverEnabled
             }
         }
     }
-
-    @ViewBuilder
-    private var proxyHint: some View {
-        HStack(alignment: .top, spacing: NS.Spacing.xs) {
-            Text(settings.proxyEnabled ? "✓" : "ℹ")
+ 
+    private var proxyStatusLine: String {
+        settings.proxyEnabled ? "Active — routing streams through your server" : "Off by default"
+    }
+ 
+    private var proxyInfoPopover: some View {
+        VStack(alignment: .leading, spacing: NS.Spacing.sm) {
+            Text("Fix Protected Streams")
+                .font(NS.Font.captionMed)
+                .foregroundStyle(NS.text)
+            Text("Some streams block playback unless specific access headers are sent. " +
+                 "Enable this if channels show a blank screen or fail to load.")
                 .font(NS.Font.caption)
+                .foregroundStyle(NS.text3)
             Text(settings.proxyEnabled
-                ? "Proxy active — streams are routing through your server with custom headers."
-                : "Most streams work without this. Enable it only if you're seeing blank screens " +
-                "or playback failures on specific channels.")
+                 ? "Currently active — streams are routing through your server with custom headers."
+                 : "Most streams work without this; only enable it if you're seeing playback failures.")
                 .font(NS.Font.caption)
+                .foregroundStyle(settings.proxyEnabled ? NS.accent : NS.text3)
         }
-        .foregroundStyle(settings.proxyEnabled ? NS.accent : NS.text3)
+        .padding(NS.Spacing.md)
+        .frame(width: 280)
     }
 }
 

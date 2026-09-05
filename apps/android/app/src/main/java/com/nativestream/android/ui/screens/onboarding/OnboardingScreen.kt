@@ -113,6 +113,7 @@ fun OnboardingScreen(
 
             OnboardingStep.PAIRING -> PairingScreen(
                 pairingState = pairingState,
+                serverUrl = serverUrl,
                 onRetry = { pairingViewModel.start() },
             )
 

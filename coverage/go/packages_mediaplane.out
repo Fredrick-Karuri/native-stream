@@ -1,0 +1,12 @@
+mode: set
+github.com/fredrick-karuri/nativestream/packages/mediaplane/stub/stub.go:43.36,47.2 3 0
+github.com/fredrick-karuri/nativestream/packages/mediaplane/stub/stub.go:49.74,50.24 1 0
+github.com/fredrick-karuri/nativestream/packages/mediaplane/stub/stub.go:50.24,53.3 2 0
+github.com/fredrick-karuri/nativestream/packages/mediaplane/stub/stub.go:54.2,55.76 2 0
+github.com/fredrick-karuri/nativestream/packages/mediaplane/stub/stub.go:58.49,60.2 1 0
+github.com/fredrick-karuri/nativestream/packages/mediaplane/stub/stub.go:62.41,64.2 1 0
+github.com/fredrick-karuri/nativestream/packages/mediaplane/stub/stub.go:69.53,71.2 1 0
+github.com/fredrick-karuri/nativestream/packages/mediaplane/stub/stub.go:81.48,83.2 1 0
+github.com/fredrick-karuri/nativestream/packages/mediaplane/stub/stub.go:85.127,87.2 1 0
+github.com/fredrick-karuri/nativestream/packages/mediaplane/stub/stub.go:92.59,94.2 1 0
+github.com/fredrick-karuri/nativestream/packages/mediaplane/stub/stub.go:101.48,103.2 1 0

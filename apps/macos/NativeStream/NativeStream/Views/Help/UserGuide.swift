@@ -121,8 +121,7 @@ let userGuideSections: [HelpSection] = [
         ]),
         HelpItem(title: "Server status", blocks: [
             .text("The bottom of the Settings sidebar shows whether the StreamServer background process is reachable. " +
-                  "If it shows 'Server unreachable', the Go server is not running."),
-            .code("make run-server")
+                  "If it shows 'Server unreachable', the server is not running."),
         ])
     ])
 ]

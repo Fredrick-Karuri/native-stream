@@ -82,6 +82,11 @@ final class SettingsStore {
             controlDeviceID = newID
             ud.set(newID, forKey: Keys.controlDeviceID)  // didSet won't fire during init — persist explicitly
         }
+ 
+        recomputeResolvedURL(discoveredURL: nil)
+        if let url = URL(string: resolvedServerURL.url) {
+            Task { await APIClient.shared.setBaseURL(url) }
+        }
     }
 
     // MARK: - Computed
@@ -90,9 +95,15 @@ final class SettingsStore {
     private(set) var resolvedServerURL: ResolvedServerURL = .init(
         url: ServerURLResolver.hostedDefaultURL,
         source: .hostedDefault
-    )
+    ) {
+        didSet {
+            guard oldValue.url != resolvedServerURL.url,
+                  let url = URL(string: resolvedServerURL.url) else { return }
+            Task { await APIClient.shared.setBaseURL(url) }
+        }
+    }
     var serverURL: URL? { URL(string: resolvedServerURL.url) }
-    
+ 
     private func recomputeResolvedURL(discoveredURL: URL?) {
         resolvedServerURL = ServerURLResolver.resolve(
             manualOverride: serverURLString,

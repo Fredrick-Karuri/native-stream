@@ -274,8 +274,6 @@ struct SettingsNavItem: View {
     }
 }
 
-// add after SettingsNavItem
-
 struct DestructiveNavItem: View {
     let icon: String
     let label: String

@@ -4,6 +4,7 @@
 [![Server Release](https://img.shields.io/github/v/tag/fredrick-karuri/native-stream?filter=server%2Fv*&label=server)](https://github.com/fredrick-karuri/native-stream/releases?q=server)
 [![Android Release](https://img.shields.io/github/v/tag/fredrick-karuri/native-stream?filter=android%2Fv*&label=android)](https://github.com/fredrick-karuri/native-stream/releases?q=android)
 [![macOS Release](https://img.shields.io/github/v/tag/fredrick-karuri/native-stream?filter=macos%2Fv*&label=macos)](https://github.com/fredrick-karuri/native-stream/releases?q=macos)
+![Coverage](https://img.shields.io/badge/coverage-view_details-blue)
 
 # NativeStream
 

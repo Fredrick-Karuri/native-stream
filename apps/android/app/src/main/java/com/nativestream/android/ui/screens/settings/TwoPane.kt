@@ -46,11 +46,29 @@ import com.adamglin.phosphoricons.regular.FileLock
 import com.adamglin.phosphoricons.regular.GearSix
 import com.adamglin.phosphoricons.regular.Play
 import com.adamglin.phosphoricons.regular.VideoCamera
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.adamglin.phosphoricons.regular.Link
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.ui.unit.dp
+import com.adamglin.phosphoricons.regular.Link
 import com.nativestream.android.ui.components.NSTextField
+import com.nativestream.android.ui.components.ProxyInfoDialog
+import com.nativestream.android.ui.components.RepairDeviceDialog
+import com.nativestream.android.ui.components.NSTextField
+import com.nativestream.android.ui.components.RepairDeviceDialog
+import com.nativestream.android.ui.screens.onboarding.PairingScreen
 import com.nativestream.android.ui.theme.NSColors
 import com.nativestream.android.ui.theme.NSDimens
 import com.nativestream.android.ui.theme.NSType
 import com.nativestream.android.ui.viewmodel.ChannelLoadingViewModel
+import com.nativestream.android.ui.viewmodel.PairingState
+import com.nativestream.android.ui.viewmodel.PairingViewModel
 import com.nativestream.android.ui.viewmodel.SettingsViewModel
 import com.nativestream.android.ui.viewmodel.SourceViewModel
 import kotlinx.coroutines.launch
@@ -88,6 +106,8 @@ fun SettingsTwoPane(
 
     var selectedSection by rememberSaveable { mutableStateOf(SettingsSection.SERVER) }
     var showResetConfirm by remember { mutableStateOf(false) }
+    var showRepairDialog by remember { mutableStateOf(false) }
+    var showProxyInfo by remember { mutableStateOf(false) }
     val streamQuality by settingsViewModel.streamQuality.collectAsState()
 
     Row(modifier = Modifier.fillMaxSize()) {
@@ -175,6 +195,15 @@ fun SettingsTwoPane(
                                         }
                                     }
                                 },
+                            )
+                            SettingsDivider()
+                            SettingsIconRow(
+                                iconBackground = COLOR_BLUE,
+                                iconTint       = TINT_BLUE,
+                                icon           = PhosphorIcons.Regular.Link,
+                                title          = "Device pairing",
+                                subtitle       = "Re-pair this device if its credential was revoked or lost",
+                                onClick        = { showRepairDialog = true },
                             )
                         }
                     }
@@ -318,7 +347,8 @@ fun SettingsTwoPane(
                 SettingsSection.PROXY -> {
                     item {
                         SettingsSection(label = "Proxy") {
-                            Column(
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(
@@ -326,21 +356,31 @@ fun SettingsTwoPane(
                                         vertical   = dimens.spacing.sm,
                                     ),
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.FileLock)
-                                    Spacer(modifier = Modifier.width(dimens.spacing.sm))
-                                    Column(modifier = Modifier.weight(1f)) {
+                                RowIcon(background = COLOR_BLUE, tint = TINT_BLUE, icon = PhosphorIcons.Regular.FileLock)
+                                Spacer(modifier = Modifier.width(dimens.spacing.sm))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(text = "Fix protected streams", style = NSType.bodyMedium(), color = NSColors.text)
-                                        Text(
-                                            text  = "Some streams block playback unless specific access headers are sent. Enable this if channels show a blank screen or fail to load.",
-                                            style = NSType.caption(),
-                                            color = NSColors.text3,
-                                        )
+                                        Spacer(modifier = Modifier.width(dimens.spacing.xs))
+                                        IconButton(
+                                            onClick = { showProxyInfo = true },
+                                            modifier = Modifier.size(20.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Info,
+                                                contentDescription = "What is this?",
+                                                tint = NSColors.text3,
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
                                     }
-                                    NSToggle(checked = proxyEnabled, onCheckedChange = { onProxyEnabled(it) })
+                                    Text(
+                                        text  = if (proxyEnabled) "Active — routing streams through your server" else "Off by default",
+                                        style = NSType.caption(),
+                                        color = if (proxyEnabled) NSColors.accent else NSColors.text3,
+                                    )
                                 }
-                                Spacer(modifier = Modifier.height(dimens.spacing.xs))
-                                ProxyHint(proxyEnabled = proxyEnabled)
+                                NSToggle(checked = proxyEnabled, onCheckedChange = { onProxyEnabled(it) })
                             }
                         }
                     }
@@ -382,6 +422,17 @@ fun SettingsTwoPane(
                     Text("Cancel")
                 }
             }
+        )
+    }
+
+    if (showRepairDialog) {
+        RepairDeviceDialog(onDismiss = { showRepairDialog = false })
+    }
+
+    if (showProxyInfo) {
+        ProxyInfoDialog(
+            proxyEnabled = proxyEnabled,
+            onDismiss = { showProxyInfo = false },
         )
     }
 
