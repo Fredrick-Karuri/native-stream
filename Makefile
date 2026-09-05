@@ -2,7 +2,8 @@
 		test-server test-android-unit test-android-ui test-android-all \
         release-server-patch release-server-minor release-server-major release-server-current \
         release-android-patch release-android-minor release-android-major release-android-current \
-        release-macos-patch release-macos-minor release-macos-major release-macos-current test-mac-unit test-mac-ui
+        release-macos-patch release-macos-minor release-macos-major release-macos-current test-mac-unit test-mac-ui \
+		coverage-server coverage-android coverage-mac coverage-all
 
 # ── Go Server ─────────────────────────────────────────────────────────────────
 SERVER_DIR := apps/server
@@ -201,11 +202,31 @@ uninstall-service:
 	sudo rm -f /usr/local/bin/nativestream-server
 	@echo "✓ Service removed"
 
+# ── Coverage ──────────────────────────────────────────────────────────────────
+SCRIPTS_DIR := tooling/scripts
+
+coverage-server:
+	@chmod +x $(SCRIPTS_DIR)/coverage.sh
+	@$(SCRIPTS_DIR)/coverage.sh server
+
+coverage-android:
+	@chmod +x $(SCRIPTS_DIR)/coverage.sh
+	@$(SCRIPTS_DIR)/coverage.sh android
+
+coverage-mac:
+	@chmod +x $(SCRIPTS_DIR)/coverage.sh
+	@$(SCRIPTS_DIR)/coverage.sh macos
+
+coverage-all:
+	@chmod +x $(SCRIPTS_DIR)/coverage.sh
+	@$(SCRIPTS_DIR)/coverage.sh all
+
 # ── Cleanup ───────────────────────────────────────────────────────────────────
 clean:
 	@echo "→ Cleaning..."
 	rm -f $(SERVER_BIN)
 	rm -rf $(DERIVED)
+	rm -rf coverage/
 	@echo "✓ Clean"
 
 # ── all ─────────────────────────────────────────────────────────────────
